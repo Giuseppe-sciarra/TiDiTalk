@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="it" data-project="videochat">
+<head>
+  <meta charset="UTF-8" />
+  <script src="/assets/i18n/catalog.js"></script>
+  <script src="/assets/i18n/i18n.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#121318" />
+  <title>Impostazioni · %%APP_NAME%%</title>
+  <link rel="icon" href="%%FAVICON%%" />
+  <link rel="stylesheet" href="/assets/css/fonts.css" />
+  <link rel="stylesheet" href="/assets/css/tdt-base.css" />
+  <link rel="stylesheet" href="/assets/css/tdt-app.css" />
+  %%BRAND_HEAD%%
+  <script src="/assets/js/theme.js"></script>
+
+  <link rel="stylesheet" href="/assets/i18n/i18n.css">
+</head>
+<body class="tdt-app">
+  <header class="app-header">
+    <a href="/home" class="app-brand"><img src="%%LOGO%%" alt="" /><span>%%APP_NAME%%</span></a>
+    <nav class="app-nav">
+      <a href="/home" class="nav-link">Riunioni</a>
+      <a href="/schedule" class="nav-link">Pianifica</a>
+      <a href="/settings" class="nav-link active">Impostazioni</a>
+      <button class="icon-btn" data-theme-toggle data-tip="Cambia tema">
+        <span class="ico-dark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg></span><span class="ico-light hidden"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.6 8.6 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg></span>
+      </button>
+      <button class="nav-link" data-logout type="button">Esci</button>
+    </nav>
+  </header>
+
+  <div class="page">
+    <h1 class="page-title">Impostazioni</h1>
+    <p class="page-sub">Tutto ciò che riguarda l'aspetto e le regole della piattaforma si cambia da qui. Le cose tecniche (SMTP, TURN, indirizzi, chiavi) restano nel file <code>.env</code> sul server.</p>
+
+    <div class="settings-layout">
+      <nav class="settings-nav" id="settingsNav">
+        <button class="active" data-tab="brand">Brand</button>
+        <button data-tab="rooms">Riunioni</button>
+        <button data-tab="users">Utenti</button>
+        <button data-tab="system">Sistema</button>
+      </nav>
+
+      <div>
+        <!-- ── BRAND ─────────────────────────────────────────────── -->
+        <section class="panel active" id="panel-brand">
+          <div class="card">
+            <h2 class="card-title">Identità</h2>
+            <p class="card-sub">Nome, sottotitolo e logo compaiono ovunque: pagine, stanza, email di invito e anteprima dei link.</p>
+            <div class="grid-2">
+              <div class="field">
+                <label for="brandName">Nome della piattaforma</label>
+                <input type="text" id="brandName" maxlength="40" />
+              </div>
+              <div class="field">
+                <label for="brandTagline">Sottotitolo</label>
+                <input type="text" id="brandTagline" maxlength="80" placeholder="Videoriunioni semplici, sul tuo server" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Logo</label>
+              <div class="logo-preview">
+                <img id="logoPreview" src="%%LOGO%%" alt="" />
+                <div style="flex:1;min-width:0">
+                  <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" />
+                  <div class="hint">PNG, JPG o WEBP fino a 2 MB. Meglio con sfondo trasparente.</div>
+                  <input type="text" id="logoUrl" placeholder="/assets/images/logo.png" style="margin-top:8px" />
+                  <div class="hint">Oppure incolla il percorso di un file già sul server (/assets/images/… o /assets/uploads/…) o un indirizzo https.</div>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Icona del sito (favicon)</label>
+              <div class="logo-preview">
+                <img id="faviconPreview" src="%%FAVICON%%" alt="" style="height:34px" />
+                <div style="flex:1;min-width:0">
+                  <input type="file" id="faviconFile" accept="image/png,image/webp" />
+                  <div class="hint">PNG quadrata, almeno 64×64. Se non la carichi viene usato il logo.</div>
+                  <input type="text" id="faviconUrl" placeholder="/assets/images/favicon.png" style="margin-top:8px" />
+                  <div class="hint">Anche qui puoi incollare direttamente un percorso già presente sul server.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Colori e tema</h2>
+            <p class="card-sub">Il colore accento tinge pulsanti, evidenziazioni e email. Il tema è il punto di partenza: ognuno può poi scegliere chiaro o scuro dal proprio browser.</p>
+            <div class="field">
+              <label>Colore accento</label>
+              <div class="swatches" id="swatches"></div>
+              <div class="hint">Se scegli un colore molto scuro o molto chiaro viene adattato quanto basta per restare leggibile nel tema opposto.</div>
+              <div class="color-row" style="margin-top:10px">
+                <input type="color" id="brandColor" />
+                <input type="text" id="brandColorHex" placeholder="#7b5ea7" maxlength="7" style="max-width:150px" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="brandTheme">Tema predefinito</label>
+              <select id="brandTheme" style="max-width:260px">
+                <option value="dark">Scuro</option>
+                <option value="light">Chiaro</option>
+                <option value="auto">Come il sistema dell'utente</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Footer "powered by"</label>
+              <label class="switch"><input type="checkbox" id="footerEnabled"><span class="track"></span><span>Mostralo in fondo alle pagine</span></label>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="footerText">Testo</label>
+                <input type="text" id="footerText" maxlength="120" placeholder="Powered by La Tua Azienda" />
+              </div>
+              <div class="field">
+                <label for="footerLink">Link</label>
+                <input type="url" id="footerLink" placeholder="https://esempio.it" />
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Azienda</h2>
+            <p class="card-sub">Compare nella finestra "Informazioni" dentro la riunione e in fondo alle email.</p>
+            <div class="grid-2">
+              <div class="field"><label for="infoCompany">Nome azienda</label><input type="text" id="infoCompany" maxlength="80" /></div>
+              <div class="field"><label for="infoEmail">Email di contatto</label><input type="email" id="infoEmail" maxlength="120" /></div>
+              <div class="field"><label for="infoSite">Sito web</label><input type="url" id="infoSite" placeholder="https://esempio.it" /></div>
+              <div class="field"><label for="infoDev">Riga crediti</label><input type="text" id="infoDev" maxlength="160" placeholder="Sviluppato da…" /></div>
+            </div>
+          </div>
+          <button class="btn" id="btnSaveBrand">Salva</button>
+        </section>
+
+        <!-- ── RIUNIONI ──────────────────────────────────────────── -->
+        <section class="panel" id="panel-rooms">
+          <div class="card">
+            <h2 class="card-title">Regole delle stanze</h2>
+            <p class="card-sub">Valgono per tutte le riunioni. Chi presenta può comunque aprire o chiudere il disegno al volo dalla barra degli strumenti.</p>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="guestScreenShare"><span class="track"></span><span>Gli ospiti possono condividere lo schermo</span></label>
+              <div class="hint">Se lo togli, possono presentare solo gli utenti registrati.</div>
+            </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="annotateAll"><span class="track"></span><span>Tutti possono disegnare sullo schermo condiviso</span></label>
+              <div class="hint">Con l'interruttore spento disegnano solo chi presenta e gli organizzatori.</div>
+            </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="roomTour"><span class="track"></span><span>Mostra la mini-guida al primo ingresso</span></label>
+              <div class="hint">Quattro fumetti che spiegano microfono, condivisione schermo e disegno. Spenta di default: utile se inviti clienti poco pratici. Chiunque può rivederla dal "?" in alto nella stanza.</div>
+            </div>
+            <button class="btn" id="btnSaveRooms">Salva</button>
+          </div>
+        </section>
+
+        <!-- ── UTENTI ────────────────────────────────────────────── -->
+        <section class="panel" id="panel-users">
+          <div class="card">
+            <h2 class="card-title">Utenti</h2>
+            <p class="card-sub" id="usersMode"></p>
+            <table class="table" id="usersTable">
+              <thead><tr><th>Utente</th><th>Nome</th><th>Ruolo</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h2 class="card-title">Nuovo utente</h2>
+            <p class="card-sub">Gli <strong>amministratori</strong> possono cambiare queste impostazioni e gestire gli utenti. Gli <strong>organizzatori</strong> creano e conducono le riunioni.</p>
+            <div class="grid-2">
+              <div class="field"><label for="nuUser">Nome utente</label><input type="text" id="nuUser" placeholder="mario" autocomplete="off" /></div>
+              <div class="field"><label for="nuName">Nome visualizzato</label><input type="text" id="nuName" placeholder="Mario Rossi" /></div>
+              <div class="field"><label for="nuPass">Password</label><input type="password" id="nuPass" placeholder="almeno 8 caratteri" autocomplete="new-password" /></div>
+              <div class="field"><label for="nuRole">Ruolo</label>
+                <select id="nuRole"><option value="host">Organizzatore</option><option value="admin">Amministratore</option></select>
+              </div>
+            </div>
+            <button class="btn" id="btnAddUser">Crea utente</button>
+          </div>
+          <div class="card">
+            <h2 class="card-title">La tua password</h2>
+            <div class="grid-2">
+              <div class="field"><label for="pwOld">Password attuale</label><input type="password" id="pwOld" autocomplete="current-password" /></div>
+              <div class="field"><label for="pwNew">Nuova password</label><input type="password" id="pwNew" autocomplete="new-password" /></div>
+            </div>
+            <button class="btn btn-ghost" id="btnChangePw">Cambia password</button>
+          </div>
+        </section>
+
+        <!-- ── SISTEMA ───────────────────────────────────────────── -->
+        <section class="panel" id="panel-system">
+          <div class="card">
+            <h2 class="card-title">Stato del server</h2>
+            <p class="card-sub">Sola lettura: questi valori si cambiano nel file <code>.env</code> e richiedono il riavvio del container.</p>
+            <dl class="kv" id="systemInfo"></dl>
+          </div>
+          <div class="card">
+            <h2 class="card-title">Prova l'invio email</h2>
+            <p class="card-sub">Manda un messaggio di prova con i parametri SMTP attuali.</p>
+            <div class="grid-2" style="align-items:end">
+              <div class="field" style="margin:0"><label for="testEmail">Indirizzo destinatario</label><input type="email" id="testEmail" placeholder="tu@esempio.it" /></div>
+              <button class="btn btn-ghost" id="btnTestMail">Invia prova</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/tooltip.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    const PRESETS = ['#7b5ea7', '#e8913a', '#4c6ef5', '#2f9e78', '#c0453c', '#111827'];
+    let S = null;
+
+    (async () => {
+      if (!await Tdt.requireAuth({ admin: true })) return;
+      buildSwatches();
+      await load();
+    })();
+
+    document.getElementById('settingsNav').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-tab]'); if (!b) return;
+      document.querySelectorAll('.settings-nav button').forEach(x => x.classList.toggle('active', x === b));
+      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
+    });
+
+    function buildSwatches() {
+      document.getElementById('swatches').innerHTML =
+        PRESETS.map(c => `<button type="button" class="swatch" data-c="${c}" style="--c:${c}" data-tip="${c}"></button>`).join('');
+      document.querySelectorAll('.swatch').forEach(s => s.addEventListener('click', () => setColor(s.dataset.c)));
+    }
+    // Anteprima dal vivo: l'accento viene adattato al tema come fa il server,
+    // così un colore quasi nero resta visibile anche sul tema scuro.
+    const toRgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+    const toHex = (a) => '#' + a.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+    const lum = (rgb) => { const [r, g, b] = rgb.map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
+    const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+    function rgbToHsl([r, g, b]) {
+      r /= 255; g /= 255; b /= 255;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+      let h = 0, sa = 0;
+      if (d) {
+        sa = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+        h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        h /= 6;
+      }
+      return [h, sa, l];
+    }
+    function hslToRgb([h, s, l]) {
+      if (!s) { const v = l * 255; return [v, v, v]; }
+      const q = l < .5 ? l * (1 + s) : l + s - l * s, p2 = 2 * l - q;
+      const f = (t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p2 + (q - p2) * 6 * t; if (t < .5) return q; if (t < 2 / 3) return p2 + (q - p2) * (2 / 3 - t) * 6; return p2; };
+      return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+    }
+    function accentFor(hex, theme) {
+      const surface = toRgb(theme === 'light' ? '#ffffff' : '#181a21');
+      let [h, sa, l] = rgbToHsl(toRgb(hex));
+      if (sa < .08 && l < .5) sa = .12;
+      const step = theme === 'light' ? -.02 : .02;
+      let rgb = hslToRgb([h, sa, l]);
+      for (let i = 0; i < 45 && contrast(rgb, surface) < 3.4; i++) {
+        l = Math.max(.08, Math.min(.92, l + step));
+        rgb = hslToRgb([h, sa, l]);
+      }
+      return toHex(rgb);
+    }
+    const inkFor = (hex) => lum(toRgb(hex)) > .36 ? '#17150f' : '#ffffff';
+
+    function setColor(hex) {
+      document.getElementById('brandColor').value = hex;
+      document.getElementById('brandColorHex').value = hex;
+      const d = accentFor(hex, 'dark'), l = accentFor(hex, 'light');
+      const root = document.documentElement.style;
+      root.setProperty('--accent-raw', hex);
+      root.setProperty('--accent-dark', d);
+      root.setProperty('--accent-light', l);
+      root.setProperty('--accent-ink-dark', inkFor(d));
+      root.setProperty('--accent-ink-light', inkFor(l));
+      document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s.dataset.c.toLowerCase() === hex.toLowerCase()));
+    }
+    document.getElementById('brandColor').addEventListener('input', e => setColor(e.target.value));
+    document.getElementById('brandColorHex').addEventListener('input', e => {
+      const v = e.target.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) setColor(v);
+    });
+
+    async function load() {
+      S = await Tdt.api('/api/settings');
+      const b = S.branding, f = S.footer, i = S.info, r = S.rooms;
+      document.getElementById('brandName').value = b.platformName || '';
+      document.getElementById('brandTagline').value = b.tagline || '';
+      document.getElementById('brandTheme').value = b.theme || 'dark';
+      setColor(b.accentColor || PRESETS[0]);
+      if (b.logoUrl) document.getElementById('logoPreview').src = b.logoUrl;
+      if (b.faviconUrl) document.getElementById('faviconPreview').src = b.faviconUrl;
+      document.getElementById('logoUrl').value = b.logoUrl || '';
+      document.getElementById('faviconUrl').value = b.faviconUrl || '';
+      document.getElementById('footerEnabled').checked = !!f.enabled;
+      document.getElementById('footerText').value = f.text || '';
+      document.getElementById('footerLink').value = f.link || '';
+      document.getElementById('infoCompany').value = i.companyName || '';
+      document.getElementById('infoEmail').value = i.companyEmail || '';
+      document.getElementById('infoSite').value = i.companySite || '';
+      document.getElementById('infoDev').value = i.developerTitle || '';
+      document.getElementById('guestScreenShare').checked = r.guestScreenShare !== false;
+      document.getElementById('annotateAll').checked = r.annotateAll === true;
+      document.getElementById('roomTour').checked = r.tour === true;
+      renderSystem(S.system);
+      loadUsers();
+    }
+
+    function renderSystem(sys) {
+      const dot = (ok) => `<span class="${ok ? 'dot-ok' : 'dot-no'}"></span>`;
+      const rows = [
+        ['Nome da .env (APP_NAME)', Tdt.esc(sys.appNameEnv || '—')],
+        ['Indirizzo pubblico', Tdt.esc(sys.baseUrl || 'non impostato')],
+        ['SMTP', sys.smtp.configured ? `${dot(true)}${Tdt.esc(sys.smtp.host)}:${sys.smtp.port} · mittente ${Tdt.esc(sys.smtp.from)}` : `${dot(false)}non configurato: gli inviti non partono`],
+        ['TURN / STUN', sys.turn.host ? `${dot(true)}${Tdt.esc(sys.turn.host)}${sys.turn.auth ? ' · con credenziali' : ' · senza credenziali'}` : `${dot(false)}non configurato`],
+        ['IP annunciato (mediasoup)', Tdt.esc(sys.announcedIp || 'non impostato')],
+        ['Email riepilogo organizzatore', Tdt.esc(sys.hostNotifyEmail || 'nessuna')],
+        ['Utenti da .env', sys.usersMode === 'sync' ? 'USERS_MODE=sync (il file comanda)' : 'USERS_MODE=create (crea solo i mancanti)'],
+        ['Versione', Tdt.esc(sys.version || '—')],
+      ];
+      document.getElementById('systemInfo').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    }
+
+    async function upload(kind, file, previewId, field) {
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { Tdt.toast('File troppo grande: massimo 2 MB'); return; }
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      try {
+        const r = await fetch(`/api/upload/${kind}?ext=${encodeURIComponent(ext)}`, {
+          method: 'POST',
+          // Content-Type esplicito: senza, il server non legge il corpo binario
+          headers: { 'x-auth-token': Tdt.token(), 'Content-Type': 'application/octet-stream' },
+          body: await file.arrayBuffer(),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Caricamento non riuscito');
+        const img = document.getElementById(previewId);
+        img.src = data.url; img.dataset.url = data.url;
+        const urlField = document.getElementById(kind === 'logo' ? 'logoUrl' : 'faviconUrl');
+        if (urlField) urlField.value = data.url;
+        Tdt.toast('Immagine caricata: ora premi Salva');
+      } catch (e) { Tdt.toast(e.message); }
+    }
+    document.getElementById('logoFile').addEventListener('change', e => upload('logo', e.target.files[0], 'logoPreview'));
+    document.getElementById('faviconFile').addEventListener('change', e => upload('favicon', e.target.files[0], 'faviconPreview'));
+
+    // il campo di testo vince (permette di puntare a un file già sul server)
+    const urlOf = (fieldId, previewId, current) => {
+      const typed = document.getElementById(fieldId).value.trim();
+      if (typed) return typed;
+      return document.getElementById(previewId).dataset.url || current || '';
+    };
+    ['logo', 'favicon'].forEach(k => {
+      const f = document.getElementById(k + 'Url');
+      f.addEventListener('input', () => {
+        const v = f.value.trim();
+        if (/^(\/assets\/|https?:\/\/)/.test(v)) document.getElementById(k + 'Preview').src = v;
+      });
+    });
+
+    document.getElementById('btnSaveBrand').addEventListener('click', async () => {
+      try {
+        await Tdt.api('/api/settings/branding', {
+          method: 'POST', body: JSON.stringify({
+            platformName: document.getElementById('brandName').value.trim(),
+            tagline: document.getElementById('brandTagline').value.trim(),
+            accentColor: document.getElementById('brandColor').value,
+            theme: document.getElementById('brandTheme').value,
+            logoUrl: urlOf('logoUrl', 'logoPreview', S.branding.logoUrl),
+            faviconUrl: urlOf('faviconUrl', 'faviconPreview', S.branding.faviconUrl),
+          }),
+        });
+        await Tdt.api('/api/settings/footer', {
+          method: 'POST', body: JSON.stringify({
+            enabled: document.getElementById('footerEnabled').checked,
+            text: document.getElementById('footerText').value.trim(),
+            link: document.getElementById('footerLink').value.trim(),
+          }),
+        });
+        await Tdt.api('/api/settings/info', {
+          method: 'POST', body: JSON.stringify({
+            companyName: document.getElementById('infoCompany').value.trim(),
+            companyEmail: document.getElementById('infoEmail').value.trim(),
+            companySite: document.getElementById('infoSite').value.trim(),
+            developerTitle: document.getElementById('infoDev').value.trim(),
+          }),
+        });
+        Tdt.toast('Salvato. Ricarico per applicare tutto…');
+        setTimeout(() => window.location.reload(), 900);
+      } catch (e) { Tdt.toast(e.message); }
+    });
+
+    document.getElementById('btnSaveRooms').addEventListener('click', async () => {
+      try {
+        await Tdt.api('/api/settings/rooms', {
+          method: 'POST', body: JSON.stringify({
+            guestScreenShare: document.getElementById('guestScreenShare').checked,
+            annotateAll: document.getElementById('annotateAll').checked,
+            tour: document.getElementById('roomTour').checked,
+          }),
+        });
+        Tdt.toast('Regole salvate: valgono dalle prossime riunioni');
+      } catch (e) { Tdt.toast(e.message); }
+    });
+
+    async function loadUsers() {
+      const data = await Tdt.api('/api/users');
+      document.getElementById('usersMode').textContent = data.mode === 'sync'
+        ? 'USERS_MODE=sync: gli utenti definiti in .env sono in sola lettura e vanno modificati lì.'
+        : 'Puoi creare utenti qui; quelli elencati in .env vengono creati all\'avvio se mancano.';
+      const tb = document.querySelector('#usersTable tbody');
+      tb.innerHTML = data.users.map(u => `
+        <tr>
+          <td><strong>${Tdt.esc(u.username)}</strong>${u.me ? ' <span class="badge">tu</span>' : ''}${u.source === 'env' ? ' <span class="badge">.env</span>' : ''}</td>
+          <td>${Tdt.esc(u.display_name || '')}</td>
+          <td><span class="badge ${u.role === 'admin' ? 'badge-accent' : ''}">${u.role === 'admin' ? 'Amministratore' : 'Organizzatore'}</span></td>
+          <td style="text-align:right;white-space:nowrap">
+            ${u.locked ? '<span class="hint">gestito da .env</span>' : `
+              <button class="btn btn-ghost btn-sm" data-act="pw" data-u="${Tdt.esc(u.username)}">Password</button>
+              <button class="btn btn-ghost btn-sm" data-act="role" data-u="${Tdt.esc(u.username)}" data-role="${u.role}">${u.role === 'admin' ? 'Rendi organizzatore' : 'Rendi amministratore'}</button>
+              ${u.me ? '' : `<button class="btn btn-danger btn-sm" data-act="del" data-u="${Tdt.esc(u.username)}">Elimina</button>`}`}
+          </td>
+        </tr>`).join('');
+      tb.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => userAction(b.dataset)));
+    }
+
+    async function userAction({ act, u, role }) {
+      try {
+        if (act === 'pw') {
+          const p = prompt(`Nuova password per ${u} (almeno 8 caratteri):`);
+          if (!p) return;
+          await Tdt.api(`/api/users/${encodeURIComponent(u)}`, { method: 'PUT', body: JSON.stringify({ password: p }) });
+          Tdt.toast('Password aggiornata');
+        }
+        if (act === 'role') {
+          await Tdt.api(`/api/users/${encodeURIComponent(u)}`, { method: 'PUT', body: JSON.stringify({ role: role === 'admin' ? 'host' : 'admin' }) });
+          Tdt.toast('Ruolo aggiornato');
+        }
+        if (act === 'del') {
+          if (!confirm(`Eliminare l'utente ${u}? Non potrà più accedere.`)) return;
+          await Tdt.api(`/api/users/${encodeURIComponent(u)}`, { method: 'DELETE' });
+          Tdt.toast('Utente eliminato');
+        }
+        loadUsers();
+      } catch (e) { Tdt.toast(e.message); }
+    }
+
+    document.getElementById('btnAddUser').addEventListener('click', async () => {
+      try {
+        await Tdt.api('/api/users', {
+          method: 'POST', body: JSON.stringify({
+            username: document.getElementById('nuUser').value.trim(),
+            password: document.getElementById('nuPass').value,
+            display_name: document.getElementById('nuName').value.trim(),
+            role: document.getElementById('nuRole').value,
+          }),
+        });
+        ['nuUser', 'nuPass', 'nuName'].forEach(id => document.getElementById(id).value = '');
+        Tdt.toast('Utente creato');
+        loadUsers();
+      } catch (e) { Tdt.toast(e.message); }
+    });
+
+    document.getElementById('btnChangePw').addEventListener('click', async () => {
+      const old_password = document.getElementById('pwOld').value;
+      const new_password = document.getElementById('pwNew').value;
+      if (!old_password || !new_password) { Tdt.toast('Compila entrambi i campi'); return; }
+      try {
+        await Tdt.api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ old_password, new_password }) });
+        document.getElementById('pwOld').value = ''; document.getElementById('pwNew').value = '';
+        Tdt.toast('Password cambiata');
+      } catch (e) { Tdt.toast(e.message); }
+    });
+
+    document.getElementById('btnTestMail').addEventListener('click', async () => {
+      const to = document.getElementById('testEmail').value.trim();
+      if (!to) { Tdt.toast('Scrivi un indirizzo'); return; }
+      const btn = document.getElementById('btnTestMail');
+      btn.disabled = true; btn.textContent = 'Invio…';
+      try { await Tdt.api('/api/settings/smtp/test', { method: 'POST', body: JSON.stringify({ to }) }); Tdt.toast('Email di prova inviata'); }
+      catch (e) { Tdt.toast(e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Invia prova'; }
+    });
+  </script>
+</body>
+</html>
