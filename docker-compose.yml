@@ -1,0 +1,47 @@
+services:
+  coturn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    # Supported deployment target: a Linux Docker host.
+    network_mode: host
+    environment:
+      TURN_REALM: ${TURN_REALM:?Set TURN_REALM in .env}
+      TURN_USER: ${TURN_USER:?Set TURN_USER in .env}
+      TURN_PASSWORD: ${TURN_PASSWORD:?Set TURN_PASSWORD in .env}
+      TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP:?Set TURN_EXTERNAL_IP in .env}
+      TURN_RELAY_IP: ${TURN_RELAY_IP:?Set TURN_RELAY_IP in .env}
+      TURN_PORT: ${TURN_PORT:-3478}
+      TURN_MIN_PORT: ${TURN_MIN_PORT:-49152}
+      TURN_MAX_PORT: ${TURN_MAX_PORT:-49200}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - >-
+        exec turnserver -n --realm="$$TURN_REALM"
+        --listening-port="$$TURN_PORT" --external-ip="$$TURN_EXTERNAL_IP"
+        --relay-ip="$$TURN_RELAY_IP" --min-port="$$TURN_MIN_PORT"
+        --max-port="$$TURN_MAX_PORT" --lt-cred-mech
+        --user="$$TURN_USER:$$TURN_PASSWORD" --fingerprint
+        --no-multicast-peers --no-tls --no-dtls --log-file=stdout --simple-log
+  app:
+    build: .
+    image: tiditalk:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SERVER_SECRET: ${SERVER_SECRET:?Set SERVER_SECRET in .env}
+      BASE_URL: ${BASE_URL:?Set BASE_URL in .env}
+      ANNOUNCED_IP: ${ANNOUNCED_IP:?Set ANNOUNCED_IP in .env}
+    depends_on: [coturn]
+    volumes:
+      - meeting_data:/app/data
+      - uploads:/app/public/assets/uploads
+    ports:
+      - '${BIND_ADDRESS:-127.0.0.1}:${PORT:-3010}:${PORT:-3010}/tcp'
+      - '${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}:${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}/udp'
+      - '${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}:${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}/tcp'
+    ulimits:
+      nofile: {soft: 65536, hard: 65536}
+volumes:
+  meeting_data:
+  uploads:
