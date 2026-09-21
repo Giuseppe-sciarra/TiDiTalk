@@ -1,6 +1,6 @@
 <div align="center">
 
-# TD Meet
+# TiDiTalk
 
 **Self-hosted WebRTC video meetings with scheduling, guest invitations and host-controlled rooms.**
 
