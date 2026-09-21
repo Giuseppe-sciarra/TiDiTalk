@@ -18,7 +18,7 @@ Private video meetings, screen sharing, scheduling and invitations on infrastruc
 
 ## Overview
 
-TD Meet is a self-hosted video meeting platform built around a mediasoup WebRTC SFU.
+TidiTalk is a self-hosted video meeting platform built around a mediasoup WebRTC SFU.
 
 It provides host accounts, guest links, a waiting lobby, scheduled meetings, email/calendar invitations, screen sharing, chat, reactions, annotations, local recording and configurable branding without depending on a third-party meeting platform for the core service.
 
@@ -56,7 +56,7 @@ The Docker image builds the browser mediasoup client bundle from the committed l
 
 ## Requirements
 
-Deploy TD Meet on a **Linux Docker host** with:
+Deploy TidiTalk on a **Linux Docker host** with:
 
 - Docker Engine.
 - Docker Compose plugin.
@@ -138,7 +138,7 @@ Keep firewall/NAT forwarding aligned with the configured port ranges.
 
 HTTPS alone does not transport WebRTC media or TURN relay traffic.
 
-If the reverse proxy runs in another container or on another host, configure `BIND_ADDRESS` and routing deliberately. Its `localhost` is not the TD Meet host.
+If the reverse proxy runs in another container or on another host, configure `BIND_ADDRESS` and routing deliberately. Its `localhost` is not the TidiTalk host.
 
 ## Initial users
 
@@ -179,7 +179,7 @@ Meeting titles, notes, names and custom branding remain exactly as entered by th
 
 ## Interface languages
 
-TD Meet includes:
+TidiTalk includes:
 
 - English
 - Italian
@@ -285,11 +285,11 @@ See `SECURITY.md` and `docs/ANALYSIS.md` for additional notes.
 
 ## ❤️ Support the project
 
-TD Meet is developed and maintained independently.
+TidiTalk is developed and maintained independently.
 
 If you find it useful and would like to support its continued development, you can make a contribution via PayPal.
 
-[**Support TD Meet via PayPal**](https://paypal.me/raxiel87)
+[**Support TidiTalk via PayPal**](https://paypal.me/raxiel87)
 
 Every contribution helps with development, testing and maintenance.  
 Thank you for supporting the project.
