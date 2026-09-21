@@ -1,0 +1,172 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TIDITALK — base comune (token colore, tema chiaro/scuro, tooltip, guida)
+   Caricato da TUTTE le pagine. L'accento (--accent) arriva dal brand salvato
+   nelle Impostazioni e viene iniettato dal server nella <head>.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --accent-raw: #7b5ea7;
+  --accent-dark: #7b5ea7;
+  --accent-light: #7b5ea7;
+  --accent-ink-dark: #ffffff;
+  --accent-ink-light: #ffffff;
+  /* l'accento effettivo cambia col tema per restare sempre leggibile */
+  --accent: var(--accent-dark);
+  --accent-ink: var(--accent-ink-dark);
+  --accent-ink: #17150f;
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 55%, transparent);
+  /* accento usato come TESTO: un po' di colore-testo mescolato, così regge
+     anche se il brand sceglie un colore quasi uguale allo sfondo */
+  --accent-text: color-mix(in srgb, var(--accent) 74%, var(--paper) 26%);
+
+  --ink-0: #0e0f13;
+  --ink-1: #121318;
+  --ink-2: #1a1d25;
+  --ink-3: #1f222b;
+  --ink-4: #282c37;
+  --paper: #ece7dc;
+  --paper-2: #b3ad9f;
+  --paper-3: #7d786e;
+  --hair: rgba(236, 231, 220, 0.08);
+  --hair-2: rgba(236, 231, 220, 0.14);
+  --danger: #e5534b;
+  --ok: #58b98c;
+  --warn: #e8b04a;
+
+  --font: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 10px 30px -12px rgba(0, 0, 0, .6);
+  --shadow-2: 0 24px 60px -20px rgba(0, 0, 0, .75), 0 0 0 1px var(--hair);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+
+  /* token storici riallineati */
+  --bg: var(--ink-1);
+  --bg-tile: var(--ink-3);
+  --bg-tile-hover: var(--ink-4);
+  --surface: var(--ink-3);
+  --surface-light: var(--ink-4);
+  --blue: var(--accent);
+  --blue-light: var(--accent);
+  --green: var(--ok);
+  --red: var(--danger);
+  --yellow: var(--warn);
+  --text: var(--paper);
+  --text-muted: var(--paper-2);
+  --border: var(--hair);
+  --radius: 16px;
+  --header-h: 58px;
+  --footer-h: 84px;
+}
+
+/* ── Tema chiaro ─────────────────────────────────────────────────────────
+   Stessa struttura: si invertono solo i token (superfici --ink-*, testi
+   --paper-*). L'accento resta quello del brand. */
+:root[data-theme="light"] {
+  --accent: var(--accent-light);
+  --accent-ink: var(--accent-ink-light);
+  --ink-0: #e4e6ea;
+  --ink-1: #f5f6f8;
+  --ink-2: #ffffff;
+  --ink-3: #eceef1;
+  --ink-4: #e1e4e9;
+  --paper: #16181d;
+  --paper-2: #565c67;
+  --paper-3: #858b96;
+  --hair: rgba(16, 18, 23, .09);
+  --hair-2: rgba(16, 18, 23, .16);
+  --shadow-1: 0 1px 0 rgba(255,255,255,.8) inset, 0 10px 26px -18px rgba(16,18,23,.35);
+  --shadow-2: 0 24px 60px -26px rgba(16,18,23,.28), 0 0 0 1px var(--hair);
+}
+:root[data-theme="light"] body.tdt-room .video-tile video { background: #0b0c0f; }
+:root[data-theme="light"] body.tdt-room .video-tile.screenshare { background: #f1f3f5; }
+:root[data-theme="light"] body.tdt-room .toast { background: #16181d; color: #ffffff; }
+:root[data-theme="light"] body.tdt-room .mute-warning-banner { background: #16181d; color: #ffffff; }
+:root[data-theme="light"] body.tdt-room .more-menu,
+:root[data-theme="light"] body.tdt-room .device-popup,
+:root[data-theme="light"] body.tdt-room .emoji-picker,
+:root[data-theme="light"] body.tdt-room .effects-picker,
+:root[data-theme="light"] body.tdt-room .device-panel,
+:root[data-theme="light"] body.tdt-room .netq-popover,
+:root[data-theme="light"] body.tdt-room .controls-center,
+:root[data-theme="light"] .ann-toolbar { background: rgba(255, 255, 255, .97); }
+:root[data-theme="light"] body.tdt-room .chat-messages::-webkit-scrollbar-thumb,
+:root[data-theme="light"] body.tdt-room .participants-list::-webkit-scrollbar-thumb { background: var(--hair-2); }
+:root[data-theme="light"] body.tdt-room .netq-popover td:first-child { color: var(--paper-3); }
+:root[data-theme="light"] body.tdt-room .netq-popover .nq-sep { border-color: var(--hair); }
+:root[data-theme="light"] body.tdt-room .netq-popover h4 { color: var(--paper); }
+:root[data-theme="light"] body.tdt-room .prejoin-screen,
+:root[data-theme="light"] body.tdt-room .loading-screen { background: var(--ink-1); }
+:root[data-theme="light"] .tdt-tip { background: #16181d; color: #ffffff; }
+:root[data-theme="light"] .tdt-tip kbd { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.2); }
+:root[data-theme="light"] .tdt-tour-ring { box-shadow: 0 0 0 3px var(--accent), 0 0 0 9999px rgba(31, 28, 22, .5); }
+:root[data-theme="light"] .tdt-tour-card { background: #ffffff; }
+:root[data-theme="light"] body.tdt-room .msg-bubble { background: var(--ink-3); }
+:root[data-theme="light"] .stage-btn { background: rgba(255,255,255,.9); color: var(--paper); }
+:root[data-theme="light"] body.tdt-room .tile-name-always { background: rgba(14,15,19,.55); color: #fbf8f1; }
+:root[data-theme="light"] body.tdt-room .audio-unblock-banner { color: var(--accent-ink); }
+
+
+/* ── Tooltip + guida ────────────────────────────────────────────────────── */
+.tdt-tip {
+  position: fixed; z-index: 10000; pointer-events: none;
+  max-width: 280px;
+  background: var(--paper, #ece7dc); color: #17150f;
+  font: 500 12.5px/1.4 var(--font);
+  padding: 7px 10px; border-radius: 9px;
+  box-shadow: 0 12px 30px -10px rgba(0,0,0,.6);
+  opacity: 0; transform: translateY(4px) scale(.98);
+  transition: opacity .14s, transform .18s var(--ease);
+}
+.tdt-tip.on { opacity: 1; transform: none; }
+.tdt-tip.below { transform: translateY(-4px) scale(.98); }
+.tdt-tip.below.on { transform: none; }
+.tdt-tip kbd {
+  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 5px;
+  font: 600 11px/1.4 var(--font); background: rgba(23,21,15,.1); border: 1px solid rgba(23,21,15,.15);
+}
+.tdt-tour { position: fixed; inset: 0; z-index: 9990; opacity: 0; transition: opacity .25s; }
+.tdt-tour.on { opacity: 1; }
+.tdt-tour-ring {
+  position: fixed; border-radius: 999px;
+  box-shadow: 0 0 0 3px var(--accent), 0 0 0 9999px rgba(8, 9, 12, .62);
+  transition: all .45s var(--ease);
+  pointer-events: none;
+}
+.tdt-tour-card {
+  position: fixed; width: min(340px, calc(100vw - 20px));
+  background: var(--paper); color: #17150f;
+  border-radius: 18px; padding: 16px 18px 14px;
+  box-shadow: 0 30px 70px -20px rgba(0,0,0,.8);
+  transition: left .45s var(--ease), top .45s var(--ease);
+  font-family: var(--font);
+}
+.tdt-tour-step { font-size: 11px; color: #6b7280; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+.tdt-tour-title { font-family: var(--font-display); font-weight: 600; letter-spacing: -.01em; font-size: 21px; line-height: 1.2; margin: 4px 0 6px; }
+.tdt-tour-text { font-size: 14px; line-height: 1.5; color: #3a362e; }
+.tdt-tour-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+.tdt-tour-skip { background: none; border: none; color: #6b7280; font: 500 13px var(--font); cursor: pointer; padding: 6px 2px; }
+.tdt-tour-next { background: #16181d; color: #ffffff; border: none; border-radius: 999px; padding: 9px 18px; font: 600 14px var(--font); cursor: pointer; }
+.tdt-tour-next:hover { background: #000; }
+
+
+.tdt-beacon {
+  position: relative; width: 84px; height: 84px; border-radius: 50%;
+  background: radial-gradient(circle, var(--accent) 0 9px, transparent 10px);
+}
+.tdt-beacon::before {
+  content: ''; position: absolute; inset: -60px;
+  background: conic-gradient(from 0deg, transparent 0 300deg, color-mix(in srgb, var(--accent) 45%, transparent) 340deg, transparent 360deg);
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(circle, transparent 10px, #000 11px, #000 60%, transparent 72%);
+          mask: radial-gradient(circle, transparent 10px, #000 11px, #000 60%, transparent 72%);
+  animation: tdt-sweep 2.4s linear infinite;
+}
+.tdt-beacon i { position: absolute; inset: 30px; border-radius: 50%; box-shadow: 0 0 30px 6px color-mix(in srgb, var(--accent) 50%, transparent); animation: tdt-glow 2.4s ease-in-out infinite; }
+@keyframes tdt-sweep { to { transform: rotate(360deg); } }
+@keyframes tdt-glow { 50% { opacity: .45; } }
+
+*, *::before, *::after { box-sizing: border-box; }
+.hidden { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .tdt-tip, .tdt-tour *, .tdt-beacon::before, .tdt-beacon i { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
