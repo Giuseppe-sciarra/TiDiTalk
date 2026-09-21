@@ -72,7 +72,7 @@ The bundled coturn configuration uses host networking. Do not assume Docker Desk
 Clone the repository and enter the project directory:
 
 ```sh
-git clone <your-repository-url>
+gh repo clone Giuseppe-sciarra/TiDiTalk
 cd videochat
 ```
 
