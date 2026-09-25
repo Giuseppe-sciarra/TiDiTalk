@@ -465,8 +465,94 @@ function updateGridLayout() {
   const _bl = document.getElementById('btnLayout');
   if (_bl) _bl.classList.toggle('active', g.dataset.spotlight === 'true');
 
+  fitGridToViewport(); // riquadri dimensionati sullo spazio reale
   scheduleLayerUpdate(); // ⭐ ROUND 5: ricalcola i preferred layers dopo ogni cambio layout
 }
+
+/* ── Vista griglia: i riquadri si adattano allo spazio disponibile ─────────
+   Il CSS da solo non ci riesce: con righe "auto" i riquadri 16:9 prendono
+   l'altezza dalla larghezza e, su una finestra bassa, l'ultima fila finiva
+   tagliata sotto la barra. Qui si calcola per ogni numero di colonne quanto
+   può essere grande un riquadro 16:9 senza uscire né in larghezza né in
+   altezza, e si sceglie la combinazione con i riquadri più grandi. Tutti i
+   riquadri hanno la stessa misura, l'ultima fila incompleta resta centrata,
+   il nome in basso resta sempre visibile. */
+const _FIT_RATIO = 16 / 9;
+let _fitRaf = 0;
+
+function _clearGridFit(g) {
+  if (!g || !g.dataset.fitted) return;
+  ['display', 'flex-wrap', 'justify-content', 'align-content', 'align-items', 'grid-template-columns', 'grid-auto-rows'].forEach(p => g.style.removeProperty(p));
+  g.querySelectorAll('.video-tile[data-fit]').forEach(t => {
+    t.style.removeProperty('width'); t.style.removeProperty('height');
+    t.style.removeProperty('max-width'); t.style.removeProperty('max-height');
+    t.style.removeProperty('flex'); t.style.removeProperty('aspect-ratio');
+    delete t.dataset.fit;
+  });
+  delete g.dataset.fitted;
+}
+
+function fitGridToViewport() {
+  const g = document.getElementById('videoGrid');
+  if (!g) return;
+  const isGrid = g.dataset.spotlight !== 'true' && g.dataset.pinned !== 'true';
+  // telefono: si usa sempre la vista relatore, ha già il suo layout
+  if (!isGrid || window.innerWidth <= 820) { _clearGridFit(g); return; }
+
+  const tiles = [...g.querySelectorAll(':scope > .video-tile')].filter(t => getComputedStyle(t).display !== 'none');
+  const n = tiles.length;
+  if (!n) { _clearGridFit(g); return; }
+
+  const cs = getComputedStyle(g);
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  const gap = parseFloat(cs.columnGap) || 10;
+  const rgap = parseFloat(cs.rowGap) || gap;
+  const W = g.clientWidth - padX;
+  const H = g.clientHeight - padY;
+  if (W <= 0 || H <= 0) return;
+
+  let best = { w: 0, cols: 1 };
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const byWidth = (W - gap * (cols - 1)) / cols;
+    const byHeight = ((H - rgap * (rows - 1)) / rows) * _FIT_RATIO;
+    const w = Math.floor(Math.min(byWidth, byHeight));
+    if (w > best.w) best = { w, cols };
+  }
+  const w = Math.max(120, best.w);
+  const h = Math.floor(w / _FIT_RATIO);
+
+  // flex invece di grid: così l'ultima fila incompleta si centra da sola
+  g.style.setProperty('display', 'flex', 'important');
+  g.style.setProperty('flex-wrap', 'wrap', 'important');
+  g.style.setProperty('justify-content', 'center', 'important');
+  g.style.setProperty('align-content', 'center', 'important');
+  g.style.setProperty('align-items', 'center', 'important');
+  tiles.forEach(t => {
+    t.style.setProperty('width', w + 'px', 'important');
+    t.style.setProperty('height', h + 'px', 'important');
+    t.style.setProperty('max-width', w + 'px', 'important');
+    t.style.setProperty('max-height', h + 'px', 'important');
+    t.style.setProperty('flex', `0 0 ${w}px`, 'important');
+    t.style.setProperty('aspect-ratio', 'auto', 'important');
+    t.dataset.fit = '1';
+  });
+  g.dataset.fitted = '1';
+}
+
+function _scheduleGridFit() {
+  cancelAnimationFrame(_fitRaf);
+  _fitRaf = requestAnimationFrame(fitGridToViewport);
+}
+window.addEventListener('resize', _scheduleGridFit);
+document.addEventListener('DOMContentLoaded', () => {
+  const g = document.getElementById('videoGrid');
+  if (!g || !window.ResizeObserver) return;
+  new ResizeObserver(_scheduleGridFit).observe(g);
+  // tile che entrano/escono (anche fuori da updateGridLayout)
+  new MutationObserver(_scheduleGridFit).observe(g, { childList: true });
+});
 
 /* ── Layout spotlight ─────────────────────────────────────────────────── */
 let _spotlightMode = true;
@@ -2872,27 +2958,24 @@ function openInfoModal() {
   const footer = _publicSettings?.footer || {};
 
   const logoHtml = branding.logoUrl ? `<div class="info-logo"><img src="${escapeHtml(branding.logoUrl)}"></div>` : '';
-  const companyName = info.companyName ? escapeHtml(info.companyName) : '';
+  const companyName = escapeHtml(info.companyName || 'Tastiere Digitali');
   const companyEmail = info.companyEmail ? escapeHtml(info.companyEmail) : '';
   const companySite = info.companySite ? escapeHtml(info.companySite) : '';
-  const devTitle = info.developerTitle ? escapeHtml(info.developerTitle) : '';
+  const devTitle = escapeHtml(info.developerTitle || 'Sviluppato da Giuseppe Sciarra - Tastiere Digitali');
   const platformName = escapeHtml(branding.platformName || '');
-  // AGPL-3.0 §13: chi usa il servizio in rete deve poter avere il sorgente.
-  const sourceUrl = /^https?:\/\//i.test(_publicSettings?.sourceUrl || '') ? escapeHtml(_publicSettings.sourceUrl) : '';
 
   body.innerHTML = `
     ${logoHtml}
     <h4>Piattaforma</h4>
     <p><strong>${platformName}</strong></p>
 
-    ${companyName || companyEmail || companySite ? `<h4>Azienda</h4>
-    ${companyName ? `<p><strong>${companyName}</strong></p>` : ''}
+    <h4>Azienda</h4>
+    <p><strong>${companyName}</strong></p>
     ${companyEmail ? `<p>📧 <a href="mailto:${companyEmail}">${companyEmail}</a></p>` : ''}
-    ${companySite ? `<p>🌐 <a href="${companySite}" target="_blank" rel="noopener">${companySite}</a></p>` : ''}` : ''}
+    ${companySite ? `<p>🌐 <a href="${companySite}" target="_blank" rel="noopener">${companySite}</a></p>` : ''}
 
     <div class="info-credits">
-      ${devTitle ? `${devTitle}<br>` : ''}
-      Software open source · AGPL-3.0${sourceUrl ? ` · <a href="${sourceUrl}" target="_blank" rel="noopener">Codice sorgente</a>` : ''}
+      ${devTitle}
       ${footer.text && footer.link ? `<br><a href="${escapeHtml(footer.link)}" target="_blank" rel="noopener" style="opacity:0.7">${escapeHtml(footer.text)}</a>` : ''}
     </div>
   `;
