@@ -510,7 +510,7 @@ app.post('/api/meetings', authMiddleware, async (req, res) => {
     // Nessuna euristica su username/dominio: chiunque venga inserito tra gli
     // invitati riceve SEMPRE il link guest /join/<token> (con countdown).
     // L'UNICA email host (link /room/ diretto) è quella di conferma inviata
-    // a HOST_NOTIFY_EMAIL (default info@tastieredigitali.it) qui sotto.
+    // a HOST_NOTIFY_EMAIL (se impostata) qui sotto.
     const emailResults = [];
     for (const email of invitees) {
       const inviteUrl = `${baseUrl}/join/${sharedGuestToken}`;
@@ -578,6 +578,23 @@ app.get('/api/connlog', authMiddleware, (req, res) => {
 });
 
 // Pubblico (no auth): solo dati non sensibili
+// ── Stato del servizio (usato da auto-update.sh e da eventuali monitor) ──────
+// Nessun dato sensibile: solo se è vivo, da quanto, quante stanze e quante
+// persone collegate in questo momento (serve a NON aggiornare durante una call).
+app.get('/api/health', (req, res) => {
+  let peers = 0;
+  try { for (const room of rooms.values()) peers += room.peers?.size || 0; } catch (_) { }
+  let version = '';
+  try { version = require('./package.json').version || ''; } catch (_) { }
+  res.json({
+    ok: true,
+    uptime: Math.round(process.uptime()),
+    rooms: (() => { try { return rooms.size; } catch (_) { return 0; } })(),
+    peers,
+    version,
+  });
+});
+
 app.get('/api/settings/public', (req, res) => {
   const all = brand.getPublicSettings(db, config);
   res.json(all);
@@ -1322,5 +1339,5 @@ io.on('connection', (socket) => {
   await createWorkers();
   server.listen(config.server.port, () => console.log(`[Meet] Porta ${config.server.port}`));
 
-updateCheck.schedule(); // ⭐ check aggiornamenti notturno (02:00) con email a info@
+updateCheck.schedule(); // segnalazione aggiornamenti (spenta di default, vedi UPDATE_CHECK)
 })();

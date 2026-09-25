@@ -11,6 +11,10 @@ const fs = require('fs');
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Repository ufficiale del progetto: se pubblichi una versione MODIFICATA
+// devi far puntare SOURCE_URL (in .env) al TUO sorgente (AGPL-3.0 §13).
+const UPSTREAM_REPO = 'https://github.com/Giuseppe-TD/tiditalk';
+
 const DEFAULT_LOGO = '/assets/images/brand-mark.svg';
 const HEX6 = /^#[0-9a-f]{6}$/i;
 const ASSET_URL = /^\/assets\/(uploads|images)\/[\w.\-]+$/;
@@ -54,6 +58,8 @@ function getPublicSettings(db, config) {
       developerTitle: i.developerTitle || '',
     },
     rooms: getRoomPolicy(db),
+    // link al sorgente mostrato nella finestra Info (AGPL-3.0 §13)
+    sourceUrl: HTTP_URL.test(process.env.SOURCE_URL || '') ? process.env.SOURCE_URL : UPSTREAM_REPO,
   };
 }
 

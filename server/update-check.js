@@ -10,7 +10,8 @@
    e ricostruire il servizio con docker compose up -d --build app.
 
    Config .env:
-     UPDATE_CHECK=0          → disattiva del tutto (default: attivo)
+     UPDATE_CHECK=1          → attiva la SOLA segnalazione (default: spento,
+                              perché ora aggiorna da solo auto-update.sh)
      UPDATE_CHECK_HOUR=2     → ora locale del check (default 2)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -102,7 +103,9 @@ async function runCheckAndNotify() {
 
 /** Programma il check ogni notte all'ora configurata (default 02:00 locale). */
 function schedule() {
-  if (process.env.UPDATE_CHECK === '0') { console.log('[update-check] disattivato (UPDATE_CHECK=0)'); return; }
+  // Con l'aggiornamento automatico (auto-update.sh + cron) questa segnalazione
+  // è solo rumore: di default è spenta, si riaccende con UPDATE_CHECK=1.
+  if (process.env.UPDATE_CHECK !== '1') { console.log('[update-check] segnalazione disattivata (UPDATE_CHECK != 1)'); return; }
   const hour = Number(process.env.UPDATE_CHECK_HOUR ?? 2);
 
   const msToNext = () => {

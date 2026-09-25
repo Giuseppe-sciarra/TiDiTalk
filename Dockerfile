@@ -1,20 +1,47 @@
-FROM node:22-bookworm-slim AS builder
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip make g++ ca-certificates && rm -rf /var/lib/apt/lists/*
+# Tiditalk — self-hosted video meetings (AGPL-3.0-or-later)
+FROM node:22-alpine AS builder
+
+RUN apk add --no-cache \
+    python3 py3-pip make g++ gcc linux-headers udev
+
 WORKDIR /app/server
 COPY server/package*.json ./
-RUN npm ci --no-audit --no-fund
-COPY server/bundle-entry.js ./
-RUN npm run bundle-client && npm prune --omit=dev
+RUN npm install --omit=dev --no-audit --no-fund --loglevel=error
 
-FROM node:22-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libstdc++6 && rm -rf /var/lib/apt/lists/*
+# Bundle mediasoup-client per il browser tramite esbuild
+# --format=iife + --global-name=mediasoupClient → crea window.mediasoupClient
+RUN npx esbuild \
+    --bundle \
+    --platform=browser \
+    --format=iife \
+    --global-name=mediasoupClient \
+    --minify \
+    --outfile=/tmp/mediasoup-client.min.js \
+    node_modules/mediasoup-client/lib/index.js
+
+# Runtime stage
+FROM node:22-alpine
+
+RUN apk add --no-cache \
+    python3 make g++ gcc linux-headers udev libstdc++
+
 WORKDIR /app
-COPY server ./server
-COPY public ./public
+
+ENV NPM_CONFIG_OMIT=dev
+
 COPY --from=builder /app/server/node_modules ./server/node_modules
-COPY --from=builder /app/public/assets/js/mediasoup-client.min.js ./public/assets/js/mediasoup-client.min.js
-RUN mkdir -p /app/data /app/public/assets/uploads && chown -R node:node /app
-USER node
+COPY --from=builder /tmp/mediasoup-client.min.js ./public/assets/js/mediasoup-client.min.js
+
+COPY server/ ./server/
+COPY public/  ./public/
+
+# Ripristina il bundle (COPY public/ non deve sovrascriverlo se non c'era)
+COPY --from=builder /tmp/mediasoup-client.min.js ./public/assets/js/mediasoup-client.min.js
+
 WORKDIR /app/server
-EXPOSE 3010 40000-40400/udp 40000-40400/tcp
+
+EXPOSE 3010
+EXPOSE 40000-40400/udp
+EXPOSE 40000-40400/tcp
+
 CMD ["node", "index.js"]

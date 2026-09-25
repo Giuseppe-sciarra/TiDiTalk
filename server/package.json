@@ -1,10 +1,10 @@
 {
-  "name": "td-meet-server",
+  "name": "tiditalk",
   "version": "1.1.0",
-  "description": "TD Meet - Tastiere Digitali srls",
+  "description": "Tiditalk — self-hosted video meetings (mediasoup SFU)",
   "main": "index.js",
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   },
   "scripts": {
     "start": "node index.js",
@@ -25,5 +25,7 @@
   "devDependencies": {
     "esbuild": "^0.28.2",
     "nodemon": "^3.1.14"
-  }
+  },
+  "license": "AGPL-3.0-or-later",
+  "author": "Giuseppe Sciarra — Tastiere Digitali"
 }

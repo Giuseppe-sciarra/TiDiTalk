@@ -1,301 +1,224 @@
-<div align="center">
+# Tiditalk
 
-# TiDiTalk
+**Self-hosted video meetings for teams and clients** — WebRTC with a mediasoup SFU,
+running on your own server with Docker. No accounts for guests, no third-party
+cloud, your branding.
 
-**Self-hosted WebRTC video meetings with scheduling, guest invitations and host-controlled rooms.**
-
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
-![WebRTC](https://img.shields.io/badge/WebRTC-mediasoup-333333)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
-![Languages](https://img.shields.io/badge/UI-EN%20%7C%20IT%20%7C%20FR%20%7C%20DE-6C63FF)
-
-Private video meetings, screen sharing, scheduling and invitations on infrastructure you control.
-
-</div>
+🇮🇹 [Leggi in italiano](README.it.md)
 
 ---
 
-## Overview
+## Features
 
-TidiTalk is a self-hosted video meeting platform built around a mediasoup WebRTC SFU.
+**Meetings**
+- Rooms with a server-side **waiting room**: guests wait until a host joins,
+  and go back to waiting if the last host leaves
+- **Scheduled meetings** with email invitations and `.ics` calendar event
+- Guest links that expire, no sign-up needed — works in the browser on desktop
+  and mobile
+- Grid and speaker views, automatic layout for portrait (phone) cameras
 
-It provides host accounts, guest links, a waiting lobby, scheduled meetings, email/calendar invitations, screen sharing, chat, reactions, annotations, local recording and configurable branding without depending on a third-party meeting platform for the core service.
+**Presenting**
+- Screen sharing with **live annotations** on top of the shared screen: pen,
+  highlighter, arrow, rectangle, circle and **laser pointer** with the
+  presenter's name
+- Presenters can open drawing to everyone, or keep it to themselves and hosts
+- Local **recording** that includes annotations and laser pointer
 
-### Key features
+**In the room**
+- Chat, reactions, raise hand, participant list
+- Virtual backgrounds (blur or image) and face effects, powered by MediaPipe
+- Per-tile connection quality with detailed stats, data saver mode
+- Keyboard shortcuts and tooltips on every control
+- Light and dark theme, UI in **Italian, English, French and German**
 
-- Host accounts and guest invitation links.
-- Waiting lobby when no host is present.
-- Audio and video meetings.
-- Screen sharing.
-- Shared annotations and drawing tools.
-- Chat and reactions.
-- Local recording.
-- Virtual backgrounds and face effects.
-- Scheduled meetings.
-- Email invitations and calendar attachments.
-- Admin and host roles.
-- User management.
-- Configurable branding and room rules.
-- English, Italian, French and German interface.
-- Localized meeting invitation emails.
+**Administration**
+- Branding panel: name, tagline, logo, favicon, accent color, default theme,
+  footer, company info
+- Users with **admin** and **host** roles — from the panel or from `.env`
+- Room rules: guest screen sharing, drawing permissions, first-join guide
+- External REST API to create meetings and guest links from a CRM
+- **Automatic updates** every morning with email report and automatic rollback
 
-## Architecture
-
-| Component | Purpose |
-|---|---|
-| Node.js 22 | Application runtime |
-| Express | HTTP application server |
-| Socket.IO | Signaling and realtime events |
-| mediasoup | WebRTC SFU |
-| SQLite | Users, meetings and application settings |
-| coturn | STUN/TURN connectivity |
-| esbuild | Browser bundle build |
-
-The Docker image builds the browser mediasoup client bundle from the committed lockfile using `npm ci` and esbuild.
+---
 
 ## Requirements
 
-Deploy TidiTalk on a **Linux Docker host** with:
+- A Linux server with **Docker** and **Docker Compose**
+- A **public IP** and a domain name
+- A reverse proxy with HTTPS and WebSocket support (Nginx Proxy Manager,
+  Traefik, Caddy, plain Nginx…)
+- These ports reachable from the internet:
 
-- Docker Engine.
-- Docker Compose plugin.
-- A reachable public IP address.
-- HTTPS hostname.
-- Reverse proxy with WebSocket support.
-- Required WebRTC/TURN ports forwarded through the firewall/NAT.
+| Port | Protocol | What |
+|------|----------|------|
+| `PORT` (default 3010) | TCP | Web app — behind your reverse proxy |
+| `RTC_MIN_PORT`–`RTC_MAX_PORT` (default 40000–40400) | UDP + TCP | Media (mediasoup) — **directly**, not through the proxy |
+| 3478 | UDP + TCP | STUN/TURN (coturn) |
+| `TURN_MIN_PORT`–`TURN_MAX_PORT` (default 49152–49200) | UDP | TURN relay |
 
-The bundled coturn configuration uses host networking. Do not assume Docker Desktop on Windows or macOS has identical networking behavior.
+---
 
-## Quick start
+## Installation
 
-Clone the repository and enter the project directory:
+```bash
+git clone https://github.com/Giuseppe-TD/tiditalk.git
+cd tiditalk
 
-```sh
-gh repo clone Giuseppe-sciarra/TiDiTalk
-cd videochat
-```
+# 1. Configuration
+cp .env.template .env
+nano .env        # at least: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USERS
 
-Create the environment file:
+# 2. Third-party assets (MediaPipe for backgrounds/effects, emoji images)
+bash setup-mediapipe.sh
+bash setup-effects.sh
 
-```sh
-cp .env.example .env
-```
-
-Configure at least:
-
-```env
-SERVER_SECRET=...
-USERS=admin:YOUR_PASSWORD:Administrator:admin
-BASE_URL=https://meet.example.com
-ANNOUNCED_IP=YOUR_PUBLIC_IP
-TURN_HOST=turn.example.com
-TURN_REALM=example.com
-TURN_USER=...
-TURN_PASSWORD=...
-TURN_EXTERNAL_IP=...
-TURN_RELAY_IP=...
-CORS_ORIGINS=https://meet.example.com
-```
-
-Generate strong random values when needed:
-
-```sh
-docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-`SERVER_SECRET` should contain at least 32 characters.
-
-Use a long initial administrator password without `:` or `,`, because those characters are separators in the `USERS` value.
-
-Start the stack:
-
-```sh
-docker compose config --quiet
+# 3. Start
 docker compose up -d --build
-docker compose ps
+docker compose logs -f app
 ```
 
-Check the logs:
+Generate `SERVER_SECRET` with:
 
-```sh
-docker compose logs --tail=100 app coturn
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# or: openssl rand -hex 32
 ```
 
-Open the configured `BASE_URL` and sign in with the bootstrap administrator.
+`ANNOUNCED_IP` must be the **numeric public IP** of the server: mediasoup does
+not resolve hostnames.
 
-## Network and firewall
+Then open your `BASE_URL`, sign in with a user from `USERS` and finish the setup
+from **Settings**.
 
-| Traffic | Default | Routing |
-|---|---|---|
-| HTTPS / WSS | TCP 443 | Reverse proxy → application |
-| Application HTTP | TCP 3010 | Loopback by default |
-| mediasoup RTP | UDP + TCP 40000–40400 | Directly to the Docker host |
-| STUN/TURN | UDP + TCP 3478 | To coturn host |
-| TURN relay | UDP 49152–49200 | To coturn host |
+---
 
-Keep firewall/NAT forwarding aligned with the configured port ranges.
+## Users and roles
 
-HTTPS alone does not transport WebRTC media or TURN relay traffic.
+| Role | Can |
+|------|-----|
+| **admin** | everything, including Settings and user management |
+| **host** | create, schedule and run meetings |
+| guest | join through an invitation link, no account |
 
-If the reverse proxy runs in another container or on another host, configure `BIND_ADDRESS` and routing deliberately. Its `localhost` is not the TidiTalk host.
+Users can be created in two ways:
 
-## Initial users
+**From `.env`** — created at startup if missing:
 
-`USERS_MODE=create` creates missing accounts without replacing existing database users.
-
-After verifying that the administrator exists, you can clear `USERS` and manage accounts from the interface.
-
-`USERS_MODE=sync` makes `.env` authoritative at every startup; accounts managed that way are read-only in the UI.
-
-There are no built-in default accounts in a clean installation.
-
-## Email and meeting invitations
-
-Configure SMTP using:
-
-```env
-SMTP_HOST=...
-SMTP_PORT=...
-SMTP_USER=...
-SMTP_PASS=...
-SMTP_FROM=...
+```dotenv
+USERS=alice:StrongPassword1:Alice Smith:admin,bob:StrongPassword2:Bob:host
+USERS_MODE=create   # or "sync": .env becomes the source of truth
 ```
 
-Set `SMTP_SECURE=true` when your mail server requires implicit TLS.
+Passwords can also be bcrypt hashes (`$2b$...`, write `$` as `$$` inside a
+compose env file). With `USERS_MODE=sync` those users are read-only in the panel.
 
-Test SMTP delivery from Settings before relying on invitations.
+**From the panel** — Settings → Users.
 
-Meeting invitations and their attached calendar event use the language selected in the creator's browser when the meeting is created:
+---
 
-- English
-- Italian
-- French
-- German
+## What goes where
 
-`DEFAULT_UI_LANGUAGE` is used as the fallback for server-owned background emails such as dependency/update checks.
+| What | Where |
+|------|-------|
+| Name, logo, favicon, accent color, theme, footer, company info | Settings → Branding |
+| Guest screen sharing, drawing for everyone, first-join guide | Settings → Rooms |
+| Users and passwords | Settings → Users, or `USERS` in `.env` |
+| SMTP, TURN, IPs, ports, secrets, API keys | `.env` |
 
-Meeting titles, notes, names and custom branding remain exactly as entered by the user.
-
-## Interface languages
-
-TidiTalk includes:
-
-- English
-- Italian
-- French
-- German
-
-Use the language selector in the main navigation bar. **Auto · Browser** detects the browser language and falls back to English.
-
-The selected language is stored locally in the browser.
-
-See `docs/LANGUAGES.md` for translation maintenance details.
-
-## Recording
-
-Recordings are created locally by the recording participant and downloaded to that participant's computer.
-
-They are **not** stored as server-side backups.
-
-Uploaded branding and background assets are stored in the `uploads` volume.
-
-## Keyboard shortcuts
-
-| Key | Action |
-|---|---|
-| `M` | Microphone |
-| `V` | Camera |
-| `S` | Screen sharing |
-| `D` | Drawing |
-| `H` | Raise hand |
-| `C` | Chat |
-| `U` | Participants |
-
-Drawing mode also supports pen, highlighter, arrow, rectangle, circle, laser pointer, undo and escape shortcuts.
+---
 
 ## Updates
 
-Back up first, then run:
+### Automatic (recommended)
 
-```sh
-git pull --ff-only
-docker compose up -d --build
-docker compose ps
+```bash
+bash install-cron.sh          # every day at 08:00
+bash install-cron.sh 6        # ...or at another hour
+bash auto-update.sh --dry-run # show what would change, touch nothing
 ```
 
-If you update files manually via FTP, replace the changed project files and rebuild the app:
+Every morning `auto-update.sh`:
 
-```sh
-docker compose up -d --build app
+1. postpones if a meeting is in progress (3 × 15 minutes, then proceeds);
+2. upgrades **every** dependency to its latest version, majors included;
+3. rebuilds the image and restarts the service;
+4. if the service does not answer within 3 minutes, restores the previous
+   `package.json`, lock file and image — **automatic rollback**;
+5. emails `UPDATE_NOTIFY_EMAIL` a table of what changed, tagged
+   **major / minor / patch**, with ready-to-paste commands to roll back.
+
+Backups are kept in `backups/` (last 10), images tagged
+`tdt-meet:rollback-YYYYMMDD-HHMM`. Log: `logs/auto-update.log`.
+
+### Manual
+
+```bash
+bash auto-update.sh                # same as the cron job, now
+docker compose up -d --build app   # after changing anything in server/
+docker compose restart app         # after changing CSS/JS/HTML (mounted live)
 ```
 
-Frontend files are included in the application image, so interface changes require a rebuild.
+---
 
-## Backups
+## External API
 
-Back up:
+Enabled when `EXTERNAL_API_KEY` is set. Send the key in the `x-api-key` header.
 
-- `meeting_data` volume.
-- `uploads` volume.
-- Your private `.env`.
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/api/external/health` | liveness |
+| `POST` | `/api/external/generate-guest-token` | guest link for a room |
+| `POST` | `/api/external/schedule-meeting` | create a meeting and send invitations |
+| `DELETE` | `/api/external/meeting/:id` | delete a meeting |
 
-Because SQLite may use WAL mode, do not copy only a live `.db` file and ignore its WAL. Stop the application briefly for a filesystem-level backup or use SQLite's backup API.
+`GET /api/health` (no key) returns `{ ok, uptime, rooms, peers, version }` and
+is used by the updater to avoid restarting during a call.
 
-A normal `docker compose down` preserves named volumes.
+---
 
-`docker compose down -v` removes them.
+## Keyboard shortcuts
+
+`M` microphone · `V` camera · `S` present · `D` draw · `H` raise hand ·
+`C` chat · `U` people — while drawing: `P` pen, `E` highlighter, `A` arrow,
+`R` rectangle, `O` circle, `L` laser, `Ctrl+Z` undo, `Esc` exit.
+
+---
 
 ## Troubleshooting
 
-**No user can sign in**  
-Configure a valid bootstrap account in `USERS` and restart. Clean installations have no default users.
+- **Video/audio does not connect for some users** — check that the RTC port
+  range is forwarded as **UDP and TCP** and that `ANNOUNCED_IP` is the public IP.
+  Behind strict firewalls TURN is what saves the day: check `TURN_*`.
+- **Camera or microphone blocked** — the page must be served over HTTPS.
+- **Invitations not delivered** — Settings → System shows the SMTP status and
+  has a test button.
+- **Connection diagnostics** — hosts can type `tdConnLog()` in the browser
+  console to see disconnections with reason and duration.
 
-**Room opens but audio/video does not work**  
-Verify `ANNOUNCED_IP`, NAT/firewall forwarding, mediasoup ports and TURN credentials.
+---
 
-**Problems on mobile or corporate networks**  
-Test TURN reachability and determine whether the network requires TURN over TLS.
+## License
 
-**Camera is blank**  
-Check browser permissions, HTTPS and whether another application is already using the device.
+Tiditalk is free software released under the
+**GNU Affero General Public License v3.0 or later** — see [LICENSE](LICENSE).
 
-**Face effects or backgrounds fail**  
-Inspect the browser console and local `/assets/vendor/` resources.
+In short: you can use, modify and redistribute it, including commercially. If
+you run a **modified** version as a network service, you must offer its source
+code to your users. The "About" window in every room links to the source; set
+`SOURCE_URL` in `.env` to point to your fork.
 
-**Interface still shows the old version**  
-Rebuild the app image and hard-refresh the browser.
+Third-party components and their licenses are listed in
+[THIRD-PARTY.md](THIRD-PARTY.md).
 
-## Security notes
+Copyright © Giuseppe Sciarra — [Tastiere Digitali](https://tastieredigitali.it)
 
-- Keep `.env` private.
-- Use a unique `SERVER_SECRET` and TURN credentials.
-- Serve the application over HTTPS.
-- Restrict the application port when it is intended to be reached only through a reverse proxy.
-- Configure `TRUST_PROXY` only for trusted reverse-proxy addresses.
+---
 
-See `SECURITY.md` and `docs/ANALYSIS.md` for additional notes.
+## Support the project
 
-## Project documentation
+If Tiditalk is useful to you, you can support its development with a donation:
 
-- `docs/LANGUAGES.md` — language maintenance.
-- `docs/PUBLISHING.md` — GitHub publishing guide.
-- `docs/ANALYSIS.md` — analysis and verification notes.
-- `SECURITY.md` — security information.
+**[paypal.me/raxiel87](https://paypal.me/raxiel87)**
 
-## ❤️ Support the project
-
-TidiTalk is developed and maintained independently.
-
-If you find it useful and would like to support its continued development, you can make a contribution via PayPal.
-
-[**Support TidiTalk via PayPal**](https://paypal.me/raxiel87)
-
-Every contribution helps with development, testing and maintenance.  
-Thank you for supporting the project.
-
-## Attribution and licensing
-
-Original project attribution: **Giuseppe Sciarra / Tastiere Digitali**.
-
-No project license was supplied in the source archive and no new license grant is implied by this README. Dependency and bundled asset licenses remain applicable.
+Bug reports and pull requests are welcome.
