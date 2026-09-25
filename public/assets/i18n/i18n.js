@@ -140,7 +140,7 @@
     select.addEventListener('change',()=>setLanguage(select.value));
     bar.append(label,select);
     // Keep the language selector inside the real application navigation when available.
-    // This avoids a detached strip above the UI on Sentinel and TD Meet.
+    // This avoids a detached strip above the UI in the room UI.
     const project=document.documentElement.dataset.project || '';
     let inlineHost=null;
     if(project==='panopticon-lite') inlineHost=document.querySelector('.topbar');
