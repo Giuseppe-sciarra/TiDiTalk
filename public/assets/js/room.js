@@ -3606,6 +3606,10 @@ async function _recoverMic(reason) {
 async function _micTick() {
   const t = localMicTrack;
   const p = producers.get('audio');
+  // track terminato ma producer ancora in piedi e UI "acceso": è il caso del
+  // microfono morto in silenzio (gli altri non ti sentono e nessuno se ne
+  // accorge). Si riapre subito, senza aspettare.
+  if (t && p && !p.closed && !micMuted && t.readyState === 'ended') { _recoverMic('ended'); return; }
   if (!t || !p || micMuted || t.readyState !== 'live' || p.closed) {
     _micHealth.mutedSince = _micHealth.zeroSince = _micHealth.flatSince = 0;
     _micHealth.lastBytes = -1;

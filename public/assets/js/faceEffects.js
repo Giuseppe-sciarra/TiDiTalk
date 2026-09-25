@@ -2228,7 +2228,13 @@ class FaceEffects {
       this._sourceTrackClone = null;
     }
     if (this.outputStream) {
-      this.outputStream.getTracks().forEach(t => t.stop());
+      // ⭐ FIX: nello stream d'uscita c'è anche il microfono VERO (aggiunto in
+      // apply() per comodità). Prima qui si fermavano TUTTI i track, compreso
+      // il microfono: togliendo un effetto/stile (o mettendo uno sfondo, che
+      // spegne prima l'effetto) il mic moriva e agli altri risultavi muto.
+      // Si ferma solo il track video del canvas, che è nostro; l'audio non si tocca.
+      this.outputStream.getVideoTracks().forEach(t => t.stop());
+      this.outputStream.getAudioTracks().forEach(t => { try { this.outputStream.removeTrack(t); } catch (_) { } });
       this.outputStream = null;
     }
   }
