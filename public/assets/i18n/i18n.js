@@ -140,15 +140,17 @@
     select.addEventListener('change',()=>setLanguage(select.value));
     bar.append(label,select);
     // Keep the language selector inside the real application navigation when available.
-    // This avoids a detached strip above the UI in the room UI.
+    // This avoids a detached strip above the UI on Sentinel and TD Meet.
     const project=document.documentElement.dataset.project || '';
     let inlineHost=null;
     if(project==='panopticon-lite') inlineHost=document.querySelector('.topbar');
-    if(project==='videochat') inlineHost=document.querySelector('.app-nav');
+    // pagine dell'app: barra di navigazione; stanza: gruppo di pulsanti in alto a destra
+    if(project==='videochat') inlineHost=document.querySelector('.app-nav') || document.querySelector('.room-header .header-right');
     if(inlineHost){
       bar.classList.add('language-switcher--inline');
       document.documentElement.classList.add('language-switcher-inline');
-      if(project==='videochat') inlineHost.prepend(bar);
+      // nella stanza va per ULTIMO, sulla stessa riga degli altri pulsanti
+      if(project==='videochat' && !inlineHost.classList.contains('header-right')) inlineHost.prepend(bar);
       else inlineHost.append(bar);
     } else {
       document.documentElement.classList.remove('language-switcher-inline');
