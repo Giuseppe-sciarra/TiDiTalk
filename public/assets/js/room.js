@@ -205,7 +205,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             document.querySelector('#btnCamera .icon-on').classList.add('hidden');
             document.querySelector('#btnCamera .icon-off').classList.remove('hidden');
           }
-          startCallTimer();
+          startCallTimer(); startMicHealthWatchdog();
           hideLoading();
           setTimeout(() => startTour(false), 900);
           deviceSelector?.init(producers, rawCamStream);
@@ -236,7 +236,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     // ⭐ Se l'utente è entrato già muto, avvia la detection "stai parlando ma sei muto"
     if (micMuted) startMuteWarningDetection();
 
-    startCallTimer();
+    startCallTimer(); startMicHealthWatchdog();
     hideLoading();
     setTimeout(() => startTour(false), 900);
 
@@ -3514,6 +3514,158 @@ function hideMuteWarning() {
   if (!b) return;
   b.classList.add('hidden');
   clearTimeout(_muteWarningHideTimer);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Microfono: controllo di salute
+   ───────────────────────────────────────────────────────────────────────────
+   Il microfono può "morire" restando in apparenza acceso: il sistema operativo
+   lo passa a un'altra app o lo silenzia (track.muted), l'ingresso finisce a
+   volume zero (silenzio digitale perfetto, tutti campioni a 0), oppure i
+   pacchetti smettono di partire. L'interfaccia dice "acceso", gli altri non
+   sentono niente. Qui, ogni secondo, mentre NON sei in muto:
+   • track silenziato dal sistema per più di 4 s     → si riapre il microfono
+   • silenzio digitale assoluto per più di 8 s       → si riapre il microfono
+   • byte audio inviati fermi                         → annotato nel log (diagnosi)
+   Il ripristino sostituisce il track nel producer (niente rinegoziazione, gli
+   altri non si accorgono di nulla) ed è limitato a un tentativo ogni 30 s.
+   Ogni evento finisce nel log connessioni: tdConnLog() lo mostra.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const _micHealth = {
+  timer: null, ctx: null, an: null, buf: null, trackId: null,
+  mutedSince: 0, zeroSince: 0, flatSince: 0, lastBytes: -1, tick: 0,
+  recovering: false, lastRecover: 0, silenceFixes: 0,
+};
+
+function _micDiag(why, extra) {
+  console.warn('[mic-health]', why, extra || '');
+  try { if (socket?.connected) socket.emit('clientNetInfo', { why: String(why).slice(0, 20), online: navigator.onLine }); } catch (_) { }
+}
+
+function _micAttachAnalyser(track) {
+  try {
+    if (!_micHealth.ctx) _micHealth.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_micHealth.src) { try { _micHealth.src.disconnect(); } catch (_) { } }
+    const an = _micHealth.ctx.createAnalyser();
+    an.fftSize = 512;
+    const src = _micHealth.ctx.createMediaStreamSource(new MediaStream([track]));
+    src.connect(an);
+    _micHealth.src = src;
+    _micHealth.an = an;
+    _micHealth.buf = new Float32Array(an.fftSize);
+    _micHealth.trackId = track.id;
+  } catch (e) { _micHealth.an = null; }
+}
+
+async function _recoverMic(reason) {
+  if (_micHealth.recovering) return false;
+  if (Date.now() - _micHealth.lastRecover < 30000) return false;
+  _micHealth.recovering = true;
+  _micHealth.lastRecover = Date.now();
+  _micDiag('mic-fix:' + reason);
+  try {
+    const deviceId = window._tdmeetSelectedAudio || localMicTrack?.getSettings?.()?.deviceId;
+    const constraints = window._tdmeetBuildAudioConstraints
+      ? window._tdmeetBuildAudioConstraints(deviceId)
+      : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+    const s = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+    const nt = s.getAudioTracks()[0];
+    if (!nt) throw new Error('nessun track');
+    const old = localMicTrack;
+    const p = producers.get('audio');
+    if (p) await p.replaceTrack({ track: nt });
+    nt.enabled = !micMuted;
+    if (rawCamStream) {
+      rawCamStream.getAudioTracks().forEach(t => { if (t !== nt) { try { rawCamStream.removeTrack(t); } catch (_) { } } });
+      rawCamStream.addTrack(nt);
+    }
+    localMicTrack = nt;
+    window._localMicTrack = nt;
+    if (old && old !== nt) { try { old.stop(); } catch (_) { } }
+    window._reinitSpeakingDetection?.();
+    _micHealth.trackId = null;
+    _micHealth.mutedSince = _micHealth.zeroSince = _micHealth.flatSince = 0;
+    _micHealth.lastBytes = -1;
+    showToast('Il microfono si era bloccato: ripristinato', 3500);
+    _micDiag('mic-ok');
+    return true;
+  } catch (e) {
+    _micDiag('mic-fix-fail', e?.message);
+    // producer chiuso: il "Riprova" del banner ne crea uno nuovo e pulito
+    try { closeProducer('audio'); } catch (_) { }
+    setMicError('Il microfono non trasmette: forse lo sta usando un\'altra app. Chiudila e premi "Riprova".');
+    return false;
+  } finally {
+    _micHealth.recovering = false;
+  }
+}
+
+async function _micTick() {
+  const t = localMicTrack;
+  const p = producers.get('audio');
+  if (!t || !p || micMuted || t.readyState !== 'live' || p.closed) {
+    _micHealth.mutedSince = _micHealth.zeroSince = _micHealth.flatSince = 0;
+    _micHealth.lastBytes = -1;
+    return;
+  }
+  const now = Date.now();
+
+  // 1. sorgente silenziata dal sistema operativo / da un'altra app
+  if (t.muted) {
+    if (!_micHealth.mutedSince) { _micHealth.mutedSince = now; _micDiag('mic-os-muted'); }
+    if (now - _micHealth.mutedSince > 4000) { _recoverMic('os-muted'); return; }
+  } else _micHealth.mutedSince = 0;
+
+  // 2. silenzio digitale perfetto (un microfono vero ha sempre un filo di rumore)
+  if (_micHealth.trackId !== t.id) _micAttachAnalyser(t);
+  const ctx = _micHealth.ctx;
+  if (ctx && ctx.state === 'suspended') { try { await ctx.resume(); } catch (_) { } }
+  if (_micHealth.an && ctx && ctx.state === 'running') {
+    _micHealth.an.getFloatTimeDomainData(_micHealth.buf);
+    let peak = 0;
+    for (let i = 0; i < _micHealth.buf.length; i++) { const v = Math.abs(_micHealth.buf[i]); if (v > peak) peak = v; }
+    if (peak === 0) {
+      if (!_micHealth.zeroSince) _micHealth.zeroSince = now;
+      // dopo 2 tentativi andati a vuoto il silenzio è "vero" (es. tasto mute
+      // fisico sulla cuffia): si smette di insistere, resta solo nel log
+      if (now - _micHealth.zeroSince > 8000 && _micHealth.silenceFixes < 2) {
+        _micHealth.silenceFixes++;
+        _recoverMic('silence'); return;
+      }
+    } else { _micHealth.zeroSince = 0; _micHealth.silenceFixes = 0; }
+  }
+
+  // 3. pacchetti audio fermi (controllo ogni 3 s)
+  if (++_micHealth.tick % 3 === 0) {
+    try {
+      let bytes = 0;
+      (await p.getStats()).forEach(r => { if (r.type === 'outbound-rtp' && (r.kind === 'audio' || r.mediaType === 'audio')) bytes += r.bytesSent || 0; });
+      if (_micHealth.lastBytes >= 0 && bytes === _micHealth.lastBytes) {
+        // solo diagnostica: con la trasmissione discontinua (DTX) una stanza
+        // silenziosissima può mandare pochissimo, e un track nuovo non
+        // aggiusterebbe un problema di rete. Il log serve a capire, non ad agire.
+        if (!_micHealth.flatSince) { _micHealth.flatSince = now; _micDiag('mic-not-sending'); }
+      } else _micHealth.flatSince = 0;
+      _micHealth.lastBytes = bytes;
+    } catch (_) { }
+  }
+}
+
+function startMicHealthWatchdog() {
+  if (_micHealth.timer) return;
+  _micHealth.timer = setInterval(() => { _micTick().catch(() => { }); }, 1000);
+  window.tdMicInfo = () => {
+    const t = localMicTrack, p = producers.get('audio');
+    const info = {
+      track: t ? { label: t.label, readyState: t.readyState, muted: t.muted, enabled: t.enabled, ...t.getSettings?.() } : null,
+      producer: p ? { paused: p.paused, closed: p.closed } : null,
+      mutoNellaUI: micMuted, contesto: _micHealth.ctx?.state,
+      silenzioDa: _micHealth.zeroSince ? Math.round((Date.now() - _micHealth.zeroSince) / 1000) + 's' : '-',
+      invioFermoDa: _micHealth.flatSince ? Math.round((Date.now() - _micHealth.flatSince) / 1000) + 's' : '-',
+    };
+    console.log(info);
+    return info;
+  };
 }
 
 // ─── Hot-plug device: gestisce cuffie/mic collegati o staccati al volo ───────
