@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   TD Meet — Countdown pre-riunione (usato da guest.html)
+   Tiditalk — Countdown pre-riunione (usato da guest.html)
    window.tdmeetCountdown(data, roomId):
      data = risposta di /api/guest/verify/:token → { meeting, serverNow, ... }
    Se la meeting è pianificata a più di GRACE_SEC nel futuro mostra l'overlay

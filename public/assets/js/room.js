@@ -2872,24 +2872,27 @@ function openInfoModal() {
   const footer = _publicSettings?.footer || {};
 
   const logoHtml = branding.logoUrl ? `<div class="info-logo"><img src="${escapeHtml(branding.logoUrl)}"></div>` : '';
-  const companyName = escapeHtml(info.companyName || 'Tastiere Digitali');
+  const companyName = info.companyName ? escapeHtml(info.companyName) : '';
   const companyEmail = info.companyEmail ? escapeHtml(info.companyEmail) : '';
   const companySite = info.companySite ? escapeHtml(info.companySite) : '';
-  const devTitle = escapeHtml(info.developerTitle || 'Sviluppato da Giuseppe Sciarra - Tastiere Digitali');
+  const devTitle = info.developerTitle ? escapeHtml(info.developerTitle) : '';
   const platformName = escapeHtml(branding.platformName || '');
+  // AGPL-3.0 §13: chi usa il servizio in rete deve poter avere il sorgente.
+  const sourceUrl = /^https?:\/\//i.test(_publicSettings?.sourceUrl || '') ? escapeHtml(_publicSettings.sourceUrl) : '';
 
   body.innerHTML = `
     ${logoHtml}
     <h4>Piattaforma</h4>
     <p><strong>${platformName}</strong></p>
 
-    <h4>Azienda</h4>
-    <p><strong>${companyName}</strong></p>
+    ${companyName || companyEmail || companySite ? `<h4>Azienda</h4>
+    ${companyName ? `<p><strong>${companyName}</strong></p>` : ''}
     ${companyEmail ? `<p>📧 <a href="mailto:${companyEmail}">${companyEmail}</a></p>` : ''}
-    ${companySite ? `<p>🌐 <a href="${companySite}" target="_blank" rel="noopener">${companySite}</a></p>` : ''}
+    ${companySite ? `<p>🌐 <a href="${companySite}" target="_blank" rel="noopener">${companySite}</a></p>` : ''}` : ''}
 
     <div class="info-credits">
-      ${devTitle}
+      ${devTitle ? `${devTitle}<br>` : ''}
+      Software open source · AGPL-3.0${sourceUrl ? ` · <a href="${sourceUrl}" target="_blank" rel="noopener">Codice sorgente</a>` : ''}
       ${footer.text && footer.link ? `<br><a href="${escapeHtml(footer.link)}" target="_blank" rel="noopener" style="opacity:0.7">${escapeHtml(footer.text)}</a>` : ''}
     </div>
   `;

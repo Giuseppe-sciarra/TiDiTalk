@@ -28,7 +28,7 @@
   "Abilita microfono e camera": "Activer le micro et la caméra",
   "Accedi": "Se connecter",
   "Accendili o spegnili da qui. La freccina accanto serve a scegliere un altro microfono, altoparlante o videocamera. Scorciatoie: M e V.": "Activez-les ici. La flèche permet de choisir un autre micro, haut-parleur ou caméra. Raccourcis : M et V.",
-  "Accesso a media bloccato. Apri la pagina in HTTPS (https://meet.tastieredigitali.it).": "Accès aux médias bloqué. Ouvrez cette page en HTTPS.",
+  "Accesso a media bloccato. Apri la pagina in HTTPS (https://il-tuo-dominio).": "Accès aux médias bloqué. Ouvrez cette page en HTTPS.",
   "Accesso a microfono o camera negato. Clicca sull'icona del lucchetto nella barra dell'URL e consenti.": "Accès au micro ou à la caméra refusé. Cliquez sur le cadenas dans la barre d’adresse et autorisez l’accès.",
   "Accesso non riuscito": "Échec de la connexion",
   "Account": "Compte",
@@ -577,7 +577,6 @@
   "Suoni di notifica (ingressi, chat, reazioni)": "Sons de notification (entrées, chat, réactions)",
   "Suoni di notifica attivati": "Sons de notification activés",
   "Suoni di notifica disattivati": "Sons de notification désactivés",
-  "Sviluppato da Giuseppe Sciarra - Tastiere Digitali": "Développé par Giuseppe Sciarra - Tastiere Digitali",
   "Sviluppato da.": "Développé par.",
   "Sviluppato da…": "Développé par…",
   "TD MEET — Diagnostica WebRTC (tetto layer device/rete:": "TD MEET — Diagnostic WebRTC (limite appareil/réseau :",
@@ -658,7 +657,7 @@
   "accanto a \"Microfono bloccato\" e \"Fotocamera bloccata\"": "à côté de « Micro bloqué » et « Caméra bloquée »",
   "accedi": "se connecter",
   "accendili o spegnili da qui. La freccina accanto serve a scegliere un altro microfono, altoparlante o videocamera. Scorciatoie: M e V.": "activez-les ici. La flèche permet de choisir un autre micro, haut-parleur ou caméra. Raccourcis : M et V.",
-  "accesso a media bloccato. Apri la pagina in HTTPS (https://meet.tastieredigitali.it).": "accès aux médias bloqué. Ouvrez cette page en HTTPS.",
+  "accesso a media bloccato. Apri la pagina in HTTPS (https://il-tuo-dominio).": "accès aux médias bloqué. Ouvrez cette page en HTTPS.",
   "accesso a microfono o camera negato. Clicca sull'icona del lucchetto nella barra dell'URL e consenti.": "accès au micro ou à la caméra refusé. Cliquez sur le cadenas dans la barre d’adresse et autorisez l’accès.",
   "accesso non riuscito": "échec de la connexion",
   "account": "compte",
@@ -1245,7 +1244,6 @@
   "suoni di notifica (ingressi, chat, reazioni)": "sons de notification (entrées, chat, réactions)",
   "suoni di notifica attivati": "sons de notification activés",
   "suoni di notifica disattivati": "sons de notification désactivés",
-  "sviluppato da Giuseppe Sciarra - Tastiere Digitali": "développé par Giuseppe Sciarra - Tastiere Digitali",
   "sviluppato da…": "développé par…",
   "tD MEET — Diagnostica WebRTC (tetto layer device/rete:": "tD MEET — Diagnostic WebRTC (limite appareil/réseau :",
   "tema predefinito": "thème par défaut",
@@ -1390,5 +1388,8 @@
   "Aggiornamenti {0}:": "Mises à jour de {0} :",
   "{0}: {1} aggiornamenti disponibili": "{0} : {1} mises à jour disponibles",
   "{0}: 1 aggiornamento disponibile": "{0} : 1 mise à jour disponible",
-  "Per aggiornare sull'host: esegui il rebuild Docker Compose. Se vuoi cambiare le versioni, aggiorna prima package.json e controlla il changelog, soprattutto per le versioni MAJOR.": "Pour mettre à jour sur l’hôte, reconstruisez avec Docker Compose. Si vous souhaitez changer les versions, mettez d’abord à jour package.json et consultez le journal des modifications, surtout pour les versions MAJOR."
+  "Per aggiornare sull'host: esegui il rebuild Docker Compose. Se vuoi cambiare le versioni, aggiorna prima package.json e controlla il changelog, soprattutto per le versioni MAJOR.": "Pour mettre à jour sur l’hôte, reconstruisez avec Docker Compose. Si vous souhaitez changer les versions, mettez d’abord à jour package.json et consultez le journal des modifications, surtout pour les versions MAJOR.",
+  "Software open source · AGPL-3.0": "Logiciel libre · AGPL-3.0",
+  "Codice sorgente": "Code source",
+  "Software open source": "Logiciel libre"
 }

@@ -28,7 +28,7 @@
   "Abilita microfono e camera": "Mikrofon und Kamera aktivieren",
   "Accedi": "Anmelden",
   "Accendili o spegnili da qui. La freccina accanto serve a scegliere un altro microfono, altoparlante o videocamera. Scorciatoie: M e V.": "Hier ein- und ausschalten. Über den Pfeil ein anderes Mikrofon, einen Lautsprecher oder eine Kamera wählen. Tastenkürzel: M und V.",
-  "Accesso a media bloccato. Apri la pagina in HTTPS (https://meet.tastieredigitali.it).": "Medienzugriff blockiert. Öffnen Sie diese Seite über HTTPS.",
+  "Accesso a media bloccato. Apri la pagina in HTTPS (https://il-tuo-dominio).": "Medienzugriff blockiert. Öffnen Sie diese Seite über HTTPS.",
   "Accesso a microfono o camera negato. Clicca sull'icona del lucchetto nella barra dell'URL e consenti.": "Zugriff auf Mikrofon oder Kamera verweigert. Klicken Sie auf das Schloss in der Adressleiste und erlauben Sie den Zugriff.",
   "Accesso non riuscito": "Anmeldung fehlgeschlagen",
   "Account": "Konto",
@@ -577,7 +577,6 @@
   "Suoni di notifica (ingressi, chat, reazioni)": "Benachrichtigungstöne (Beitritte, Chat, Reaktionen)",
   "Suoni di notifica attivati": "Benachrichtigungstöne aktiviert",
   "Suoni di notifica disattivati": "Benachrichtigungstöne deaktiviert",
-  "Sviluppato da Giuseppe Sciarra - Tastiere Digitali": "Entwickelt von Giuseppe Sciarra - Tastiere Digitali",
   "Sviluppato da.": "Entwickelt von .",
   "Sviluppato da…": "Entwickelt von …",
   "TD MEET — Diagnostica WebRTC (tetto layer device/rete:": "TD MEET — WebRTC-Diagnose (Geräte-/Netzwerklimit:",
@@ -658,7 +657,7 @@
   "accanto a \"Microfono bloccato\" e \"Fotocamera bloccata\"": "neben „Mikrofon blockiert“ und „Kamera blockiert“",
   "accedi": "anmelden",
   "accendili o spegnili da qui. La freccina accanto serve a scegliere un altro microfono, altoparlante o videocamera. Scorciatoie: M e V.": "hier ein- und ausschalten. Über den Pfeil ein anderes Mikrofon, einen Lautsprecher oder eine Kamera wählen. Tastenkürzel: M und V.",
-  "accesso a media bloccato. Apri la pagina in HTTPS (https://meet.tastieredigitali.it).": "medienzugriff blockiert. Öffnen Sie diese Seite über HTTPS.",
+  "accesso a media bloccato. Apri la pagina in HTTPS (https://il-tuo-dominio).": "medienzugriff blockiert. Öffnen Sie diese Seite über HTTPS.",
   "accesso a microfono o camera negato. Clicca sull'icona del lucchetto nella barra dell'URL e consenti.": "zugriff auf Mikrofon oder Kamera verweigert. Klicken Sie auf das Schloss in der Adressleiste und erlauben Sie den Zugriff.",
   "accesso non riuscito": "anmeldung fehlgeschlagen",
   "account": "konto",
@@ -1245,7 +1244,6 @@
   "suoni di notifica (ingressi, chat, reazioni)": "benachrichtigungstöne (Beitritte, Chat, Reaktionen)",
   "suoni di notifica attivati": "benachrichtigungstöne aktiviert",
   "suoni di notifica disattivati": "benachrichtigungstöne deaktiviert",
-  "sviluppato da Giuseppe Sciarra - Tastiere Digitali": "entwickelt von Giuseppe Sciarra - Tastiere Digitali",
   "sviluppato da…": "entwickelt von …",
   "tD MEET — Diagnostica WebRTC (tetto layer device/rete:": "tD MEET — WebRTC-Diagnose (Geräte-/Netzwerklimit:",
   "tema predefinito": "standarddesign",
@@ -1390,5 +1388,8 @@
   "Aggiornamenti {0}:": "{0}-Updates:",
   "{0}: {1} aggiornamenti disponibili": "{0}: {1} Updates verfügbar",
   "{0}: 1 aggiornamento disponibile": "{0}: 1 Update verfügbar",
-  "Per aggiornare sull'host: esegui il rebuild Docker Compose. Se vuoi cambiare le versioni, aggiorna prima package.json e controlla il changelog, soprattutto per le versioni MAJOR.": "Zum Aktualisieren auf dem Host führen Sie einen Docker-Compose-Rebuild aus. Wenn Sie Versionen ändern möchten, aktualisieren Sie zuerst package.json und prüfen Sie das Changelog, insbesondere bei MAJOR-Versionen."
+  "Per aggiornare sull'host: esegui il rebuild Docker Compose. Se vuoi cambiare le versioni, aggiorna prima package.json e controlla il changelog, soprattutto per le versioni MAJOR.": "Zum Aktualisieren auf dem Host führen Sie einen Docker-Compose-Rebuild aus. Wenn Sie Versionen ändern möchten, aktualisieren Sie zuerst package.json und prüfen Sie das Changelog, insbesondere bei MAJOR-Versionen.",
+  "Software open source · AGPL-3.0": "Open-Source-Software · AGPL-3.0",
+  "Codice sorgente": "Quellcode",
+  "Software open source": "Open-Source-Software"
 }
