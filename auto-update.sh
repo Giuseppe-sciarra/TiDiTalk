@@ -24,6 +24,7 @@
 #   UPDATE_BUSY_WAIT=900         …e ogni quanti secondi (900 = 15 min)
 #   UPDATE_HEALTH_TRIES=36       tentativi di healthcheck (x5s = 3 min)
 #   UPDATE_MAIL_ALWAYS=0         1 = email anche quando non c'è niente da fare
+#   UPDATE_KEEP_ROLLBACK=5       quante immagini di rollback tenere (pulizia Docker)
 # ═════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 cd "$(dirname "$0")"
@@ -65,6 +66,29 @@ IMAGE_NAME="$(docker compose config --images "$SERVICE" 2>/dev/null | head -1 ||
 START_TS=$(date +%s)
 PROJECT_DIR="$(pwd)"
 log "── Aggiornamento automatico $( [[ $DRY_RUN == 1 ]] && echo '(dry-run)' ) ──"
+
+# ── Pulizia sicura di Docker ────────────────────────────────────────────────
+# NON si usa `docker system prune -a`: cancellerebbe anche le immagini di
+# rollback (non sono usate da nessun container) e i comandi di ripristino
+# nelle email smetterebbero di funzionare. Qui invece:
+#   • si tengono le ultime KEEP_ROLLBACK immagini tdt-meet:rollback-*, le più
+#     vecchie si stacca solo il tag;
+#   • `docker system prune -f` (SENZA -a e SENZA --volumes) toglie container
+#     fermi, reti inutilizzate e immagini "orfane" senza tag;
+#   • la cache di build più vecchia di 7 giorni se ne va.
+KEEP_ROLLBACK="${UPDATE_KEEP_ROLLBACK:-$(envval UPDATE_KEEP_ROLLBACK)}"; KEEP_ROLLBACK="${KEEP_ROLLBACK:-5}"
+cleanup_docker() {
+  local old
+  old=$(docker image ls --format '{{.Repository}}:{{.Tag}} {{.CreatedAt}}' 2>/dev/null \
+        | grep '^tdt-meet:rollback-' | sort -k2 -r | awk '{print $1}' | tail -n +$((KEEP_ROLLBACK + 1)))
+  if [[ -n "$old" ]]; then
+    log "tolgo i tag di rollback più vecchi (tengo gli ultimi $KEEP_ROLLBACK): $(echo $old | tr '\n' ' ')"
+    echo "$old" | xargs -r docker rmi > /dev/null 2>&1 || true
+  fi
+  docker system prune -f > /dev/null 2>&1 || true
+  docker builder prune -f --filter until=168h > /dev/null 2>&1 || true
+  log "pulizia Docker fatta: $(docker system df --format '{{.Type}} {{.Size}}' 2>/dev/null | tr '\n' ' ')"
+}
 
 # ── Email di riepilogo (gira DENTRO il container, usa SMTP e brand dell'app) ─
 send_report() { # $1 = json
@@ -188,7 +212,7 @@ if cmp -s "$PKG_BAK" server/package.json; then
         AFTER=$(snapshot_versions)
         log "✅ riallineato. versioni ora: $AFTER"
         send_report "{\"status\":\"ok\",\"before\":$BEFORE,\"after\":$AFTER,\"rollbackInfo\":{\"dir\":\"$PROJECT_DIR\",\"service\":\"$SERVICE\",\"image\":\"$ROLLBACK_TAG\",\"imageName\":\"$IMAGE_NAME\",\"pkg\":\"$PKG_BAK\",\"lock\":\"$LOCK_BAK\"},\"duration\":$(( $(date +%s) - START_TS ))}"
-        docker image prune -f > /dev/null 2>&1 || true
+        cleanup_docker
         exit 0
       fi
     fi
@@ -268,5 +292,5 @@ AFTER=$(snapshot_versions)
 log "✅ servizio OK. versioni ora: $AFTER"
 send_report "{\"status\":\"ok\",\"before\":$BEFORE,\"after\":$AFTER,\"rollbackInfo\":{\"dir\":\"$PROJECT_DIR\",\"service\":\"$SERVICE\",\"image\":\"$ROLLBACK_TAG\",\"imageName\":\"$IMAGE_NAME\",\"pkg\":\"$PKG_BAK\",\"lock\":\"$LOCK_BAK\"},\"duration\":$(( $(date +%s) - START_TS ))}"
 
-docker image prune -f > /dev/null 2>&1 || true
+cleanup_docker
 log "── fine ($(( $(date +%s) - START_TS ))s) ──"
