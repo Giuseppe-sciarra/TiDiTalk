@@ -1,4 +1,4 @@
-# TD Meet - Tastiere Digitali srls
+# Tiditalk — self-hosted video meetings (AGPL-3.0-or-later)
 FROM node:22-alpine AS builder
 
 RUN apk add --no-cache \
