@@ -1,0 +1,688 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   audio-fix.css — stili per:
+   - Test buttons in pre-join (mic / speaker)
+   - Box errore prejoin + bottone riprova
+   - Selettore speaker prejoin
+   - Banner "audio bloccato dal browser" in stanza
+   - Banner "stai parlando ma sei in mute" in stanza
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Pre-join: bottoni di test ──────────────────────────────────────────── */
+
+.pj-test-btn {
+  margin-top: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  color: var(--text, #fff);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+  text-align: center;
+}
+.pj-test-btn:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.25);
+}
+.pj-test-btn.active {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #4ade80;
+}
+
+/* ─── Pre-join: nota speaker non supportato (Firefox/Safari) ─────────────── */
+
+.pj-info-box {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text, #fff);
+  line-height: 1.4;
+}
+
+/* ─── Pre-join: errore + riprova ─────────────────────────────────────────── */
+
+.pj-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.pj-error.hidden { display: none; }
+
+.pj-retry-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: var(--text, #fff);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+  transition: background 0.15s;
+}
+.pj-retry-btn:hover { background: rgba(255,255,255,0.16); }
+
+/* ─── Banner "audio bloccato" ────────────────────────────────────────────── */
+
+.audio-unblock-banner {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  cursor: pointer;
+  font-family: inherit;
+  max-width: calc(100vw - 32px);
+  animation: aub-slide 0.3s ease;
+}
+.audio-unblock-banner.hidden { display: none; }
+
+.audio-unblock-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.audio-unblock-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.audio-unblock-title { font-size: 14px; font-weight: 700; }
+.audio-unblock-sub   { font-size: 12px; opacity: 0.92; }
+
+@keyframes aub-slide {
+  from { transform: translate(-50%, -20px); opacity: 0; }
+  to   { transform: translate(-50%, 0);     opacity: 1; }
+}
+
+/* ─── Banner "sei in mute" (mute-while-speaking warning) ─────────────────── */
+
+.mute-warning-banner {
+  position: fixed;
+  bottom: 110px; /* sopra la barra controlli */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8500;
+  background: rgba(20, 25, 40, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 22px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  animation: mwb-pulse 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.mute-warning-banner.hidden { display: none; }
+.mute-warning-banner span:first-child { font-size: 16px; }
+
+@keyframes mwb-pulse {
+  0%, 100% { box-shadow: 0 6px 20px rgba(239,68,68,0.25); }
+  50%      { box-shadow: 0 6px 26px rgba(239,68,68,0.55); }
+}
+
+/* Mobile: spazio extra per non sovrapporre la bottom toolbar mobile */
+@media (max-width: 640px) {
+  .mute-warning-banner {
+    bottom: 130px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .audio-unblock-banner {
+    top: 60px;
+    padding: 10px 16px;
+  }
+  .audio-unblock-title { font-size: 13px; }
+  .audio-unblock-sub   { font-size: 11px; }
+}
+
+/* Helper hidden universale (non sovrascrive l'esistente) */
+.audio-unblock-banner.hidden,
+.mute-warning-banner.hidden,
+.pj-error.hidden { display: none !important; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Video rotation — fix per iPad/Android in landscape che Firefox non auto-ruota
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.video-tile video {
+  transition: transform 0.25s ease;
+  transform-origin: center center;
+}
+
+/* Rotazioni 90°/270°: il video ruota dentro il tile, deve essere scalato per riempire */
+.video-tile.rot-90  video { transform: rotate(90deg)  scale(1); }
+.video-tile.rot-270 video { transform: rotate(270deg) scale(1); }
+.video-tile.rot-180 video { transform: rotate(180deg); }
+.video-tile.rot-mirror video { transform: scaleX(-1); }
+
+/* Per rotazioni 90/270 con video iPhone portrait (raw landscape 16:9 ruotato per portrait 9:16),
+   il video ruotato è già "verticale" e deve adattarsi al tile orizzontale →
+   forziamo object-fit:contain per non tagliare la testa, con bande nere ai lati */
+.video-tile.rot-90 video,
+.video-tile.rot-270 video {
+  object-fit: contain;
+}
+
+/* Pulsante rotazione manuale sul tile remoto */
+.tile-rotate-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+.video-tile:hover .tile-rotate-btn,
+.video-tile.spotlight .tile-rotate-btn {
+  opacity: 0.9;
+}
+.tile-rotate-btn:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.85);
+  transform: rotate(45deg);
+}
+.tile-rotate-btn:active {
+  transform: rotate(180deg);
+}
+
+/* Touch device: bottone sempre visibile, più grande */
+@media (hover: none) and (pointer: coarse) {
+  .tile-rotate-btn {
+    opacity: 0.75;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Chevron fix universale — risolve il bug di altezza chevron vs bottone.
+   Causa: extras.css ha 2 definizioni duplicate di .ctrl-btn-group e
+   .ctrl-btn-chevron che si sovrascrivono male (align-items:flex-end + padding
+   asimmetrico 25px 8px). Forziamo i valori giusti per tutti i viewport.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.ctrl-btn-group {
+  display: flex !important;
+  align-items: stretch !important;   /* ← chevron eredita altezza dal parent */
+  position: relative;
+}
+.ctrl-btn-group .ctrl-btn-chevron {
+  align-self: stretch !important;
+  height: auto !important;
+  padding: 0 8px !important;          /* ← niente più padding fisso 25px */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 0 !important;
+}
+.ctrl-btn-group .ctrl-btn {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+.ctrl-btn-group .ctrl-btn-chevron {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Responsive — iPhone landscape (height bassa) e iPad (qualunque orientamento)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* iPhone landscape: viewport corto (height < 500) → tutto compatto */
+@media (max-height: 500px) and (orientation: landscape) {
+  .controls-bar {
+    padding: 4px 8px !important;
+    height: auto !important;
+    gap: 4px !important;
+  }
+  .ctrl-btn {
+    min-width: 38px !important;
+    padding: 5px 4px 4px !important;
+    border-radius: 10px !important;
+    gap: 1px !important;
+  }
+  .ctrl-btn .ctrl-icon { width: 18px !important; height: 18px !important; }
+  .ctrl-btn .ctrl-icon svg { width: 16px !important; height: 16px !important; }
+  .ctrl-btn .ctrl-label { font-size: 9px !important; }
+
+  .ctrl-btn--small {
+    min-width: 32px !important;
+    padding: 4px 3px 3px !important;
+    border-radius: 8px !important;
+  }
+  .ctrl-btn--small .ctrl-icon { width: 16px !important; height: 16px !important; }
+  .ctrl-btn--small .ctrl-icon svg { width: 14px !important; height: 14px !important; }
+  .ctrl-btn--small .ctrl-label { font-size: 8px !important; }
+
+  .ctrl-btn-group .ctrl-btn-chevron {
+    width: 18px !important;
+    min-width: 18px !important;
+    padding: 0 !important;
+  }
+  .ctrl-btn-group .ctrl-btn-chevron svg { width: 11px !important; height: 11px !important; }
+  .ctrl-btn-group .ctrl-btn { border-top-left-radius: 10px !important; border-bottom-left-radius: 10px !important; }
+  .ctrl-btn-group .ctrl-btn-chevron { border-top-right-radius: 10px !important; border-bottom-right-radius: 10px !important; }
+
+  .controls-secondary { gap: 3px !important; }
+  .controls-center { gap: 4px !important; }
+}
+
+/* iPad/tablet (touch, 768-1366px) — copre iPad mini, Air, Pro, anche Pro 12.9" landscape.
+   Layout COLONNA come mobile: tasti principali (Audio/Camera/Termina) sopra, secondari sotto. */
+@media (hover: none) and (pointer: coarse) and (min-width: 768px) and (max-width: 1366px) {
+  /* ── Layout della barra: 2 righe verticali centrate ─── */
+  .controls-bar {
+    flex-direction: column !important;
+    height: auto !important;
+    padding: 8px 8px 12px !important;
+    gap: 8px !important;
+    position: static !important;
+  }
+  .controls-left { display: none !important; }
+  .controls-center {
+    position: static !important;
+    transform: none !important;
+    display: flex !important;
+    gap: 6px !important;
+    justify-content: center !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+  .controls-right {
+    display: flex !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    padding: 0 4px !important;
+    flex: none !important;
+  }
+  .controls-right::-webkit-scrollbar { display: none !important; }
+
+  /* Nascondi "Condividi schermo" (Safari iOS / iPad non supporta getDisplayMedia comunque) */
+  #btnScreen { display: none !important; }
+
+  /* ── Dimensioni bottoni ─── */
+  .ctrl-btn {
+    min-width: 52px !important;
+    padding: 7px 8px 6px !important;
+    border-radius: 12px !important;
+  }
+  .ctrl-btn .ctrl-icon { width: 22px !important; height: 22px !important; }
+  .ctrl-btn .ctrl-icon svg { width: 20px !important; height: 20px !important; }
+  .ctrl-btn .ctrl-label { font-size: 11px !important; }
+
+  .ctrl-btn--small {
+    min-width: 40px !important;
+    padding: 6px 6px 5px !important;
+    border-radius: 10px !important;
+  }
+  .ctrl-btn--small .ctrl-icon { width: 20px !important; height: 20px !important; }
+  .ctrl-btn--small .ctrl-icon svg { width: 17px !important; height: 17px !important; }
+  .ctrl-btn--small .ctrl-label { font-size: 9px !important; }
+
+  /* Chevron stretch (regola universale già definita sopra, qui solo dimensione) */
+  .ctrl-btn-group .ctrl-btn-chevron {
+    width: 22px !important;
+    min-width: 22px !important;
+  }
+  .ctrl-btn-group .ctrl-btn-chevron svg { width: 13px !important; height: 13px !important; }
+  .ctrl-btn-group .ctrl-btn { border-top-left-radius: 12px !important; border-bottom-left-radius: 12px !important; }
+  .ctrl-btn-group .ctrl-btn-chevron { border-top-right-radius: 12px !important; border-bottom-right-radius: 12px !important; }
+
+  /* Footer "Powered by" — non sovrapporre la barra */
+  .room-footer { padding: 4px 0 !important; font-size: 10px !important; }
+}
+
+/* iPad portrait stretto (~810px): ulteriore compattamento per non andare in overflow */
+@media (hover: none) and (pointer: coarse) and (min-width: 768px) and (max-width: 900px) and (orientation: portrait) {
+  .ctrl-btn { min-width: 46px !important; padding: 6px 6px 5px !important; }
+  .ctrl-btn--small { min-width: 36px !important; padding: 5px 4px 4px !important; }
+  .ctrl-btn .ctrl-label { font-size: 10px !important; }
+  .ctrl-btn--small .ctrl-label { font-size: 9px !important; }
+  .controls-center { gap: 4px !important; }
+  .controls-right { gap: 3px !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Menu ⋮ "Altro" (Lavagna / Effetti / Sfondo) — popup sopra il pulsante
+   ════════════════════════════════════════════════════════════════════════════ */
+.more-menu {
+  position: fixed;
+  background: rgba(20, 25, 40, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 200px;
+  z-index: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.more-menu.hidden { display: none; }
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.more-menu-item:hover { background: rgba(255,255,255,0.1); }
+.more-menu-item.active { background: rgba(26,115,232,0.22); color: #7ab3ff; }
+.more-menu-ico {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.more-menu-ico svg { width: 18px; height: 18px; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DESKTOP — toolbar stile Google Meet: pulsanti tondi grigio scuro, solo icona,
+   tutti uguali. Hangup pill rosso. Solo desktop con mouse (≥1024px) — NON tocca
+   iPad/touch (override basati su pointer:coarse più sopra).
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (hover: hover) and (pointer: fine) and (min-width: 1024px) {
+  .controls-center { gap: 8px; align-items: center; }
+  .controls-right  { gap: 8px; align-items: center; }
+
+  /* Pulsanti singoli tondi (centro + destra) */
+  .controls-center > .ctrl-btn,
+  .controls-right > .ctrl-btn--small {
+    width: 46px; height: 46px;
+    min-width: 0;
+    padding: 0;
+    gap: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    justify-content: center;
+  }
+  .controls-center > .ctrl-btn:hover,
+  .controls-right > .ctrl-btn--small:hover { background: rgba(255,255,255,0.2); }
+
+  /* Solo icona: niente etichette su desktop */
+  .controls-center .ctrl-label,
+  .controls-right .ctrl-label { display: none !important; }
+
+  .controls-center .ctrl-icon { width: 22px; height: 22px; font-size: 18px; }
+  .controls-center .ctrl-icon svg { width: 20px; height: 20px; }
+  .controls-right .ctrl-btn--small .ctrl-icon { width: 20px; height: 20px; font-size: 16px; }
+  .controls-right .ctrl-btn--small .ctrl-icon svg { width: 18px; height: 18px; }
+
+  /* Termina: pill rosso più largo (come Google Meet) */
+  .controls-center > .ctrl-btn--danger {
+    width: 66px;
+    border-radius: 23px;
+    background: var(--red);
+    color: #fff;
+  }
+  .controls-center > .ctrl-btn--danger .ctrl-icon { color: #fff; }
+  .controls-center > .ctrl-btn--danger:hover { background: #c5221f; }
+
+  /* Gruppo mic/cam con chevron: pill unico (bottone tondo-sx + chevron-dx) */
+  .controls-center .ctrl-btn-group { height: 46px; }
+  .controls-center .ctrl-btn-group .ctrl-btn {
+    width: auto !important;
+    min-width: 0;
+    height: 46px;
+    padding: 0 4px 0 16px;
+    border-radius: 23px 0 0 23px !important;
+    justify-content: center;
+  }
+  .controls-center .ctrl-btn-group .ctrl-btn-chevron {
+    height: 46px;
+    width: 26px !important;
+    min-width: 26px !important;
+    border-radius: 0 23px 23px 0 !important;
+    padding: 0 !important;
+  }
+  .controls-center .ctrl-btn-group .ctrl-btn-chevron svg { width: 13px !important; height: 13px !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Pannello effetti — header con X (desktop) e pulsante Chiudi in basso (mobile)
+   ════════════════════════════════════════════════════════════════════════════ */
+.effects-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -2px 0 10px;
+  flex-shrink: 0;
+}
+.effects-picker-head-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 0.3px;
+}
+.effects-picker-close {
+  width: 30px; height: 30px;
+  border: none; border-radius: 50%;
+  cursor: pointer;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+  font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.effects-picker-close:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+.effects-picker-close-bottom {
+  display: none; /* solo mobile */
+  margin-top: 12px;
+  flex-shrink: 0;
+  width: 100%;
+  padding: 13px;
+  border: none; border-radius: 10px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 15px; font-weight: 600;
+  font-family: inherit;
+}
+.effects-picker-close-bottom:active { background: rgba(255,255,255,0.2); }
+
+/* Mobile: pannello effetti come bottom sheet a tutta larghezza, chiusura in basso */
+@media (max-width: 640px) {
+  .effects-picker {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 80vh !important;
+    border-radius: 18px 18px 0 0 !important;
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .effects-picker-close { display: none; }       /* su mobile la X in alto sparisce */
+  .effects-picker-close-bottom { display: block; } /* compare il tasto Chiudi sotto */
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MOBILE (≤640px) — barra centrale su UNA riga, icon-only compatta, Termina in
+   linea (basta col tasto Termina su una riga a parte). Stile Google Meet mobile.
+   Override su room.css (che mette flex-wrap:wrap e fa andare a capo Termina).
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Centro: una sola riga, niente wrap */
+  .controls-center {
+    flex-wrap: nowrap !important;
+    gap: 5px !important;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0 2px;
+  }
+  .controls-center::-webkit-scrollbar { display: none; }
+
+  /* Niente etichette: solo icona (come desktop / Google Meet) */
+  .controls-center .ctrl-label,
+  .controls-right .ctrl-label { display: none !important; }
+
+  /* Pulsanti centrali tondi compatti, tutti uguali */
+  .controls-center > .ctrl-btn {
+    min-width: 0 !important;
+    width: 42px; height: 42px;
+    padding: 0 !important;
+    gap: 0 !important;
+    border-radius: 50%;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .controls-center .ctrl-icon { width: 20px; height: 20px; font-size: 16px; }
+  .controls-center .ctrl-icon svg { width: 18px; height: 18px; }
+
+  /* Termina: pill rosso in linea con gli altri */
+  .controls-center > .ctrl-btn--danger {
+    width: 56px;
+    border-radius: 21px;
+  }
+
+  /* Secondarie più piccole (reazioni / mano / registra) — le principali restano 42px */
+  #btnReactions, #btnHand, #btnRecord {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  #btnReactions .ctrl-icon, #btnHand .ctrl-icon, #btnRecord .ctrl-icon {
+    width: 15px !important; height: 15px !important;
+  }
+  #btnReactions .ctrl-icon svg, #btnHand .ctrl-icon svg, #btnRecord .ctrl-icon svg {
+    width: 14px !important; height: 14px !important;
+  }
+
+  /* Gruppo mic/cam compatto a pillola */
+  .controls-center .ctrl-btn-group { height: 42px; }
+  .controls-center .ctrl-btn-group .ctrl-btn {
+    width: 40px !important;
+    min-width: 0 !important;
+    height: 42px;
+    padding: 0 !important;
+    justify-content: center !important;
+    align-items: center !important;
+    border-radius: 21px 0 0 21px !important;
+  }
+  .controls-center .ctrl-btn-group .ctrl-btn-chevron {
+    width: 22px !important;
+    min-width: 22px !important;
+    height: 42px;
+    border-radius: 0 21px 21px 0 !important;
+    border-left: none !important;
+    padding: 0 !important;
+  }
+  .controls-center .ctrl-btn-group .ctrl-btn-chevron svg { width: 12px !important; height: 12px !important; }
+
+  /* Riga secondaria (Chat/Persone/Info) tonda anch'essa */
+  .controls-right > .ctrl-btn--small {
+    min-width: 0 !important;
+    width: 40px; height: 40px;
+    padding: 0 !important;
+    gap: 0 !important;
+    border-radius: 50%;
+    justify-content: center;
+  }
+  .controls-right .ctrl-icon { width: 18px; height: 18px; font-size: 14px; }
+  .controls-right .ctrl-icon svg { width: 16px; height: 16px; }
+}
+/* ── Indicatore qualità rete sul tile (barrette stile Meet) ─────────────────── */
+.tile-netq {
+  position: absolute; top: 8px; left: 8px; z-index: 5; cursor: pointer;
+  display: none; align-items: flex-end; gap: 2px;
+  padding: 4px 5px; border-radius: 6px; background: rgba(0,0,0,0.45);
+}
+.tile-netq i { display: block; width: 3px; border-radius: 1px; background: #4b5563; }
+.tile-netq i:nth-child(1) { height: 5px; }
+.tile-netq i:nth-child(2) { height: 8px; }
+.tile-netq i:nth-child(3) { height: 11px; }
+/* livello 3 = buona: verde, tutte accese (mostrata solo se degradata? no: sempre discreta) */
+.tile-netq[data-level] { display: inline-flex; }
+.tile-netq[data-level="3"] i { background: #22c55e; }
+.tile-netq[data-level="2"] i:nth-child(-n+2) { background: #f59e0b; }
+.tile-netq[data-level="1"] i:nth-child(1) { background: #ef4444; }
+.tile-netq[data-level="1"] { animation: netq-blink 1.2s ease-in-out infinite; }
+@keyframes netq-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+
+/* ── Popover statistiche rete (hover/tap sulle barrette) ────────────────────── */
+.netq-popover {
+  position: fixed; z-index: 10000;
+  min-width: 230px; max-width: 300px;
+  background: #111827; color: #e5e7eb;
+  border: 1px solid #374151; border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  padding: 10px 12px; font-size: 12px; line-height: 1.5;
+}
+.netq-popover h4 { margin: 0 0 6px; font-size: 12.5px; color: #fff; display: flex; align-items: center; gap: 6px; }
+.netq-popover .nq-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.netq-popover .nq-dot[data-level="3"] { background: #22c55e; }
+.netq-popover .nq-dot[data-level="2"] { background: #f59e0b; }
+.netq-popover .nq-dot[data-level="1"] { background: #ef4444; }
+.netq-popover table { width: 100%; border-collapse: collapse; }
+.netq-popover td { padding: 1.5px 0; vertical-align: top; }
+.netq-popover td:first-child { color: #9ca3af; padding-right: 12px; white-space: nowrap; }
+.netq-popover td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.netq-popover .nq-sep { border-top: 1px solid #374151; margin: 6px 0; }
+.netq-popover .nq-ds {
+  margin-top: 8px; width: 100%; padding: 6px 10px; border-radius: 7px;
+  border: 1px solid #374151; background: #1f2937; color: #e5e7eb;
+  font-size: 12px; cursor: pointer; text-align: center;
+}
+.netq-popover .nq-ds:hover { background: #374151; }
+.netq-popover .nq-ds.on { background: #14532d; border-color: #22c55e; color: #bbf7d0; }
