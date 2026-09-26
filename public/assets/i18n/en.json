@@ -1395,5 +1395,20 @@
   "Finestra mobile": "Floating window",
   "Il microfono si era bloccato: ripristinato": "Your microphone had stalled: restored",
   "Il microfono non trasmette: forse lo sta usando un'altra app. Chiudila e premi \"Riprova\".": "Your microphone is not sending audio: another app may be using it. Close it and press \"Retry\".",
-  "La finestra mobile funziona su Chrome ed Edge": "The floating window works in Chrome and Edge"
+  "La finestra mobile funziona su Chrome ed Edge": "The floating window works in Chrome and Edge",
+  "Livelli": "Levels",
+  "Casse": "Speakers",
+  "Uscita": "Output",
+  "Si muove quando parla qualcuno": "Moves when someone speaks",
+  "Parla per vedere il livello": "Speak to see the level",
+  "Ti sentono bene": "They can hear you well",
+  "Microfono spento: gli altri non ti sentono": "Microphone off: the others can't hear you",
+  "Livello molto basso: parla per provare. Se la barra resta ferma, alza il volume d'ingresso nelle impostazioni audio del computer.": "Very low level: speak to test. If the bar doesn't move, raise the input volume in your computer's sound settings.",
+  "Regola il volume del microfono automaticamente": "Adjust microphone volume automatically",
+  "Se il volume d'ingresso del computer si abbassa da solo durante le chiamate, spegnilo.": "If your computer's input volume keeps dropping by itself during calls, turn this off.",
+  "Ora è attivo": "Currently on",
+  "Ora è spento": "Currently off",
+  "Il volume di sistema non è leggibile dal browser: qui vedi il segnale reale.": "The browser can't read the system volume: this shows the actual signal.",
+  "Volume automatico attivato": "Automatic volume on",
+  "Volume automatico spento": "Automatic volume off"
 }

@@ -1395,5 +1395,20 @@
   "Finestra mobile": "Schwebendes Fenster",
   "Il microfono si era bloccato: ripristinato": "Ihr Mikrofon war hängen geblieben: wiederhergestellt",
   "Il microfono non trasmette: forse lo sta usando un'altra app. Chiudila e premi \"Riprova\".": "Ihr Mikrofon sendet keinen Ton: Vielleicht nutzt es eine andere App. Schließen Sie sie und tippen Sie auf „Erneut versuchen“.",
-  "La finestra mobile funziona su Chrome ed Edge": "Das schwebende Fenster funktioniert in Chrome und Edge"
+  "La finestra mobile funziona su Chrome ed Edge": "Das schwebende Fenster funktioniert in Chrome und Edge",
+  "Livelli": "Pegel",
+  "Casse": "Lautsprecher",
+  "Uscita": "Ausgabe",
+  "Si muove quando parla qualcuno": "Bewegt sich, wenn jemand spricht",
+  "Parla per vedere il livello": "Sprechen Sie, um den Pegel zu sehen",
+  "Ti sentono bene": "Man hört Sie gut",
+  "Microfono spento: gli altri non ti sentono": "Mikrofon aus: Die anderen hören Sie nicht",
+  "Livello molto basso: parla per provare. Se la barra resta ferma, alza il volume d'ingresso nelle impostazioni audio del computer.": "Sehr niedriger Pegel: Sprechen Sie zum Testen. Bewegt sich der Balken nicht, erhöhen Sie die Eingangslautstärke in den Audioeinstellungen des Computers.",
+  "Regola il volume del microfono automaticamente": "Mikrofonlautstärke automatisch anpassen",
+  "Se il volume d'ingresso del computer si abbassa da solo durante le chiamate, spegnilo.": "Wenn die Eingangslautstärke des Computers während Anrufen von selbst sinkt, schalten Sie dies aus.",
+  "Ora è attivo": "Derzeit an",
+  "Ora è spento": "Derzeit aus",
+  "Il volume di sistema non è leggibile dal browser: qui vedi il segnale reale.": "Der Browser kann die Systemlautstärke nicht auslesen: Hier sehen Sie das tatsächliche Signal.",
+  "Volume automatico attivato": "Automatische Lautstärke an",
+  "Volume automatico spento": "Automatische Lautstärke aus"
 }

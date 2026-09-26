@@ -10,11 +10,32 @@ const _isIOSSafari = _isIOS && /Safari/.test(_UA) && !/CriOS|FxiOS|EdgiOS/.test(
 const _isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(_UA);
 
 /**
+ * Regolazione automatica del volume del microfono (AGC).
+ * Su Mac e Windows l'AGC del browser può abbassare il volume d'ingresso DEL
+ * SISTEMA quando sente eco o voce forte, e lasciarlo giù. Si può spegnere dal
+ * selettore del microfono; la scelta resta nel browser.
+ * Default: spenta su Mac (dove succede più spesso), accesa altrove.
+ */
+const _AGC_KEY = 'tdt_mic_agc';
+const _isMacDesktop = /Mac/.test(navigator.platform || '') && !_isIOS;
+window._tdmeetAgc = function () {
+  try {
+    const v = localStorage.getItem(_AGC_KEY);
+    if (v === '1') return true;
+    if (v === '0') return false;
+  } catch (_) { }
+  return !_isMacDesktop;
+};
+window._tdmeetSetAgc = function (on) {
+  try { localStorage.setItem(_AGC_KEY, on ? '1' : '0'); } catch (_) { }
+};
+
+/**
  * Costruisce constraints audio robusti per il dispositivo corrente.
  * Esposto globalmente perché lo usano anche prejoin.js e room.js (fallback).
  */
 window._tdmeetBuildAudioConstraints = function(deviceId) {
-  const audioBase = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  const audioBase = { echoCancellation: true, noiseSuppression: true, autoGainControl: window._tdmeetAgc() };
   if (!deviceId || deviceId === 'default' || deviceId === 'communications') return audioBase;
   if (_isIOSSafari) return audioBase;                                  // iOS: ignora deviceId
   if (_isMobileDevice) return { ...audioBase, deviceId: { ideal: deviceId } };
@@ -136,6 +157,129 @@ class DeviceSelector {
     this.open = false;
     document.getElementById('devicePopup')?.classList.add('hidden');
     this._detachCloseHandler();
+    this._stopMeters();
+  }
+
+  /* ── Livelli e volume automatico ────────────────────────────────────────
+     Il volume di SISTEMA (cursore d'ingresso del Mac, volume delle casse) non
+     è leggibile né modificabile da una pagina web: nessun browser lo espone.
+     Qui si mostra il segnale REALE: quanto arriva dal microfono e quanto sta
+     uscendo verso le casse, così si capisce al volo se il problema è "non mi
+     sentono" o "non li sento". */
+  _renderAudioExtras(type) {
+    const popup = document.getElementById('devicePopup');
+    let box = document.getElementById('devicePopupExtra');
+    if (type !== 'audioinput') { box?.remove(); this._stopMeters(); return; }
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'devicePopupExtra';
+      box.className = 'device-popup-extra';
+      popup.appendChild(box);
+    }
+    const agcOn = window._tdmeetAgc();
+    const actual = window._localMicTrack?.getSettings?.()?.autoGainControl;
+    const spkName = (this.devices.audiooutput.find(d => d.deviceId === (window._tdmeetSpeakerId || 'default')) || this.devices.audiooutput[0])?.label || '';
+    box.innerHTML = `
+      <div class="device-popup-sep">Livelli</div>
+      <div class="dp-row"><span class="dp-lbl">Microfono</span><div class="dp-meter"><i id="dpMicBar"></i></div></div>
+      <div class="dp-hint" id="dpMicHint">Parla per vedere il livello</div>
+      <div class="dp-row"><span class="dp-lbl">Casse</span><div class="dp-meter"><i id="dpSpkBar"></i></div></div>
+      <div class="dp-hint" id="dpSpkHint">${spkName ? '<span>Uscita</span> · ' + spkName.replace(/[<>&"]/g, '') : '<span>Si muove quando parla qualcuno</span>'}</div>
+      <label class="dp-switch">
+        <input type="checkbox" id="dpAgc" ${agcOn ? 'checked' : ''}>
+        <span class="dp-track"></span>
+        <span class="dp-switch-text">Regola il volume del microfono automaticamente</span>
+      </label>
+      <div class="dp-hint"><span>Se il volume d'ingresso del computer si abbassa da solo durante le chiamate, spegnilo.</span>${actual === undefined ? '' : ' <span>' + (actual ? 'Ora è attivo' : 'Ora è spento') + '</span>'}</div>
+      <div class="dp-hint dp-note">Il volume di sistema non è leggibile dal browser: qui vedi il segnale reale.</div>`;
+
+    const agc = box.querySelector('#dpAgc');
+    agc.addEventListener('click', (e) => e.stopPropagation());
+    agc.addEventListener('change', async () => {
+      window._tdmeetSetAgc(agc.checked);
+      // Riapre lo stesso microfono con la nuova impostazione (stesso percorso,
+      // già collaudato, del cambio dispositivo: sostituisce il track nel flusso)
+      const cur = window._localMicTrack?.getSettings?.()?.deviceId || 'default';
+      window.showToast?.(agc.checked ? 'Volume automatico attivato' : 'Volume automatico spento', 2500);
+      // Da mutato gira il rilevatore "stai parlando ma sei muto", che tiene un
+      // CLONE del microfono: Chrome riusa quella sorgente (con il vecchio AGC)
+      // per il track nuovo e l'impostazione non cambierebbe. Lo si ferma prima
+      // e lo si riaccende dopo.
+      const wasMonitoring = typeof micMuted !== 'undefined' && micMuted && typeof stopMuteWarningDetection === 'function';
+      if (wasMonitoring) { try { stopMuteWarningDetection(); } catch (_) { } }
+      await this._switch('audioinput', cur);
+      if (wasMonitoring && micMuted && typeof startMuteWarningDetection === 'function') {
+        try { startMuteWarningDetection(); } catch (_) { }
+      }
+    });
+    this._startMeters();
+  }
+
+  _startMeters() {
+    this._stopMeters();
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = this._meterCtx || (this._meterCtx = new Ctx());
+      if (ctx.state === 'suspended') ctx.resume().catch(() => { });
+      const mk = () => { const a = ctx.createAnalyser(); a.fftSize = 512; return a; };
+      const micAn = mk(), spkAn = mk();
+      const nodes = [];
+      const micTrack = window._localMicTrack;
+      if (micTrack && micTrack.readyState === 'live') {
+        const src = ctx.createMediaStreamSource(new MediaStream([micTrack]));
+        src.connect(micAn); nodes.push(src);
+      }
+      // casse: somma dell'audio in arrivo dagli altri (non collegato all'uscita:
+      // si misura soltanto, non si riproduce una seconda volta)
+      const audios = window._tdmeetPeerAudios ? [...window._tdmeetPeerAudios.values()] : [];
+      audios.forEach(a => {
+        const st = a?.srcObject;
+        if (!st || !st.getAudioTracks().length) return;
+        try { const src = ctx.createMediaStreamSource(st); src.connect(spkAn); nodes.push(src); } catch (_) { }
+      });
+      const buf = new Float32Array(micAn.fftSize);
+      const level = (an) => {
+        an.getFloatTimeDomainData(buf);
+        let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const rms = Math.sqrt(sum / buf.length);
+        return Math.min(1, rms * 6);          // scala "a occhio" per la barra
+      };
+      let micPeak = 0, micSince = Date.now();
+      const tick = () => {
+        const micBar = document.getElementById('dpMicBar');
+        const spkBar = document.getElementById('dpSpkBar');
+        const hint = document.getElementById('dpMicHint');
+        if (!micBar || document.getElementById('devicePopup')?.classList.contains('hidden')) { this._stopMeters(); return; }
+        const m = nodes.length ? level(micAn) : 0;
+        const k = level(spkAn);
+        micBar.style.width = Math.round(m * 100) + '%';
+        spkBar.style.width = Math.round(k * 100) + '%';
+        micPeak = Math.max(micPeak * 0.995, m);
+        const muted = typeof micMuted !== 'undefined' && micMuted;
+        if (hint) {
+          let msg;
+          if (muted) msg = 'Microfono spento: gli altri non ti sentono';
+          else if (!micTrack || micTrack.readyState !== 'live') msg = 'Microfono non disponibile';
+          else if (micPeak > 0.08) msg = 'Ti sentono bene';
+          else if (Date.now() - micSince > 4000) msg = 'Livello molto basso: parla per provare. Se la barra resta ferma, alza il volume d\'ingresso nelle impostazioni audio del computer.';
+          else msg = 'Parla per vedere il livello';
+          // tradotto qui e scritto solo se cambia: niente ping-pong col traduttore
+          const tr = window.I18n?.t ? window.I18n.t(msg) : msg;
+          if (hint.textContent !== tr) hint.textContent = tr;
+        }
+        this._meterRaf = requestAnimationFrame(tick);
+      };
+      this._meterNodes = nodes;
+      this._meterRaf = requestAnimationFrame(tick);
+    } catch (e) { console.warn('[devices] indicatori livello non disponibili', e?.message); }
+  }
+
+  _stopMeters() {
+    if (this._meterRaf) cancelAnimationFrame(this._meterRaf);
+    this._meterRaf = 0;
+    (this._meterNodes || []).forEach(n => { try { n.disconnect(); } catch (_) { } });
+    this._meterNodes = [];
   }
 
   async _loadDevices() {
@@ -210,6 +354,9 @@ class DeviceSelector {
     } else {
       speakerSec.classList.add('hidden');
     }
+
+    // Livelli reali di microfono e casse + interruttore del volume automatico
+    this._renderAudioExtras(type);
 
     // ── Posizionamento ──────────────────────────────────────────────────────
     popup.classList.remove('hidden');
@@ -370,7 +517,7 @@ class DeviceSelector {
         console.warn('[devices] gUM con constraints preferiti fallito, fallback minimale:', errExact.message);
         // Fallback estremo: nessun deviceId, solo i constraints base
         const fallback = type === 'audioinput'
-          ? { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }
+          ? { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: window._tdmeetAgc() } }
           : { video: { width: { ideal: 1280 }, height: { ideal: 720 } } };
         stream = await navigator.mediaDevices.getUserMedia(fallback);
       }

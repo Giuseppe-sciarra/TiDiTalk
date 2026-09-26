@@ -1395,5 +1395,20 @@
   "Finestra mobile": "Finestra mobile",
   "Il microfono si era bloccato: ripristinato": "Il microfono si era bloccato: ripristinato",
   "Il microfono non trasmette: forse lo sta usando un'altra app. Chiudila e premi \"Riprova\".": "Il microfono non trasmette: forse lo sta usando un'altra app. Chiudila e premi \"Riprova\".",
-  "La finestra mobile funziona su Chrome ed Edge": "La finestra mobile funziona su Chrome ed Edge"
+  "La finestra mobile funziona su Chrome ed Edge": "La finestra mobile funziona su Chrome ed Edge",
+  "Livelli": "Livelli",
+  "Casse": "Casse",
+  "Uscita": "Uscita",
+  "Si muove quando parla qualcuno": "Si muove quando parla qualcuno",
+  "Parla per vedere il livello": "Parla per vedere il livello",
+  "Ti sentono bene": "Ti sentono bene",
+  "Microfono spento: gli altri non ti sentono": "Microfono spento: gli altri non ti sentono",
+  "Livello molto basso: parla per provare. Se la barra resta ferma, alza il volume d'ingresso nelle impostazioni audio del computer.": "Livello molto basso: parla per provare. Se la barra resta ferma, alza il volume d'ingresso nelle impostazioni audio del computer.",
+  "Regola il volume del microfono automaticamente": "Regola il volume del microfono automaticamente",
+  "Se il volume d'ingresso del computer si abbassa da solo durante le chiamate, spegnilo.": "Se il volume d'ingresso del computer si abbassa da solo durante le chiamate, spegnilo.",
+  "Ora è attivo": "Ora è attivo",
+  "Ora è spento": "Ora è spento",
+  "Il volume di sistema non è leggibile dal browser: qui vedi il segnale reale.": "Il volume di sistema non è leggibile dal browser: qui vedi il segnale reale.",
+  "Volume automatico attivato": "Volume automatico attivato",
+  "Volume automatico spento": "Volume automatico spento"
 }

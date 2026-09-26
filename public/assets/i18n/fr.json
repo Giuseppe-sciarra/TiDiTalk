@@ -1395,5 +1395,20 @@
   "Finestra mobile": "Fenêtre flottante",
   "Il microfono si era bloccato: ripristinato": "Votre micro s'était bloqué : rétabli",
   "Il microfono non trasmette: forse lo sta usando un'altra app. Chiudila e premi \"Riprova\".": "Votre micro n'envoie pas de son : une autre application l'utilise peut-être. Fermez-la et appuyez sur « Réessayer ».",
-  "La finestra mobile funziona su Chrome ed Edge": "La fenêtre flottante fonctionne sur Chrome et Edge"
+  "La finestra mobile funziona su Chrome ed Edge": "La fenêtre flottante fonctionne sur Chrome et Edge",
+  "Livelli": "Niveaux",
+  "Casse": "Haut-parleurs",
+  "Uscita": "Sortie",
+  "Si muove quando parla qualcuno": "Bouge quand quelqu'un parle",
+  "Parla per vedere il livello": "Parlez pour voir le niveau",
+  "Ti sentono bene": "On vous entend bien",
+  "Microfono spento: gli altri non ti sentono": "Micro coupé : les autres ne vous entendent pas",
+  "Livello molto basso: parla per provare. Se la barra resta ferma, alza il volume d'ingresso nelle impostazioni audio del computer.": "Niveau très faible : parlez pour tester. Si la barre ne bouge pas, augmentez le volume d'entrée dans les réglages audio de l'ordinateur.",
+  "Regola il volume del microfono automaticamente": "Régler automatiquement le volume du micro",
+  "Se il volume d'ingresso del computer si abbassa da solo durante le chiamate, spegnilo.": "Si le volume d'entrée de l'ordinateur baisse tout seul pendant les appels, désactivez cette option.",
+  "Ora è attivo": "Actuellement activé",
+  "Ora è spento": "Actuellement désactivé",
+  "Il volume di sistema non è leggibile dal browser: qui vedi il segnale reale.": "Le navigateur ne peut pas lire le volume du système : vous voyez ici le signal réel.",
+  "Volume automatico attivato": "Volume automatique activé",
+  "Volume automatico spento": "Volume automatique désactivé"
 }
