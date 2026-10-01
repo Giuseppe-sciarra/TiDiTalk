@@ -1,0 +1,63 @@
+services:
+
+  # ── coturn: STUN/TURN per chi sta dietro NAT o firewall ────────────────────
+  # Tutti i valori arrivano da .env: niente IP o domini scritti qui dentro.
+  coturn:
+    image: coturn/coturn:latest
+    container_name: ${COMPOSE_PREFIX:-tdt}-coturn
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    entrypoint: >
+      sh -c "turnserver -n
+      --realm=$$TURN_REALM
+      --listening-port=$${TURN_PORT:-3478}
+      --external-ip=$$TURN_EXTERNAL_IP
+      --relay-ip=$$TURN_RELAY_IP
+      --min-port=$${TURN_MIN_PORT:-49152}
+      --max-port=$${TURN_MAX_PORT:-49200}
+      --lt-cred-mech
+      --user=$$TURN_USER:$$TURN_PASSWORD
+      --fingerprint
+      --no-multicast-peers
+      --no-tls
+      --no-dtls
+      --log-file=stdout
+      --simple-log"
+
+  app:
+    image: tdt-meet:latest
+    build: .
+    container_name: ${COMPOSE_PREFIX:-tdt}-app
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Rome}
+    env_file: .env
+    depends_on:
+      - coturn
+    volumes:
+      - ./data:/app/data
+      - ./public/assets/vendor:/app/public/assets/vendor:ro
+      - ./public/assets/sounds:/app/public/assets/sounds:ro
+      - ./public/assets/backgrounds:/app/public/assets/backgrounds
+      - ./public/assets/uploads:/app/public/assets/uploads
+      # Frontend montato live: modifiche a CSS/JS/HTML → basta `docker compose restart app`
+      - ./public/assets/css:/app/public/assets/css:ro
+      - ./public/assets/js:/app/public/assets/js:ro
+      - ./public/assets/fonts:/app/public/assets/fonts:ro
+      - ./public/assets/images:/app/public/assets/images:ro
+      - ./public/assets/effects:/app/public/assets/effects:ro
+      - ./public/index.html:/app/public/index.html:ro
+      - ./public/room.html:/app/public/room.html:ro
+      - ./public/guest.html:/app/public/guest.html:ro
+      - ./public/login.html:/app/public/login.html:ro
+      - ./public/schedule.html:/app/public/schedule.html:ro
+      - ./public/settings.html:/app/public/settings.html:ro
+    ports:
+      - '${PORT:-3010}:${PORT:-3010}/tcp'
+      - '${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}:${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}/udp'
+      - '${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}:${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-40400}/tcp'
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536

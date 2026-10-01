@@ -1,0 +1,29 @@
+# Configurazione e dati locali — MAI nel repository
+.env
+data/*
+!data/.gitkeep
+backups/
+logs/
+
+# Caricamenti dal pannello (logo, favicon, sfondi personali)
+public/assets/uploads/*
+!public/assets/uploads/.gitkeep
+
+# Asset di terze parti scaricati dagli script di setup
+public/assets/vendor/*
+!public/assets/vendor/.gitkeep
+public/assets/effects/*.png
+
+# Dipendenze
+# (mediasoup-client.min.js RESTA nel repo: il compose monta public/assets/js
+#  dall'host sopra l'immagine, quindi il bundle deve esistere sul disco)
+node_modules/
+**/node_modules/
+
+# Varie
+*.log
+*.bak
+*.bak_*
+*.tmp.js
+.DS_Store
+Thumbs.db

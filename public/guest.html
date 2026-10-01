@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="it" data-project="videochat">
+<head>
+  <meta charset="UTF-8" />
+  <script src="/assets/i18n/catalog.js"></script>
+  <script src="/assets/i18n/i18n.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#121318" />
+  <title>Entra nella riunione · %%APP_NAME%%</title>
+  <link rel="icon" href="%%FAVICON%%" />
+  <link rel="stylesheet" href="/assets/css/fonts.css" />
+  <link rel="stylesheet" href="/assets/css/tdt-base.css" />
+  <link rel="stylesheet" href="/assets/css/tdt-app.css" />
+  <link rel="stylesheet" href="/assets/css/countdown.css" />
+  <style>
+    /* il countdown usa i token storici: li riaggancio a quelli del tema */
+    body { --blue: var(--accent); --text: var(--paper); --muted: var(--paper-2); --surface: var(--ink-2); --border: var(--hair); --bg: var(--ink-1); }
+    .cd-overlay { background: var(--ink-1); }
+    .cd-card { background: var(--ink-2); border: 1px solid var(--hair); box-shadow: var(--shadow-1); }
+    .cd-blob { opacity: .5; }
+    .cd-blob1 { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+    .cd-blob2 { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+    .cd-title, .cd-num { font-family: var(--font-display); font-weight: 400; }
+    .cd-box { background: var(--ink-1); border: 1px solid var(--hair); }
+    .cd-room { background: var(--accent-soft); border: 1px solid transparent; color: var(--accent); }
+    .cd-kicker { color: var(--accent); }
+  </style>
+  %%BRAND_HEAD%%
+  <script src="/assets/js/theme.js"></script>
+  <script>
+    // Se sei un organizzatore già loggato non tocchiamo nulla: ti mandiamo
+    // direttamente in stanza. Se sei un ospite ripuliamo la sessione, così non
+    // erediti nome e dispositivi di chi ha usato prima questo browser.
+    (function () {
+      try {
+        if (localStorage.getItem('tdmeet_token')) { window._tdmeetHasHostSession = true; return; }
+        const remove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && /^(vc_|tdmeet_|td_|_tdmeet|_vc)/i.test(k)) remove.push(k);
+        }
+        remove.forEach(k => { try { localStorage.removeItem(k); } catch (e) { } });
+        const ss = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && /^(vc_|tdmeet_|td_|_tdmeet|_vc)/i.test(k)) ss.push(k);
+        }
+        ss.forEach(k => { try { sessionStorage.removeItem(k); } catch (e) { } });
+        sessionStorage.setItem('tdmeet_guest_fresh', '1');
+      } catch (e) { }
+    })();
+    (function () {
+      const noop = function () { };
+      ['log', 'info', 'debug', 'warn', 'trace', 'dir', 'group', 'groupEnd', 'table'].forEach(m => {
+        if (console[m]) { console['_' + m] = console[m]; console[m] = noop; }
+      });
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/assets/i18n/i18n.css">
+</head>
+<body class="tdt-app">
+  <div class="auth-beam" aria-hidden="true"></div>
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <img src="%%LOGO%%" alt="" />
+        <div>
+          <div class="auth-logo-name">%%APP_NAME%%</div>
+          <div class="auth-logo-sub">%%TAGLINE%%</div>
+        </div>
+      </div>
+      <div class="card">
+        <h1 class="card-title">Sei stato invitato a una riunione</h1>
+        <p class="card-sub">Non serve installare niente né creare un account: scrivi il tuo nome ed entra.</p>
+        <div class="room-code-big" id="roomCode">—</div>
+        <div class="field">
+          <label for="guestName">Il tuo nome</label>
+          <input type="text" id="guestName" placeholder="Come ti vedranno gli altri" maxlength="32" autocomplete="name" />
+        </div>
+        <button class="btn btn-block" id="btnJoin">Entra nella riunione</button>
+        <div class="alert alert-error hidden" id="errorMsg" style="margin-top:14px"></div>
+        <p class="hint" style="margin-top:14px">Al passaggio successivo il browser chiederà di usare microfono e videocamera: rispondi "Consenti". Potrai comunque entrare con tutto spento.</p>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:16px">
+        <button class="icon-btn" data-theme-toggle data-tip="Cambia tema">
+          <span class="ico-dark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg></span>
+          <span class="ico-light hidden"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.6 8.6 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- ══ Overlay countdown pre-riunione (mostrato solo se meeting nel futuro) ══ -->
+<div class="cd-overlay" id="cdOverlay" style="display:none;">
+  <div class="cd-blob cd-blob1"></div>
+  <div class="cd-blob cd-blob2"></div>
+
+  <div class="cd-logo">
+    <img src="%%LOGO%%" alt="" />
+  </div>
+
+  <div class="cd-card">
+    <!-- Scena animata: finestra videochiamata con avatar, speaking ring, eq, reactions -->
+    <div class="cd-scene">
+      <svg viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Finestra -->
+        <rect x="10" y="10" width="240" height="180" rx="14" fill="#ffffff" style="stroke:var(--hair-2)" stroke-width="2"/>
+        <!-- Barra titolo -->
+        <rect x="10" y="10" width="240" height="26" rx="14" style="fill:var(--accent)"/>
+        <rect x="10" y="24" width="240" height="12" style="fill:var(--accent)"/>
+        <circle cx="26" cy="23" r="4" fill="#ffffff" opacity="0.5"/>
+        <circle cx="40" cy="23" r="4" fill="#ffffff" opacity="0.5"/>
+        <circle cx="54" cy="23" r="4" fill="#ffffff" opacity="0.5"/>
+        <!-- Pallino REC -->
+        <circle class="cd-rec" cx="228" cy="23" r="5" fill="#ef4444"/>
+
+        <!-- Tile 1 (alto sx) -->
+        <rect x="22" y="46" width="102" height="62" rx="8" style="fill:var(--ink-3)"/>
+        <g class="cda cda1">
+          <circle cx="73" cy="70" r="13" fill="#6366f1"/>
+          <text x="73" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="sans-serif">A</text>
+          <rect x="53" y="88" width="40" height="6" rx="3" fill="#c7d2fe"/>
+        </g>
+        <!-- Tile 2 (alto dx) -->
+        <rect x="130" y="46" width="102" height="62" rx="8" style="fill:var(--ink-3)"/>
+        <g class="cda cda2">
+          <circle cx="181" cy="70" r="13" fill="#0ea5e9"/>
+          <text x="181" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="sans-serif">M</text>
+          <rect x="161" y="88" width="40" height="6" rx="3" fill="#bae6fd"/>
+        </g>
+        <!-- Tile 3 (basso sx) -->
+        <rect x="22" y="120" width="102" height="62" rx="8" style="fill:var(--ink-3)"/>
+        <g class="cda cda3">
+          <circle cx="73" cy="144" r="13" fill="#10b981"/>
+          <text x="73" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="sans-serif">G</text>
+          <rect x="53" y="162" width="40" height="6" rx="3" fill="#a7f3d0"/>
+        </g>
+        <!-- Tile 4 (basso dx) -->
+        <rect x="130" y="120" width="102" height="62" rx="8" style="fill:var(--ink-3)"/>
+        <g class="cda cda4">
+          <circle cx="181" cy="144" r="13" fill="#f59e0b"/>
+          <text x="181" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="sans-serif">S</text>
+          <rect x="161" y="162" width="40" height="6" rx="3" fill="#fde68a"/>
+        </g>
+
+        <!-- Anello "sta parlando": parte sul tile 1 e gira sugli altri -->
+        <rect class="cd-speak" x="22" y="46" width="102" height="62" rx="8" fill="none" stroke="#22c55e" stroke-width="3"/>
+
+        <!-- Equalizer in basso al centro della finestra -->
+        <g class="cd-eq">
+          <rect x="118" y="112" width="5" height="14" rx="2.5" fill="#22c55e"/>
+          <rect x="126" y="108" width="5" height="18" rx="2.5" fill="#22c55e"/>
+          <rect x="134" y="112" width="5" height="14" rx="2.5" fill="#22c55e"/>
+        </g>
+      </svg>
+      <!-- Reaction che fluttuano -->
+      <span class="cd-emoji e1">👍</span>
+      <span class="cd-emoji e2">🎉</span>
+      <span class="cd-emoji e3">❤️</span>
+    </div>
+
+    <div class="cd-kicker" id="cdKicker">La riunione non è ancora iniziata</div>
+    <div class="cd-title" id="cdTitle">Riunione pianificata</div>
+    <div class="cd-when" id="cdWhen"></div>
+    <div class="cd-mancano">Mancano ancora:</div>
+    <div class="cd-boxes" id="cdBoxes">
+      <div class="cd-box" id="cdBoxD"><span class="cd-num" id="cdD">0</span><div class="cd-lbl">Giorni</div></div>
+      <div class="cd-box"><span class="cd-num" id="cdH">0</span><div class="cd-lbl">Ore</div></div>
+      <div class="cd-box"><span class="cd-num" id="cdM">0</span><div class="cd-lbl">Minuti</div></div>
+      <div class="cd-box"><span class="cd-num" id="cdS">0</span><div class="cd-lbl">Secondi</div></div>
+    </div>
+    <div class="cd-room">Stanza <b id="cdRoom">—</b></div>
+    <div class="cd-note">La pagina si sbloccherà automaticamente poco prima dell'inizio · Non serve ricaricare</div>
+  </div>
+</div>
+
+<script src="/assets/js/countdown.js"></script>
+  <script src="/assets/js/tooltip.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script>
+    const TOKEN = window.location.pathname.split('/').pop();
+    let roomId = null;
+    const errEl = document.getElementById('errorMsg');
+    const nameEl = document.getElementById('guestName');
+    const btn = document.getElementById('btnJoin');
+
+    (async () => {
+      try {
+        const r = await fetch(`/api/guest/verify/${TOKEN}`);
+        const data = await r.json();
+        if (!data.valid) {
+          errEl.textContent = data.error || 'Questo link non è più valido. Chiedi a chi ti ha invitato di rimandartelo.';
+          errEl.classList.remove('hidden');
+          btn.disabled = true;
+          return;
+        }
+        roomId = data.roomId;
+
+        // organizzatore loggato → dritto in stanza, senza form ospite
+        if (window._tdmeetHasHostSession) {
+          try {
+            const v = await fetch('/api/auth/verify', { headers: { 'x-auth-token': localStorage.getItem('tdmeet_token') } });
+            if (v.ok) { window.location.replace(`/room/${roomId}`); return; }
+            localStorage.removeItem('tdmeet_token');
+          } catch (e) { }
+        }
+
+        document.getElementById('roomCode').textContent = roomId;
+        nameEl.focus();
+        if (window.tdmeetCountdown) window.tdmeetCountdown(data, roomId, TOKEN);
+      } catch (e) {
+        errEl.textContent = 'Non riesco a contattare il server. Controlla la connessione e riprova.';
+        errEl.classList.remove('hidden');
+      }
+    })();
+
+    btn.addEventListener('click', () => {
+      const name = nameEl.value.trim();
+      if (!name) { nameEl.focus(); Tdt.toast('Scrivi il tuo nome per entrare'); return; }
+      if (!roomId) return;
+      localStorage.setItem('vc_displayName', name);
+      sessionStorage.setItem('tdmeet_guest_token', TOKEN);
+      window.location.href = `/room/${roomId}`;
+    });
+    nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+  </script>
+</body>
+</html>
