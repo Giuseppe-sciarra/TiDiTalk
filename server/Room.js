@@ -52,6 +52,7 @@ class Room {
     this.onEmitTo = null;    // impostato da index.js: (socketId, event, data) => io.to(socketId).emit(...)
     this.peers = new Map();
     this.chatHistory = [];
+    this.polls = [];           // sondaggi della stanza (max 20)
     this.createdAt = Date.now();
     this.maxPeers = 20;
     // Annotazioni: Map<sid, stroke[]> — sid = socket di chi condivide lo schermo
@@ -478,16 +479,27 @@ class Room {
     if (prev) { if (prev.pts.length + rest.pts.length <= 4000) prev.pts.push(...rest.pts); }
     else list.push(rest);
     while (list.length > 1500) list.shift();
+    // tetto di punti per superficie (~150k ≈ 3 MB di JSON): oltre, via i tratti più vecchi
+    let pts = 0; for (const s of list) pts += s.pts.length;
+    while (pts > 150000 && list.length > 1) pts -= list.shift().pts.length;
     this.annotations.set(stroke.sid, list);
   }
   getAnnotations(sid) { return this.annotations.get(sid) || []; }
   undoAnnotation(sid, peerId) {
     const list = this.annotations.get(sid);
-    if (!list) return false;
+    if (!list) return null;
     for (let i = list.length - 1; i >= 0; i--) {
-      if (list[i].peerId === peerId) { list.splice(i, 1); return true; }
+      if (list[i].peerId === peerId) return list.splice(i, 1)[0];
     }
-    return false;
+    return null;
+  }
+  removeAnnotation(sid, id, peerId) {
+    const list = this.annotations.get(sid);
+    if (!list) return false;
+    const i = list.findIndex(s => s.id === id && s.peerId === peerId);
+    if (i < 0) return false;
+    list.splice(i, 1);
+    return true;
   }
   clearAnnotations(sid) { this.annotations.set(sid, []); }
   clearSurface(sid) { this.annotations.delete(sid); this.annOpen.delete(sid); }
@@ -496,6 +508,49 @@ class Room {
     for (const [sid, list] of this.annotations) if (list.length) out[sid] = list;
     return out;
   }
+
+  // ─── Sondaggi ────────────────────────────────────────────────────────────────
+  createPoll({ question, options, anonymous }, creator) {
+    const poll = {
+      id: require('crypto').randomBytes(5).toString('hex'),
+      question, options: options.map((text, i) => ({ id: String(i), text })),
+      anonymous: !!anonymous, open: true,
+      votes: new Map(),                      // peerId → optionId
+      voterNames: new Map(),                 // peerId → nome (per i sondaggi non anonimi)
+      createdBy: creator.id, createdByName: creator.displayName, createdAt: Date.now(), closedAt: null,
+    };
+    this.polls.push(poll);
+    while (this.polls.length > 20) this.polls.shift();
+    return poll;
+  }
+  getPoll(id) { return this.polls.find(p => p.id === id) || null; }
+  votePoll(id, peerId, optionId, name) {
+    const p = this.getPoll(id);
+    if (!p || !p.open) return null;
+    if (!p.options.some(o => o.id === optionId)) return null;
+    p.votes.set(peerId, optionId);
+    p.voterNames.set(peerId, name);
+    return p;
+  }
+  closePoll(id) { const p = this.getPoll(id); if (!p) return null; p.open = false; p.closedAt = Date.now(); return p; }
+  deletePoll(id) { const i = this.polls.findIndex(p => p.id === id); if (i < 0) return false; this.polls.splice(i, 1); return true; }
+  /** Vista pubblica: conteggi e (se non anonimo) chi ha votato cosa; il voto
+   *  del richiedente è sempre incluso come myVote. */
+  pollView(p, forPeerId) {
+    const counts = {}; p.options.forEach(o => { counts[o.id] = 0; });
+    const voters = {}; p.options.forEach(o => { voters[o.id] = []; });
+    for (const [pid, oid] of p.votes) {
+      if (counts[oid] != null) counts[oid]++;
+      if (!p.anonymous && voters[oid]) voters[oid].push(p.voterNames.get(pid) || 'Partecipante');
+    }
+    return {
+      id: p.id, question: p.question, options: p.options, anonymous: p.anonymous, open: p.open,
+      counts, total: p.votes.size, voters: p.anonymous ? null : voters,
+      createdBy: p.createdBy, createdByName: p.createdByName, createdAt: p.createdAt, closedAt: p.closedAt,
+      myVote: forPeerId ? (p.votes.get(forPeerId) ?? null) : null,
+    };
+  }
+  pollsSnapshot(forPeerId) { return this.polls.map(p => this.pollView(p, forPeerId)); }
 
   // ─── Chat ────────────────────────────────────────────────────────────────────
 

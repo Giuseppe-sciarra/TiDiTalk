@@ -41,6 +41,40 @@ function getRoomPolicy(db) {
   };
 }
 
+// ─── Pagina di fine chiamata (solo ospiti) ───────────────────────────────────
+const BYE_DEFAULTS = {
+  enabled: true,
+  mode: 'page',                 // 'page' = pagina /bye con brand · 'redirect' = URL esterno
+  redirectUrl: '',
+  onHostLeft: 'bye',            // quando l'organizzatore chiude: 'bye' (pagina) oppure 'wait' (sala d'attesa)
+  title: 'Grazie, {nome}.\nÈ stato un piacere.',
+  subtitle: 'La chiamata è finita. A presto!',
+  heading: 'Chiamata conclusa',
+  text: 'Ti mandiamo un riepilogo via email entro oggi.',
+  brandText: '',
+  bgImageUrl: '',
+  animation: 'constellation',   // 'constellation' | 'check' | 'ring' | 'none'
+  showStats: true,
+  askRating: false,
+  contactName: '', contactRole: '', contactEmail: '', contactPhone: '', contactPhotoUrl: '',
+  buttons: [],                  // [{ label, url }] max 3
+};
+function getBye(db) {
+  const b = db.getSetting('bye') || {};
+  const out = { ...BYE_DEFAULTS };
+  for (const k of Object.keys(BYE_DEFAULTS)) if (b[k] !== undefined) out[k] = b[k];
+  // difesa in profondità: gli URL si rivalidano anche in lettura (come footer.link)
+  const okUrl = (u, asset) => (typeof u === 'string' && (HTTP_URL.test(u) || (asset && ASSET_URL.test(u)))) ? u : '';
+  out.redirectUrl = okUrl(out.redirectUrl, false);
+  out.bgImageUrl = okUrl(out.bgImageUrl, true);
+  out.contactPhotoUrl = okUrl(out.contactPhotoUrl, true);
+  out.buttons = (Array.isArray(out.buttons) ? out.buttons.slice(0, 3) : [])
+    .map(b => ({ label: String(b && b.label || '').slice(0, 40), url: okUrl(b && b.url, false) }))
+    .filter(b => b.label && b.url);
+  for (const k of ['title', 'subtitle', 'heading', 'text', 'brandText', 'contactName', 'contactRole', 'contactEmail', 'contactPhone']) out[k] = String(out[k] == null ? '' : out[k]);
+  return out;
+}
+
 function getPublicSettings(db, config) {
   const f = db.getSetting('footer') || {};
   const i = db.getSetting('info') || {};
@@ -58,6 +92,7 @@ function getPublicSettings(db, config) {
       developerTitle: i.developerTitle || '',
     },
     rooms: getRoomPolicy(db),
+    bye: getBye(db),
     // link al sorgente mostrato nella finestra Info (AGPL-3.0 §13)
     sourceUrl: HTTP_URL.test(process.env.SOURCE_URL || '') ? process.env.SOURCE_URL : UPSTREAM_REPO,
     // numero di versione (da server/package.json) mostrato nel footer di ogni pagina
@@ -99,6 +134,33 @@ function saveCategory(db, category, data) {
     case 'rooms':
       out = { guestScreenShare: data.guestScreenShare !== false, annotateAll: data.annotateAll === true, tour: data.tour !== false };
       break;
+    case 'bye': {
+      const email = _str(data.contactEmail, 120);
+      if (email && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']{2,}$/.test(email)) throw new Error('Email contatto non valida');
+      const mode = data.mode === 'redirect' ? 'redirect' : 'page';
+      const redirectUrl = _url(data.redirectUrl, false);
+      if (mode === 'redirect' && !redirectUrl) throw new Error('Inserisci l\'indirizzo a cui reindirizzare (https://…)');
+      const buttons = (Array.isArray(data.buttons) ? data.buttons : []).slice(0, 3)
+        .map(b => ({ label: _str(b && b.label, 40), url: _url(b && b.url, false) }))
+        .filter(b => b.label && b.url);
+      out = {
+        enabled: data.enabled !== false, mode, redirectUrl,
+        onHostLeft: data.onHostLeft === 'wait' ? 'wait' : 'bye',
+        title: _str(data.title, 120) || BYE_DEFAULTS.title,
+        subtitle: _str(data.subtitle, 200),
+        heading: _str(data.heading, 80),
+        text: _str(data.text, 300),
+        brandText: _str(data.brandText, 200),
+        bgImageUrl: _url(data.bgImageUrl, true),
+        animation: ['constellation', 'check', 'ring', 'none'].includes(data.animation) ? data.animation : 'constellation',
+        showStats: data.showStats !== false,
+        askRating: data.askRating === true,
+        contactName: _str(data.contactName, 60), contactRole: _str(data.contactRole, 60),
+        contactEmail: email, contactPhone: _str(data.contactPhone, 40), contactPhotoUrl: _url(data.contactPhotoUrl, true),
+        buttons,
+      };
+      break;
+    }
     default:
       throw new Error('Categoria non valida');
   }
@@ -235,4 +297,4 @@ document.documentElement.dataset.theme=(t==='light'?'light':'dark');}catch(e){do
   res.send(out);
 }
 
-module.exports = { APP_VERSION, esc, getBrand, getRoomPolicy, getPublicSettings, saveCategory, sendPage, inkFor, accentFor, accentForEmail, DEFAULT_LOGO };
+module.exports = { APP_VERSION, esc, getBrand, getBye, getRoomPolicy, getPublicSettings, saveCategory, sendPage, inkFor, accentFor, accentForEmail, DEFAULT_LOGO };

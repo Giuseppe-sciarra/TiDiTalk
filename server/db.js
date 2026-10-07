@@ -162,6 +162,17 @@ db.exec(`
     updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
   );
 
+  CREATE TABLE IF NOT EXISTS feedback (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id      TEXT DEFAULT '',
+    name         TEXT DEFAULT '',
+    host         TEXT DEFAULT '',
+    stars        INTEGER NOT NULL,
+    comment      TEXT DEFAULT '',
+    duration_sec INTEGER DEFAULT 0,
+    created_at   INTEGER NOT NULL DEFAULT (unixepoch())
+  );
+
   CREATE TABLE IF NOT EXISTS login_attempts (
     ip       TEXT NOT NULL,
     username TEXT DEFAULT '',
@@ -302,7 +313,18 @@ function countRecentFailedLogins(ip, windowMin) {
   } catch (_) { return 0; }
 }
 
+// ─── Feedback fine chiamata ──────────────────────────────────────────────────
+const fbStmt = {
+  add: db.prepare(`INSERT INTO feedback (room_id, name, host, stars, comment, duration_sec) VALUES (?, ?, ?, ?, ?, ?)`),
+  list: db.prepare(`SELECT id, room_id AS roomId, name, host, stars, comment, duration_sec AS durationSec, created_at AS createdAt FROM feedback ORDER BY id DESC LIMIT ?`),
+  del: db.prepare(`DELETE FROM feedback WHERE id = ?`),
+};
+function addFeedback(f) { fbStmt.add.run(f.roomId || '', f.name || '', f.host || '', f.stars, f.comment || '', f.durationSec || 0); }
+function listFeedback(limit = 200) { return fbStmt.list.all(limit); }
+function deleteFeedback(id) { if (Number.isFinite(id)) fbStmt.del.run(id); }
+
 module.exports = {
+  addFeedback, listFeedback, deleteFeedback,
   createMeeting, getMeeting, getMeetingByRoomId, getMeetings, getAllMeetings, deleteMeeting, updateMeeting,
   getSetting, setSetting, getAllSettings,
   getUser, createUser, updateUser, upsertUser, updateUserPassword, deleteUser, listUsers, countAdmins,

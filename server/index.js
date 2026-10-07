@@ -215,6 +215,8 @@ app.get('/home', (req, res) => sendPage(res, 'index.html'));
 app.get('/schedule', (req, res) => sendPage(res, 'schedule.html'));
 app.get('/room/:id', (req, res) => sendPage(res, 'room.html'));
 app.get('/settings', (req, res) => sendPage(res, 'settings.html'));
+// Pagina di fine chiamata per gli ospiti (contenuti dal pannello Impostazioni → Fine chiamata)
+app.get('/bye', (req, res) => sendPage(res, 'bye.html'));
 app.get('/join/:token', (req, res) => {
   const payload = verifyGuestToken(req.params.token);
 
@@ -659,8 +661,8 @@ const ALLOWED_UPLOAD_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp']);
 // Content-Type (succede con fetch + ArrayBuffer) body-parser salta il parsing e
 // il body arriva vuoto. Con `type: () => true` il corpo viene sempre letto.
 app.post('/api/upload/:kind', authMiddleware, express.raw({ type: () => true, limit: '8mb' }), (req, res) => {
-  const { kind } = req.params;  // 'logo' | 'favicon' | 'background'
-  if (!['logo', 'favicon', 'background'].includes(kind)) return res.status(400).json({ error: 'kind non valido' });
+  const { kind } = req.params;  // 'logo' | 'favicon' | 'background' | 'byebg' (sfondo pagina fine chiamata) | 'contact' (foto contatto)
+  if (!['logo', 'favicon', 'background', 'byebg', 'contact'].includes(kind)) return res.status(400).json({ error: 'kind non valido' });
   if (kind !== 'background' && req.user.role !== 'admin') return res.status(403).json({ error: 'Serve un account amministratore' });
   const ext = String(req.query.ext || 'png').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4);
   if (!ALLOWED_UPLOAD_EXTS.has(ext)) return res.status(400).json({ error: 'Formato non supportato (png/jpg/jpeg/webp)' });
@@ -684,6 +686,43 @@ app.post('/api/upload/:kind', authMiddleware, express.raw({ type: () => true, li
   const fullPath = path.join(UPLOAD_DIR, filename);
   fs.writeFileSync(fullPath, body);
   res.json({ url: `/assets/uploads/${filename}` });
+});
+
+// ── Feedback di fine chiamata (stelle + commento dalla pagina /bye) ─────────
+const _fbRecent = new Map(); // ip → ts ultimi invii (anti-spam: max 5 ogni 10 minuti per IP, 60/min in totale)
+let _fbGlobal = [];
+setInterval(() => {                      // pulizia: niente crescita infinita della mappa
+  const now = Date.now();
+  for (const [ip, list] of _fbRecent) { const l = list.filter(t => now - t < 600000); if (l.length) _fbRecent.set(ip, l); else _fbRecent.delete(ip); }
+  _fbGlobal = _fbGlobal.filter(t => now - t < 60000);
+}, 60000).unref();
+app.post('/api/feedback', (req, res) => {
+  try {
+    if (!brand.getBye(db).askRating) return res.status(403).json({ error: 'Valutazioni disattivate' });
+    // IPv6: un singolo utente ha un intero /64 → si limita per prefisso
+    const rawIp = String(req.ip || 'x');
+    const ip = rawIp.includes(':') ? rawIp.split(':').slice(0, 4).join(':') : rawIp;
+    const now = Date.now();
+    _fbGlobal = _fbGlobal.filter(t => now - t < 60000);
+    if (_fbGlobal.length >= 60) return res.status(429).json({ error: 'Troppi invii, riprova più tardi' });
+    const list = (_fbRecent.get(ip) || []).filter(t => now - t < 600000);
+    if (list.length >= 5) return res.status(429).json({ error: 'Troppi invii, riprova più tardi' });
+    list.push(now); _fbRecent.set(ip, list); _fbGlobal.push(now);
+    const b = req.body || {};
+    const stars = Math.round(Number(b.stars));
+    if (!(stars >= 1 && stars <= 5)) return res.status(400).json({ error: 'Voto non valido' });
+    db.addFeedback({
+      roomId: _safeStr(b.roomId, 64), name: _safeStr(b.name, 60), host: _safeStr(b.host, 60),
+      stars, comment: _safeStr(b.comment, 500), durationSec: Math.max(0, Math.min(86400, Number(b.durationSec) || 0)),
+    });
+    res.json({ ok: true });
+  } catch (e) { console.error('[feedback]', e); res.status(500).json({ error: 'Errore interno' }); }
+});
+app.get('/api/feedback', adminMiddleware, (req, res) => {
+  res.json({ feedback: db.listFeedback(200) });
+});
+app.delete('/api/feedback/:id', adminMiddleware, (req, res) => {
+  db.deleteFeedback(Number(req.params.id)); res.json({ ok: true });
 });
 
 // ── Lista background disponibili (preset + uploaded) ─────────────────────────
@@ -867,6 +906,7 @@ io.on('connection', (socket) => {
     ptr: makeRateLimiter(40, 30),  // puntatore laser: 30 pos/s
     media: makeRateLimiter(20, 5),    // mediaState/handRaise: 20 burst, 5/s
     reaction: makeRateLimiter(5, 1),     // reactions: 5 burst, 1/s (anti-spam emoji)
+    poll: makeRateLimiter(10, 2),        // sondaggi: voti/creazione/chiusura
   };
   const _checkRl = (bucket, eventName) => {
     if (!_rl[bucket].take()) {
@@ -926,6 +966,13 @@ io.on('connection', (socket) => {
       }
 
       const room = await getOrCreateRoom(roomId);
+      // Il client può essersi disconnesso mentre la stanza veniva creata: senza
+      // questo controllo si registrava un peer fantasma (stanza mai vuota →
+      // router mediasoup mai chiuso, e un host fantasma faceva saltare la lobby)
+      if (socket.disconnected) {
+        if (room.isFullyEmpty()) { room.close(); rooms.delete(roomId); }
+        throw new Error('Connessione chiusa durante l\'ingresso');
+      }
 
       // ── LOBBY: guest senza host in stanza → in attesa ──────────────────────
       // Strict: il guest non può entrare nemmeno come peer finché non c'è
@@ -980,6 +1027,7 @@ io.on('connection', (socket) => {
         routerRtpCapabilities: room.router.rtpCapabilities,
         peers: room.getPeersData(socket.id),
         chatHistory: room.chatHistory,
+        polls: room.pollsSnapshot(socket.id),
         annotations: room.annotationsSnapshot(),
         annOpen: Object.fromEntries(room.annOpen),
         policy: _roomPolicy(),
@@ -1186,6 +1234,65 @@ io.on('connection', (socket) => {
     io.to(currentRoom.id).emit('peerReaction', { peerId: socket.id, displayName: currentPeer.displayName, emoji: e });
   });
 
+  // ── Sondaggi ─────────────────────────────────────────────────────────────
+  // Creare/chiudere/eliminare: organizzatori (non ospiti). Votare: tutti.
+  // Il voto dell'interessato viaggia solo verso di lui (myVote); agli altri
+  // arrivano conteggi e, se il sondaggio non è anonimo, i nomi.
+  const _pollBroadcast = (poll) => {
+    const sockets = io.sockets.adapter.rooms.get(currentRoom.id) || new Set();
+    for (const sid of sockets) io.to(sid).emit('pollUpdate', { poll: currentRoom.pollView(poll, sid) });
+  };
+  socket.on('pollCreate', (d = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
+    try {
+      if (!_inRoom() || !_isPlainObject(d)) throw new Error('Non in stanza');
+      if (currentPeer.isGuest) throw new Error('Solo gli organizzatori possono creare sondaggi');
+      if (!_checkRl('poll', 'pollCreate')) throw new Error('Troppe richieste');
+      const question = _safeStr(d.question, 200);
+      const options = (Array.isArray(d.options) ? d.options : []).slice(0, 12).map(o => _safeStr(o, 80)).filter(Boolean).slice(0, 10);
+      if (!question) throw new Error('Scrivi la domanda');
+      if (options.length < 2) throw new Error('Servono almeno due opzioni');
+      const poll = currentRoom.createPoll({ question, options, anonymous: _safeBool(d.anonymous) }, currentPeer);
+      _pollBroadcast(poll);
+      callback({ ok: true, id: poll.id });
+    } catch (err) { callback({ error: err.message }); }
+  });
+  socket.on('pollVote', (d = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
+    try {
+      if (!_inRoom() || !_isPlainObject(d)) throw new Error('Non in stanza');
+      if (!_checkRl('poll', 'pollVote')) throw new Error('Troppe richieste');
+      const poll = currentRoom.votePoll(_safeStr(d.pollId, 20), socket.id, _safeStr(d.optionId, 4), currentPeer.displayName);
+      if (!poll) throw new Error('Sondaggio chiuso o non trovato');
+      _pollBroadcast(poll);
+      callback({ ok: true });
+    } catch (err) { callback({ error: err.message }); }
+  });
+  socket.on('pollClose', (d = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
+    try {
+      if (!_inRoom() || !_isPlainObject(d)) throw new Error('Non in stanza');
+      if (currentPeer.isGuest) throw new Error('Solo gli organizzatori possono chiudere un sondaggio');
+      if (!_checkRl('poll', 'pollClose')) throw new Error('Troppe richieste');
+      const poll = currentRoom.closePoll(_safeStr(d.pollId, 20));
+      if (!poll) throw new Error('Sondaggio non trovato');
+      _pollBroadcast(poll);
+      callback({ ok: true });
+    } catch (err) { callback({ error: err.message }); }
+  });
+  socket.on('pollDelete', (d = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
+    try {
+      if (!_inRoom() || !_isPlainObject(d)) throw new Error('Non in stanza');
+      if (currentPeer.isGuest) throw new Error('Solo gli organizzatori possono eliminare un sondaggio');
+      if (!_checkRl('poll', 'pollDelete')) throw new Error('Troppe richieste');
+      const id = _safeStr(d.pollId, 20);
+      if (!currentRoom.deletePoll(id)) throw new Error('Sondaggio non trovato');
+      io.to(currentRoom.id).emit('pollDeleted', { pollId: id });
+      callback({ ok: true });
+    } catch (err) { callback({ error: err.message }); }
+  });
+
   socket.on('chatMessage', ({ message, type = 'text' } = {}) => {
     if (!_inRoom()) return;
     if (!_checkRl('chat', 'chatMessage')) return;
@@ -1203,7 +1310,7 @@ io.on('connection', (socket) => {
   // Superficie: sid = socket id di chi sta condividendo lo schermo.
   // Permessi: chi presenta + organizzatori; gli ospiti solo se chi presenta
   // (o un organizzatore) ha aperto il disegno a tutti.
-  const _ANN_TOOLS = new Set(['pen', 'hl', 'arrow', 'rect', 'ellipse']);
+  const _ANN_TOOLS = new Set(['pen', 'hl', 'arrow', 'rect', 'ellipse', 'text']);
   const _annSid = (sid) => (typeof sid === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(sid) ? sid : null);
   const _canDraw = (sid) => {
     if (!_inRoom() || !sid) return false;
@@ -1233,6 +1340,13 @@ io.on('connection', (socket) => {
       pts, live: st.live === true, append: st.append === true,
       peerId: socket.id, name: currentPeer.displayName,
     };
+    if (st.tool === 'text') {
+      // testo: un solo punto (angolo in alto a sinistra) + contenuto, max 300 caratteri / 12 righe
+      if (typeof st.text !== 'string' || st.text.length > 2000) return;   // niente regex su megabyte
+      const text = String(st.text == null ? '' : st.text).replace(/[\u0000-\u0008\u000b-\u001f]/g, '').split('\n').slice(0, 12).join('\n').slice(0, 300).trimEnd();
+      if (!text.trim()) return;
+      clean.text = text; clean.pts = [pts[0]]; clean.live = false; clean.append = false;
+    }
     if (!clean.live) currentRoom.addAnnotation(clean);
     socket.to(currentRoom.id).emit('annDraw', clean);
   });
@@ -1250,13 +1364,27 @@ io.on('connection', (socket) => {
     });
   });
 
+  // gomma: cancella un singolo tratto (il proprio, oppure qualsiasi se si può gestire la superficie)
+  socket.on('annErase', (d) => {
+    if (!_isPlainObject(d) || !_checkRl('wb', 'annErase')) return;
+    const sid = _annSid(d.sid);
+    if (!_canDraw(sid)) return;
+    const id = _safeStr(d.id, 24); if (!id) return;
+    const owner = _safeStr(d.peerId, 40) || socket.id;
+    if (owner !== socket.id && !_canManage(sid)) return;
+    if (currentRoom.removeAnnotation(sid, id, owner)) {
+      // delta, non l'intera superficie: con disegni grandi il re-invio completo a
+      // ogni colpo di gomma era un moltiplicatore di banda/memoria
+      io.to(currentRoom.id).emit('annErased', { sid, id, peerId: owner });
+    }
+  });
+
   socket.on('annUndo', (d) => {
     if (!_isPlainObject(d) || !_checkRl('wb', 'annUndo')) return;
     const sid = _annSid(d.sid);
     if (!_inRoom() || !sid) return;
-    if (currentRoom.undoAnnotation(sid, socket.id)) {
-      io.to(currentRoom.id).emit('annSync', { sid, strokes: currentRoom.getAnnotations(sid) });
-    }
+    const undone = currentRoom.undoAnnotation(sid, socket.id);
+    if (undone) io.to(currentRoom.id).emit('annErased', { sid, id: undone.id, peerId: socket.id });
   });
 
   socket.on('annClear', (d) => {
@@ -1343,6 +1471,13 @@ io.on('connection', (socket) => {
     console.warn('       Imposta USERS=nome:password:Nome:admin in .env e riavvia.');
     console.warn('════════════════════════════════════════════════════════════════');
   }
+  // ── Gestore errori finale: risposta JSON senza stack trace (es. JSON malformato, CORS rifiutato) ──
+  app.use((err, req, res, next) => {
+    if (res.headersSent) return next(err);
+    const status = err.status || err.statusCode || 500;
+    if (status >= 500) console.error('[http]', err);
+    res.status(status).json({ error: status >= 500 ? 'Errore interno' : (err.message || 'Richiesta non valida') });
+  });
   await createWorkers();
   server.listen(config.server.port, () => console.log(`[Meet] Porta ${config.server.port}`));
 
