@@ -27,6 +27,8 @@ let DISPLAY_NAME = DISPLAY_NAME_DEFAULT || 'Anonimo';
 
 const producers = new Map();
 const consumers = new Map();
+// sorgenti statistiche per il monitor di rete (netmon.js)
+window._tdNetSources = () => (sendTransport || recvTransport) ? { sendTransport, recvTransport, producers, consumers, peerName: (id) => peers.get(id)?.displayName } : null;
 const peers = new Map();
 // ⭐ FIX entrata-muto: stato mic/cam a scope modulo, condiviso tra init (prejoin)
 // e i toggle in bindControls. Prima bindControls li ridichiarava a false → entrando
@@ -60,6 +62,7 @@ Object.defineProperty(window, '_localCamTrack', { get: () => localCamTrack, set:
 
 // Moduli aggiuntivi
 let sounds = null;
+Object.defineProperty(window, 'sounds', { get: () => sounds }); // ptt.js rispetta il mute dei suoni
 let participantList = null;
 let prejoin = null;
 let deviceSelector = null;
@@ -1018,7 +1021,19 @@ async function initSocket() {
     // ── LOBBY: l'ultimo host è uscito, server ci ha rimesso in lobby ─────────
     // Reload pulito: tornerà nel prejoin → joinRoom → server risponde
     // waitingForHost → overlay. Più semplice e robusto del teardown manuale.
-    socket.on('hostLeft', () => {
+    socket.on('hostLeft', async () => {
+      // Se nel pannello è scelta la pagina di fine chiamata, l'ospite ci va
+      // invece di tornare in sala d'attesa.
+      const bye = _publicSettings?.bye || window.__BRAND?.bye;
+      if (bye && bye.enabled !== false && bye.onHostLeft !== 'wait') {
+        _leaving = true;
+        if (isRecording) { try { await stopRecording(); } catch (_) { } await new Promise(r => setTimeout(r, 600)); }
+        const dest = _byeDestination();
+        try { rawCamStream?.getTracks().forEach(t => t.stop()); } catch { }
+        try { socket?.disconnect(); } catch { }
+        window.location.href = dest;
+        return;
+      }
       try { rawCamStream?.getTracks().forEach(t => t.stop()); } catch { }
       try { socket?.disconnect(); } catch { }
       // Notifica visiva prima del reload
@@ -1046,6 +1061,7 @@ async function initSocket() {
     });
 
     socket.on('peerReaction', ({ peerId, emoji }) => { if (peerId !== socket.id) spawnReaction(emoji); });
+    window.TdtPolls?.bind(socket);
 
     socket.on('newProducer', async ({ producerId, peerId, kind, appData, audioMuted, videoOff }) => {
       _jlog('newProducer', { peer: peerId, kind, tileExists: !!document.getElementById(`video-${peerId}`) });
@@ -1204,6 +1220,7 @@ async function joinRoom(micMuted = false, camOff = false) {
   updatePeerCount();
   refreshParticipants();
   res.chatHistory.forEach(appendChatMessage);
+  window.TdtPolls?.load(res.polls || []);
   // Disegni già presenti sugli schermi condivisi + regole della stanza
   window.__policy = res.policy || window.__BRAND?.rooms || {};
   window.__isHostRole = !!res.isHostRole;
@@ -1316,6 +1333,17 @@ async function _getMicStream(deviceId) {
   }
 }
 
+// Track audio da trasmettere: quello pulito da RNNoise se l'utente l'ha
+// attivato (devices.js → interruttore "Riduzione rumore avanzata"), altrimenti
+// il microfono raw. In caso di errore si trasmette il raw e si avvisa.
+async function _outgoingMicTrack() {
+  const N = window.TdtNoise;
+  if (!N || !localMicTrack) return localMicTrack;
+  if (!N.enabled && !N.wanted()) return localMicTrack;
+  try { return await N.enable(localMicTrack); }
+  catch (e) { console.warn('[rnnoise]', e); N.setWanted(false); showToast?.('Riduzione rumore avanzata non disponibile su questo browser', 3500); return localMicTrack; }
+}
+
 let _audioProducing = null; // lock: più entry-point (bottone, Riprova, recovery) non devono creare due producer
 async function produceAudio() {
   if (_audioProducing) return _audioProducing;
@@ -1360,7 +1388,7 @@ async function _produceAudioInner() {
   let p;
   try {
     p = await sendTransport.produce({
-      track: localMicTrack,
+      track: await _outgoingMicTrack(),
       codecOptions: {
         opusStereo: false,    // mono: dimezza la banda senza perdere qualità voce
         opusDtx: true,        // Discontinuous Transmission: non trasmette quando sei in silenzio
@@ -1369,6 +1397,9 @@ async function _produceAudioInner() {
         opusMaxPlaybackRate: 48000,
       },
       appData: { mediaType: 'audio' },
+      // i track audio li fermiamo noi (cambio mic, recovery, uscita): con il default
+      // replaceTrack/close fermerebbero il mic raw, che è anche la sorgente di RNNoise
+      stopTracks: false,
     });
   } catch (e) {
     console.error('[produceAudio] produce fallito', e);
@@ -1493,7 +1524,10 @@ async function _produceScreenInner() {
   }
   let screenStream;
   try {
-    screenStream = await navigator.mediaDevices.getDisplayMedia({
+    // Safari: con vincoli di risoluzione cattura a bassa qualità (schermo
+    // sfocato per tutti) → si lascia la risoluzione nativa del browser.
+    const _isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+    screenStream = await navigator.mediaDevices.getDisplayMedia(_isSafari ? { video: true, audio: true } : {
       // cursor:'always' → il mouse del relatore è sempre nel video condiviso
       video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 15 }, cursor: 'always' },
       audio: true,
@@ -1858,26 +1892,120 @@ async function startRecording() {
     console.log('[recorder] codec:', mimeType);
   } catch (err) { console.error('[recorder]', err); showToast('Errore: ' + err.message); recorder = null; }
 }
-function stopRecording() {
+async function stopRecording() {
   if (!isRecording || !recorder) return;
-  recorder.stop(); recorder = null; isRecording = false;
+  const r = recorder; recorder = null; isRecording = false;
   document.getElementById('btnRecord').classList.remove('recording');
   document.getElementById('btnRecord').querySelector('.ctrl-label').textContent = 'Registra';
   document.getElementById('recIndicator').classList.remove('visible');
+  showToast('Salvataggio della registrazione…', 2000);
+  await r.stop();            // aspetta che il file sia consegnato al download
   showToast('Registrazione salvata ✓ — download in corso');
+}
+
+// ─── Uscita dalla stanza (con conferma; se si registra, prima salva) ─────────
+// Gli ospiti finiscono sulla pagina di fine chiamata (/bye, o un URL esterno
+// scelto nel pannello); organizzatori e utenti registrati tornano alla home.
+function _isGuestUser() {
+  return !!sessionStorage.getItem('tdmeet_guest_token') || window.__isHostRole === false;
+}
+function _byeDestination() {
+  const bye = _publicSettings?.bye || window.__BRAND?.bye;
+  if (!_isGuestUser() || !bye || bye.enabled === false) return '/';
+  // dati per la pagina (nome, host, durata, partecipanti) — niente nell'URL
+  try {
+    const hostPeer = [...peers.values()].find(p => p && p.isGuest === false);
+    const everyone = [DISPLAY_NAME, ...[...peers.values()].map(p => p?.displayName)].filter(Boolean);
+    sessionStorage.setItem('tdt_bye', JSON.stringify({
+      name: DISPLAY_NAME, host: hostPeer?.displayName || '', roomId: ROOM_ID,
+      durationSec: callStartTime ? Math.round((Date.now() - callStartTime) / 1000) : 0,
+      participants: [...new Set(everyone)].slice(0, 12),
+    }));
+  } catch { }
+  if (bye.mode === 'redirect' && /^https?:\/\//i.test(bye.redirectUrl || '')) return bye.redirectUrl;
+  return '/bye';
+}
+function _leaveNow() {
+  clearInterval(timerInterval);
+  const dest = _byeDestination();
+  try { rawCamStream?.getTracks().forEach(t => t.stop()); } catch { }
+  try { socket?.disconnect(); } catch { }
+  window.location.href = dest;
+}
+let _leaving = false;
+function openLeaveDialog() {
+  if (_leaving) return;
+  let m = document.getElementById('leaveModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'leaveModal';
+    m.className = 'leave-modal hidden';
+    m.innerHTML = `
+      <div class="leave-card" role="dialog" aria-modal="true" aria-labelledby="leaveTitle">
+        <h3 id="leaveTitle">Vuoi uscire dalla riunione?</h3>
+        <p class="leave-sub" id="leaveSub"></p>
+        <div class="leave-actions">
+          <button type="button" class="leave-btn leave-btn-ghost" id="leaveCancel">Resta</button>
+          <button type="button" class="leave-btn leave-btn-danger" id="leaveOk">Esci</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    m.addEventListener('click', (e) => { if (e.target === m) closeLeaveDialog(); });
+    m.querySelector('#leaveCancel').addEventListener('click', closeLeaveDialog);
+    m.querySelector('#leaveOk').addEventListener('click', async () => {
+      if (_leaving) return;
+      _leaving = true;
+      const ok = m.querySelector('#leaveOk');
+      if (isRecording) {
+        ok.disabled = true; ok.textContent = I18n?.t ? I18n.t('Salvo la registrazione…') : 'Salvo la registrazione…';
+        try { await stopRecording(); } catch (_) { }
+        await new Promise(r => setTimeout(r, 600)); // lascia partire il download prima di cambiare pagina
+      }
+      _leaveNow();
+    });
+  }
+  const sub = m.querySelector('#leaveSub');
+  const ok = m.querySelector('#leaveOk');
+  ok.disabled = false;
+  if (isRecording) {
+    sub.textContent = 'Stai registrando: la registrazione viene salvata sul tuo computer prima di uscire.';
+    ok.textContent = 'Salva ed esci';
+  } else {
+    sub.textContent = 'Potrai rientrare con lo stesso link.';
+    ok.textContent = 'Esci';
+  }
+  m.classList.remove('hidden');
+  requestAnimationFrame(() => m.classList.add('visible'));
+  ok.focus();
+}
+function closeLeaveDialog() {
+  const m = document.getElementById('leaveModal'); if (!m) return;
+  m.classList.remove('visible');
+  setTimeout(() => m.classList.add('hidden'), 180);
 }
 
 // ─── Controlli ────────────────────────────────────────────────────────────────
 function bindControls() {
   let _micToggling = false;
-  document.getElementById('btnMic').addEventListener('click', async () => {
-    // ⭐ FIX BUG 15: previeni doppi click rapidi che creano producer duplicati.
+  // Imposta il microfono (muto/attivo). Usato dal bottone e dal push-to-talk.
+  // Ritorna una Promise che si risolve a fine operazione; se è già in corso
+  // un cambio, la richiesta viene accodata (il PTT fa press/release rapidi).
+  let _micQueue = Promise.resolve();
+  const setMicMuted = (next) => {
+    const run = () => _setMicMutedImpl(next);
+    _micQueue = _micQueue.then(run, run);
+    return _micQueue;
+  };
+  window._tdSetMicMuted = setMicMuted;
+  window._tdIsMicMuted = () => micMuted;
+  const _setMicMutedImpl = async (next) => {
     if (_micToggling) return;
+    if (!!next === micMuted) return;
     _micToggling = true;
     const btn = document.getElementById('btnMic');
     btn.disabled = true;
     try {
-      micMuted = !micMuted;
+      micMuted = !!next;
       // ⭐ Resume AudioContext (autoplay policy bypass) sempre quando l'utente clicca un controllo
       if (audioContext && audioContext.state === 'suspended') {
         try { await audioContext.resume(); } catch { }
@@ -1919,7 +2047,10 @@ function bindControls() {
       btn.disabled = false;
       _micToggling = false;
     }
-  });
+  };
+  // ⭐ FIX BUG 15: previeni doppi click rapidi che creano producer duplicati
+  // (gestito dal lock dentro _setMicMutedImpl + coda).
+  document.getElementById('btnMic').addEventListener('click', () => { if (!_micToggling) setMicMuted(!micMuted); });
 
   let _camToggling = false;
   document.getElementById('btnCamera').addEventListener('click', async () => {
@@ -1972,12 +2103,10 @@ function bindControls() {
     else await produceScreen();
   });
 
-  document.getElementById('btnLeave').addEventListener('click', () => {
-    if (isRecording) stopRecording();
-    clearInterval(timerInterval);
-    rawCamStream?.getTracks().forEach(t => t.stop());
-    socket?.disconnect();
-    window.location.href = '/';
+  document.getElementById('btnLeave').addEventListener('click', () => openLeaveDialog());
+  // chiusura della scheda mentre si registra: il browser chiede conferma
+  window.addEventListener('beforeunload', (e) => {
+    if (isRecording && !_leaving) { e.preventDefault(); e.returnValue = ''; }
   });
 
   document.getElementById('btnRecord').addEventListener('click', () => { isRecording ? stopRecording() : startRecording(); });
@@ -2139,6 +2268,8 @@ function bindControls() {
 
   // ── Condividi stanza dal menu ⋮ ───────────────────────────────────────────
   document.getElementById('btnShareMenu')?.addEventListener('click', () => { closeMoreMenu(); shareRoomLink(); });
+  document.getElementById('btnNetMon')?.addEventListener('click', () => { closeMoreMenu(); window.TdtNetMon?.open(); });
+  document.getElementById('btnPolls')?.addEventListener('click', () => { closeMoreMenu(); window.TdtPolls?.toggle(); });
   document.getElementById('bgModalClose')?.addEventListener('click', () => {
     document.getElementById('bgModal').classList.add('hidden');
   });
@@ -2264,17 +2395,30 @@ function closeMoreMenu() {
 
 async function shareRoomLink() {
   const t = localStorage.getItem('tdmeet_token');
+  let url = window.location.href, invite = false;
   if (t) {
     try {
       const r = await fetch(`/api/room/${ROOM_ID}/invite`, { method: 'POST', headers: { 'x-auth-token': t } });
-      const { url } = await r.json();
-      navigator.clipboard.writeText(url);
-      showToast('Link d\'invito copiato: incollalo a chi vuoi invitare');
-      return;
+      const j = await r.json();
+      if (j?.url) { url = j.url; invite = true; }
     } catch { }
   }
-  navigator.clipboard.writeText(window.location.href);
-  showToast('Link copiato');
+  // Telefono/tablet: foglio di condivisione nativo (WhatsApp, Telegram, Mail…)
+  const touch = /android|iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (touch && navigator.share) {
+    try {
+      const name = window.__BRAND?.branding?.platformName || 'Riunione';
+      await navigator.share({ title: name, text: I18n?.t ? I18n.t('Entra nella mia riunione') : 'Entra nella mia riunione', url });
+      return;
+    } catch (e) { if (e?.name === 'AbortError') return; /* altrimenti copia */ }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast(invite ? 'Link d\'invito copiato: incollalo a chi vuoi invitare' : 'Link copiato');
+  } catch {
+    // Safari: la clipboard dopo un await perde il "gesto utente" → si mostra il link da copiare a mano
+    window.prompt(I18n?.t ? I18n.t('Copia questo link:') : 'Copia questo link:', url);
+  }
 }
 
 // ⭐ FIX: effetti viso, stili colore e sfondo virtuale lavorano TUTTI sullo
@@ -3526,16 +3670,19 @@ async function startMuteWarningDetection() {
   stopMuteWarningDetection();
   if (!localMicTrack) return; // niente mic → non possiamo sapere
 
+  let monitorTrack = null;
   try {
-    _muteWarningCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _muteWarningCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (_muteWarningCtx.state === 'suspended') await _muteWarningCtx.resume();
+    // se nel frattempo è arrivato uno stop (unmute veloce / push-to-talk) non si va avanti
+    if (_muteWarningCtx !== ctx) { try { ctx.close(); } catch (_) { } return; }
 
     // Importante: usiamo un MediaStream costruito ad-hoc col SOLO mic track,
     // perché localMicTrack.enabled=false (mute) silenzia il flusso outbound MA
     // il dato grezzo del microfono è ancora leggibile via Web Audio.
     // Tuttavia, su molti browser MediaStreamSource su un track con enabled=false
     // restituisce silenzio. Allora cloniamo il track per il monitoring.
-    const monitorTrack = localMicTrack.clone();
+    monitorTrack = localMicTrack.clone();
     monitorTrack.enabled = true; // il clone è separato, niente effetti collaterali sull'outbound
     const monitorStream = new MediaStream([monitorTrack]);
 
@@ -3569,6 +3716,7 @@ async function startMuteWarningDetection() {
     monitorTrack.addEventListener('ended', stopMuteWarningDetection);
     _muteWarningCtx._monitorTrack = monitorTrack; // tenere riferimento per stop
   } catch (e) {
+    try { monitorTrack?.stop(); } catch (_) { }   // niente cloni del microfono lasciati accesi
     console.warn('[muteWarning] init fallito', e);
   }
 }
@@ -3651,7 +3799,7 @@ async function _recoverMic(reason) {
     if (!nt) throw new Error('nessun track');
     const old = localMicTrack;
     const p = producers.get('audio');
-    if (p) await p.replaceTrack({ track: nt });
+    if (p) await p.replaceTrack({ track: window.TdtNoise?.enabled ? window.TdtNoise.setSource(nt) : nt });
     nt.enabled = !micMuted;
     if (rawCamStream) {
       rawCamStream.getAudioTracks().forEach(t => { if (t !== nt) { try { rawCamStream.removeTrack(t); } catch (_) { } } });

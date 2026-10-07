@@ -6,7 +6,10 @@
    • Coordinate normalizzate 0..1 sul CONTENUTO reale del video (object-fit:
      contain → si escludono le bande nere): il tratto resta allineato su
      qualsiasi dimensione di schermo, anche a chi presenta.
-   • Strumenti: penna, evidenziatore, freccia, riquadro, cerchio, laser.
+   • Strumenti: penna, evidenziatore, freccia, riquadro, cerchio, testo,
+     gomma (cancella il tratto che tocchi), laser.
+   • "Nascondi disegni" (solo per te) e "Salva immagine" (PNG dello schermo
+     condiviso con sopra i disegni).
    • Il laser non lascia tratti: mostra a tutti un alone grande con scia e
      nome → è il "mouse ingrandito" del relatore.
    • Permessi (verificati anche dal server): chi presenta + organizzatori;
@@ -20,6 +23,8 @@
     { id: 'arrow', key: 'a', label: 'Freccia', icon: '<path d="M5 19L19 5"/><path d="M10 5h9v9"/>' },
     { id: 'rect', key: 'r', label: 'Riquadro', icon: '<rect x="4" y="6" width="16" height="12" rx="1.5"/>' },
     { id: 'ellipse', key: 'o', label: 'Cerchio', icon: '<ellipse cx="12" cy="12" rx="8.5" ry="6.5"/>' },
+    { id: 'text', key: 't', label: 'Testo: clicca dove vuoi scrivere', icon: '<path d="M5 6V4h14v2M12 4v16M9 20h6"/>' },
+    { id: 'eraser', key: 'x', label: 'Gomma: cancella il tratto che tocchi', icon: '<path d="M7 20h10"/><path d="M5.5 15.5l9-9a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8l-7 7H8.3z"/><path d="M11 10l5 5"/>' },
     { id: 'laser', key: 'l', label: 'Puntatore laser: tutti vedono dove indichi', icon: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5" opacity=".45"/>' },
   ];
   const COLORS = ['#f0a44b', '#e5534b', '#4c8dff', '#3fb27f', '#ffffff', '#16140f'];
@@ -80,9 +85,9 @@
       const layer = document.createElement('div');
       layer.className = 'ann-layer';
       const svg = el('svg', { class: 'ann-svg' });
-      const gStrokes = el('g', {}, svg);
-      const gLive = el('g', {}, svg);
-      const gPtr = el('g', {}, svg);
+      const gStrokes = el('g', { class: 'ann-strokes' }, svg);
+      const gLive = el('g', { class: 'ann-live' }, svg);
+      const gPtr = el('g', { class: 'ann-pointers' }, svg);
       layer.appendChild(svg);
       const cap = document.createElement('div');
       cap.className = 'ann-capture';
@@ -97,6 +102,7 @@
       };
       delete this.pending[sid];
       this.surfaces.set(sid, s);
+      if (this.hiddenAll) layer.classList.add('ann-hidden');
 
       {
         const chip = document.createElement('div');
@@ -170,6 +176,8 @@
     // ── Rendering ──────────────────────────────────────────────────────────
     _px(s, p) { return [p[0] * s.rect.w, p[1] * s.rect.h]; }
     _wpx(s, w) { return Math.max(1, w * s.rect.w / 1000); }
+    // spessore 3/6/12 → testo piccolo/medio/grande, proporzionale alla larghezza dello schermo
+    _fontPx(s, w) { return Math.max(11, (w * 2.6 + 12) * s.rect.w / 1000); }
 
     _shape(s, st, parent) {
       const P = st.pts.map(p => this._px(s, p));
@@ -189,6 +197,14 @@
         const a = { ...common, d };
         if (st.tool === 'hl') { a['stroke-width'] = w * 3.2; a['stroke-opacity'] = 0.38; a['stroke-linecap'] = 'butt'; }
         return el('path', a, parent);
+      }
+      if (st.tool === 'text') {
+        const [x, y] = P[0];
+        const size = this._fontPx(s, st.w);
+        const t = el('text', { x, y, fill: st.color, class: 'ann-text', style: `font-size:${size}px` }, parent);
+        const lines = String(st.text || '').split('\n').slice(0, 12);
+        lines.forEach((ln, i) => { const ts = el('tspan', { x, dy: i === 0 ? 0 : size * 1.2 }, t); ts.textContent = ln || ' '; });
+        return t;
       }
       const [a, b] = [P[0], P[P.length - 1]];
       if (st.tool === 'rect') {
@@ -246,8 +262,10 @@
       cap.addEventListener('pointerdown', (e) => {
         if (this.drawSid !== s.sid || (e.pointerType === 'mouse' && e.button !== 0)) return;
         e.preventDefault(); e.stopPropagation();
-        cap.setPointerCapture(e.pointerId);
         const p = norm(e);
+        if (this.tool === 'text') { this._beginText(s, p, e); return; }
+        if (this.tool === 'eraser') { cur = { eraser: true }; this._eraseAt(s, p); cap.setPointerCapture(e.pointerId); return; }
+        cap.setPointerCapture(e.pointerId);
         if (this.tool === 'laser') { cur = { laser: true }; this._laser(s, p); return; }
         cur = { id: uid(), tool: this.tool, color: this.color, w: this.width, pts: [p] };
         sentIdx = 0; lastSend = 0;
@@ -263,6 +281,7 @@
           if (now - lastPtr > 33) { lastPtr = now; this._laser(s, p); }
           return;
         }
+        if (cur && cur.eraser) { e.preventDefault(); this._eraseAt(s, p); return; }
         if (!cur || cur.laser) return;
         e.preventDefault();
         const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -277,7 +296,7 @@
       });
       const end = (e) => {
         if (!cur) return;
-        if (cur.laser) { cur = null; return; }
+        if (cur.laser || cur.eraser) { cur = null; return; }
         const st = cur; cur = null;
         s.live.delete('me');
         if (shapeTool(st.tool) && st.pts.length < 2) st.pts.push(st.pts[0]);
@@ -296,6 +315,130 @@
       });
       cap.addEventListener('click', (e) => e.stopPropagation());
       cap.addEventListener('dblclick', (e) => e.stopPropagation());
+    }
+
+    // ── Testo: casella di scrittura sul punto cliccato, Invio = conferma ──
+    _beginText(s, p, e) {
+      this._endText(false);   // un clic altrove conferma il testo già scritto (Esc per annullare)
+      const [x, y] = this._px(s, p);
+      const size = this._fontPx(s, this.width);
+      const ta = document.createElement('textarea');
+      ta.className = 'ann-text-input';
+      ta.rows = 1;
+      ta.placeholder = 'Scrivi… (Invio per confermare, Esc per annullare)';
+      Object.assign(ta.style, { left: x + 'px', top: (y - size) + 'px', fontSize: size + 'px', color: this.color, lineHeight: '1.2' });
+      ta.addEventListener('pointerdown', ev => ev.stopPropagation());
+      ta.addEventListener('keydown', (ev) => {
+        ev.stopPropagation();
+        if (ev.key === 'Escape') { ev.preventDefault(); this._endText(true); }
+        else if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); this._endText(false); }
+      });
+      ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; ta.style.width = Math.min(s.rect.w - x, Math.max(120, ta.value.length * size * 0.62 + 24)) + 'px'; });
+      ta.addEventListener('blur', () => setTimeout(() => { if (this._textBox?.ta === ta) this._endText(false); }, 120));
+      s.layer.appendChild(ta);
+      this._textBox = { s, p, ta };
+      setTimeout(() => ta.focus(), 0);
+    }
+    _endText(cancel) {
+      const tb = this._textBox; if (!tb) return;
+      this._textBox = null;
+      const text = tb.ta.value.replace(/\s+$/g, '');
+      tb.ta.remove();
+      if (cancel || !text.trim()) return;
+      const st = { id: uid(), tool: 'text', color: this.color, w: this.width, pts: [tb.p], text: text.slice(0, 300), peerId: this.selfId };
+      tb.s.strokes.push(st);
+      this._render(tb.s);
+      this._emit('annDraw', { sid: tb.s.sid, id: st.id, tool: 'text', color: st.color, w: st.w, pts: st.pts, text: st.text });
+    }
+
+    // ── Gomma: cancella il tratto più vicino al puntatore ──────────────────
+    _hit(s, st, p) {
+      const tol = Math.max(0.012, (st.w || 4) * 1.2 / 1000) ; // tolleranza in coordinate normalizzate (≈ 12 px su 1000)
+      const pts = st.pts || [];
+      if (!pts.length) return false;
+      const ar = s.rect.w / Math.max(1, s.rect.h); // per misurare distanze "visive" corrette
+      const d2 = (a, b) => { const dx = (a[0] - b[0]) * ar, dy = a[1] - b[1]; return dx * dx + dy * dy; };
+      const segDist = (a, b, q) => {
+        const vx = (b[0] - a[0]) * ar, vy = b[1] - a[1], wx = (q[0] - a[0]) * ar, wy = q[1] - a[1];
+        const L = vx * vx + vy * vy; const t = L ? Math.max(0, Math.min(1, (wx * vx + wy * vy) / L)) : 0;
+        const px = a[0] + (vx / ar) * t, py = a[1] + vy * t;
+        return Math.sqrt(d2([px, py], q));
+      };
+      const tolA = tol * Math.max(1, ar);
+      if (st.tool === 'text') {
+        const size = this._fontPx(s, st.w) / Math.max(1, s.rect.h);
+        const lines = String(st.text || '').split('\n');
+        const wNorm = Math.max(...lines.map(l => l.length)) * this._fontPx(s, st.w) * 0.6 / Math.max(1, s.rect.w);
+        const [x, y] = pts[0];
+        return p[0] >= x - 0.01 && p[0] <= x + wNorm + 0.01 && p[1] >= y - size && p[1] <= y + size * 1.2 * (lines.length - 1) + size * 0.3;
+      }
+      if (st.tool === 'pen' || st.tool === 'hl') {
+        const t = st.tool === 'hl' ? tolA * 2.2 : tolA;
+        if (pts.length === 1) return Math.sqrt(d2(pts[0], p)) < t;
+        for (let i = 0; i < pts.length - 1; i++) if (segDist(pts[i], pts[i + 1], p) < t) return true;
+        return false;
+      }
+      const a = pts[0], b = pts[pts.length - 1];
+      if (st.tool === 'arrow') return segDist(a, b, p) < tolA;
+      if (st.tool === 'rect') {
+        const x1 = Math.min(a[0], b[0]), x2 = Math.max(a[0], b[0]), y1 = Math.min(a[1], b[1]), y2 = Math.max(a[1], b[1]);
+        const c = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]];
+        for (let i = 0; i < 4; i++) if (segDist(c[i], c[(i + 1) % 4], p) < tolA) return true;
+        return false;
+      }
+      if (st.tool === 'ellipse') {
+        const cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2, rx = Math.abs(b[0] - a[0]) / 2 || 1e-4, ry = Math.abs(b[1] - a[1]) / 2 || 1e-4;
+        const v = Math.hypot((p[0] - cx) / rx, (p[1] - cy) / ry);
+        return Math.abs(v - 1) * Math.min(rx * ar, ry) < tolA;
+      }
+      return false;
+    }
+    _eraseAt(s, p) {
+      for (let i = s.strokes.length - 1; i >= 0; i--) {
+        const st = s.strokes[i];
+        if (!this._hit(s, st, p)) continue;
+        if (!(st.peerId === this.selfId || this.canManage(s.sid))) {
+          if (!this._eraseWarned) { this._eraseWarned = true; window.showToast?.('Puoi cancellare solo i tuoi tratti', 2200); setTimeout(() => { this._eraseWarned = false; }, 3000); }
+          continue;
+        }
+        s.strokes.splice(i, 1);
+        this._render(s);
+        this._emit('annErase', { sid: s.sid, id: st.id, peerId: st.peerId });
+        return;
+      }
+    }
+
+    // ── Nascondi/mostra i disegni (solo per me) ────────────────────────────
+    toggleHidden() {
+      this.hiddenAll = !this.hiddenAll;
+      this.surfaces.forEach(s => s.layer.classList.toggle('ann-hidden', this.hiddenAll));
+      window.showToast?.(this.hiddenAll ? 'Disegni nascosti (solo per te)' : 'Disegni visibili', 1800);
+      this._refreshUi();
+    }
+
+    // ── Salva immagine: fotogramma dello schermo condiviso + disegni ───────
+    async snapshot(sid) {
+      const s = this.surfaces.get(sid || this.drawSid || this.activeSid());
+      if (!s || !s.video || !s.video.videoWidth) { window.showToast?.('Nessuno schermo da salvare', 2200); return; }
+      try {
+        const vw = s.video.videoWidth, vh = s.video.videoHeight;
+        const c = document.createElement('canvas'); c.width = vw; c.height = vh;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(s.video, 0, 0, vw, vh);
+        this.drawOn(ctx, s.sid, { x: 0, y: 0, w: vw, h: vh });
+        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+        if (!blob) throw new Error('toBlob');
+        const d = new Date();
+        const ts = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = `schermo_${ts}.png`; a.style.display = 'none';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 30000);
+        window.showToast?.('Immagine salvata', 2000);
+      } catch (e) {
+        console.warn('[ann snapshot]', e);
+        window.showToast?.('Non riesco a salvare l\'immagine (il video potrebbe essere protetto)', 3200);
+      }
     }
 
     _laser(s, p) {
@@ -367,6 +510,15 @@
         this._flagActivity(s, st.name);
       });
       S.on('annPointer', (d) => { const s = this.surfaces.get(d.sid); if (s) this._showPointer(s, d); });
+      // gomma / annulla: il server manda solo il tratto rimosso, non tutta la superficie
+      S.on('annErased', ({ sid, id, peerId }) => {
+        const s = this.surfaces.get(sid);
+        const list = s ? s.strokes : this.pending[sid];
+        if (!list) return;
+        const i = list.findIndex(x => x.id === id && x.peerId === peerId);
+        if (i >= 0) list.splice(i, 1);
+        if (s) this._render(s);
+      });
       S.on('annSync', ({ sid, strokes, by }) => {
         const s = this.surfaces.get(sid);
         if (s) { s.strokes = strokes || []; s.live.clear(); this._render(s); }
@@ -401,6 +553,7 @@
     }
 
     setDraw(sid) {
+      this._endText(false);
       const prev = this.surfaces.get(this.drawSid);
       if (prev) { prev.host.classList.remove('ann-drawing'); if (this.tool === 'laser') this._emit('annPointer', { sid: prev.sid, hide: true }); }
       this.drawSid = sid && this.surfaces.has(sid) ? sid : null;
@@ -422,6 +575,8 @@
         <div class="ann-sep"></div>
         <div class="ann-group">
           <button type="button" class="ann-btn" data-act="undo" data-tip="Annulla il tuo ultimo tratto" data-tip-key="Ctrl+Z">${icon('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>')}</button>
+          <button type="button" class="ann-btn" data-act="hide" data-tip="Nascondi i disegni (solo per te)">${icon('<path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.1A10.5 10.5 0 0 1 12 5c5 0 9 4 10 7a11.7 11.7 0 0 1-2.6 3.9M6.6 6.6C4.4 8 2.8 10 2 12c1 3 5 7 10 7a9.6 9.6 0 0 0 4.4-1"/>')}</button>
+          <button type="button" class="ann-btn" data-act="snap" data-tip="Salva un'immagine dello schermo con i disegni">${icon('<path d="M4 7h3l2-2.5h6L17 7h3a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 18V8.5A1.5 1.5 0 0 1 4 7z"/><circle cx="12" cy="13" r="3.6"/>')}</button>
           <button type="button" class="ann-btn" data-act="clear" data-tip="Cancella tutti i disegni">${icon('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>')}</button>
           <button type="button" class="ann-btn ann-open" data-act="open" data-tip="Permetti a tutti di disegnare">${icon('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5M15 14.6c2.6-.3 4.8 1 5.6 3.9"/>')}</button>
           <button type="button" class="ann-btn ann-close" data-act="close" data-tip="Smetti di disegnare" data-tip-key="Esc">${icon('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
@@ -435,6 +590,8 @@
         else if (b.dataset.w) { this.width = +b.dataset.w; localStorage.setItem('tdt_ann_w', String(this.width)); }
         else if (b.dataset.act === 'undo') this.undo();
         else if (b.dataset.act === 'clear') this.clear();
+        else if (b.dataset.act === 'hide') this.toggleHidden();
+        else if (b.dataset.act === 'snap') this.snapshot();
         else if (b.dataset.act === 'open') this.toggleOpen();
         else if (b.dataset.act === 'close') this.setDraw(null);
         this._refreshUi();
@@ -498,6 +655,9 @@
       openBtn.classList.toggle('on', !!(sid && this.open.get(sid)));
       openBtn.dataset.tip = sid && this.open.get(sid) ? 'Tutti possono disegnare: premi per riservarlo a chi presenta' : 'Permetti a tutti di disegnare';
       tb.querySelector('[data-act="clear"]').classList.toggle('hidden', !(sid && this.canManage(sid)));
+      tb.querySelector('[data-act="hide"]').classList.toggle('on', !!this.hiddenAll);
+      document.body.classList.toggle('ann-tool-eraser', this.tool === 'eraser' && !!sid);
+      document.body.classList.toggle('ann-tool-text', this.tool === 'text' && !!sid);
       document.body.classList.toggle('ann-mode', !!sid);
       if (sid) requestAnimationFrame(() => this._placeToolbar());
 
@@ -555,6 +715,19 @@
         if (!Array.isArray(st.pts) || !st.pts.length) continue;
         const pts = st.pts.map(P);
         const w = Math.max(1, st.w * rect.w / 1000);
+        if (st.tool === 'text') {
+          const size = Math.max(11, (st.w * 2.6 + 12) * rect.w / 1000);
+          ctx.globalAlpha = 1;
+          ctx.font = `600 ${size}px ${getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif'}`;
+          ctx.textBaseline = 'alphabetic';
+          ctx.lineWidth = Math.max(2, size / 7); ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineJoin = 'round';
+          ctx.fillStyle = st.color;
+          String(st.text || '').split('\n').slice(0, 12).forEach((ln, i) => {
+            const y = pts[0][1] + i * size * 1.2;
+            ctx.strokeText(ln, pts[0][0], y); ctx.fillText(ln, pts[0][0], y);
+          });
+          continue;
+        }
         ctx.globalAlpha = st.tool === 'hl' ? 0.38 : 1;
         ctx.strokeStyle = st.color;
         ctx.lineWidth = st.tool === 'hl' ? w * 3.2 : w;

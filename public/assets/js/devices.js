@@ -194,7 +194,42 @@ class DeviceSelector {
         <span class="dp-switch-text">Regola il volume del microfono automaticamente</span>
       </label>
       <div class="dp-hint"><span>Se il volume d'ingresso del computer si abbassa da solo durante le chiamate, spegnilo.</span>${actual === undefined ? '' : ' <span>' + (actual ? 'Ora è attivo' : 'Ora è spento') + '</span>'}</div>
+      ${window.TdtNoise?.supported() ? `
+      <label class="dp-switch">
+        <input type="checkbox" id="dpRnn" ${window.TdtNoise.enabled || window.TdtNoise.wanted() ? 'checked' : ''}>
+        <span class="dp-track"></span>
+        <span class="dp-switch-text">Riduzione rumore avanzata (RNNoise)</span>
+      </label>
+      <div class="dp-hint"><span>Toglie tastiera, ventole e traffico con una rete neurale che gira nel browser. Nessun dato esce dal tuo computer.</span></div>` : ''}
       <div class="dp-hint dp-note">Il volume di sistema non è leggibile dal browser: qui vedi il segnale reale.</div>`;
+
+    const rnn = box.querySelector('#dpRnn');
+    if (rnn) {
+      rnn.addEventListener('click', (e) => e.stopPropagation());
+      rnn.addEventListener('change', async () => {
+        const N = window.TdtNoise, producer = this.producers?.get('audio');
+        rnn.disabled = true;
+        try {
+          if (rnn.checked) {
+            const out = await N.enable(window._localMicTrack);
+            if (producer && !producer.closed) await producer.replaceTrack({ track: out });
+            N.setWanted(true);
+            window.showToast?.('Riduzione rumore avanzata attiva', 2500);
+          } else {
+            // prima il microfono raw torna nel producer, POI si chiude il filtro:
+            // chiudendo prima l'AudioContext il track del producer terminava →
+            // 'trackended' → ricostruzione del microfono per niente
+            if (producer && !producer.closed && window._localMicTrack) await producer.replaceTrack({ track: window._localMicTrack });
+            N.disable(); N.setWanted(false);
+            window.showToast?.('Riduzione rumore avanzata spenta', 2500);
+          }
+        } catch (e) {
+          console.warn('[rnnoise]', e);
+          rnn.checked = false; N.setWanted(false);
+          window.showToast?.('Riduzione rumore non disponibile: ' + (e?.message || e), 3500);
+        } finally { rnn.disabled = false; }
+      });
+    }
 
     const agc = box.querySelector('#dpAgc');
     agc.addEventListener('click', (e) => e.stopPropagation());
@@ -561,7 +596,9 @@ class DeviceSelector {
       // Sostituisce nel producer mediasoup
       const label    = type === 'audioinput' ? 'audio' : 'video';
       const producer = this.producers?.get(label);
-      if (producer) await producer.replaceTrack({ track: newTrack });
+      // mic: se la riduzione rumore RNNoise è attiva il nuovo microfono entra nel filtro
+      const outTrack = (type === 'audioinput' && window.TdtNoise?.enabled) ? window.TdtNoise.setSource(newTrack) : newTrack;
+      if (producer) await producer.replaceTrack({ track: outTrack });
 
       // ⭐ FIX: il track nuovo da getUserMedia nasce enabled=true. Se l'utente era mutato,
       // cambiare device lo "smutava" silenziosamente. Riallinea allo stato reale del bottone

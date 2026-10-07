@@ -25,7 +25,9 @@
     if (worker) return worker;
     try {
       const src = 'let t=null;onmessage=e=>{if(t){clearInterval(t);t=null}if(e.data>0)t=setInterval(()=>postMessage(1),e.data)};';
-      worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      worker = new Worker(url);
+      URL.revokeObjectURL(url);
       worker.onmessage = () => {
         if (!document.hidden) return;               // in primo piano guida il rAF
         const now = performance.now();

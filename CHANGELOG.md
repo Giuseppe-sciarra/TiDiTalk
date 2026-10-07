@@ -1,5 +1,78 @@
 # Changelog
 
+## 1.4.0
+
+### Added
+- **End-of-call page for guests** (`/bye`): two-column branded layout — logo,
+  title and subtitle on an accent-colour (or image) panel; on the right an
+  animated **constellation of the participants** (or check-mark / duration
+  ring / none), call stats (duration, participants, date), optional **1–5
+  star rating with comment** (stored, visible to admins in Settings → End of
+  call), contact card (name, role, email, phone, photo) and up to 3 buttons.
+  Hosts and registered users still return to the home page
+- Reached from the Leave button, when the host closes the meeting (choice:
+  end-of-call page or waiting room) and on lost connection; alternatively
+  redirect guests to an external URL
+- Settings → **End of call** tab: enable/disable, texts with placeholders
+  (`{nome}`, `{host}`, `{durata}`, `{partecipanti}`, `{azienda}`), background
+  image, animation, stats, rating, contact card, buttons; table of received
+  ratings
+- API: `POST /api/feedback` (rate-limited), `GET/DELETE /api/feedback` (admin);
+  new upload kinds `byebg` and `contact`
+
+### Fixed / security
+- Turning advanced noise reduction on from the microphone popup stopped the raw
+  microphone (mediasoup `replaceTrack` stops the previous track by default) →
+  silence for up to 30 s; the audio producer now uses `stopTracks: false` and
+  the switch-off order was corrected
+- Erase/undo on annotations re-sent the whole surface to everyone: now a delta
+  event (`annErased`); per-surface cap on total points
+- A socket disconnecting while its room was being created left a ghost peer
+  (router never closed, lobby bypass) — now detected and cleaned up
+- Feedback endpoint: IP map swept periodically, IPv6 limited per /64, global
+  cap, generic error messages; `NODE_ENV=production` and a final JSON error
+  handler (no stack traces in HTTP error responses)
+- Polls: own rate-limit bucket, options list bounded before processing;
+  annotation text bounded before processing
+- Mute-warning detector could leak a microphone clone when stopped during
+  start-up (fast unmute / push-to-talk)
+- Host closing the meeting while a guest was recording lost the recording
+- Copying the invite link on Safari after an `await` could fail silently
+  (now shows the link to copy)
+- Push-to-talk: pressing again right after release no longer leaves the mic
+  muted; network monitor per-stream bitrate uses real elapsed time
+- End-of-call page: contact role and company name are HTML-escaped; URLs are
+  re-validated when read from the database
+
+## 1.3.0
+
+### Added
+- **Polls**: hosts create a poll (question, 2–10 options, anonymous or with
+  names), everyone votes with a tap, live results with bars, change your vote
+  while open, close/delete. Panel in the "More" menu, badge on new polls
+- **Network & quality** window (More → Network & quality): live graphs of
+  upload/download bandwidth and latency/jitter over the last 60 s, packet
+  loss, per-stream bitrate/resolution/fps, direct vs TURN path, device network
+  type, smoothed quality badge with hysteresis
+- **Push-to-talk**: hold Space while muted to talk, release to mute again,
+  with on-screen pill and audio cues
+- **Advanced noise reduction** (RNNoise, WebAssembly AudioWorklet): switch in
+  the microphone popup, remembered per browser; survives microphone switches
+  and automatic recoveries. ~110 KB downloaded once, nothing leaves the device
+- Annotations: **text** tool (multiline, Enter to confirm), **eraser** (own
+  strokes; hosts and presenter can erase anyone's), **hide drawings** for
+  yourself, **save PNG** of the shared screen with the drawings
+- Leave dialog: confirmation before leaving; while recording, the file is
+  saved before the page changes (previously the recording could be lost); the
+  browser also warns when closing the tab during a recording
+- Native share sheet for the invite link on phones and tablets
+- Recording download fixed on mobile (anchor attached to the DOM)
+
+### Changed
+- Screen sharing on Safari uses the browser default resolution (forced
+  1080p constraints made the capture blurry)
+- Annotation toolbar is more compact and scrolls on short screens
+
 ## 1.2.0
 
 ### Added

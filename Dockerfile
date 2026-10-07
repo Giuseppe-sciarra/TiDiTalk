@@ -28,6 +28,8 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 ENV NPM_CONFIG_OMIT=dev
+# Express in produzione: niente stack trace nelle risposte d'errore
+ENV NODE_ENV=production
 
 COPY --from=builder /app/server/node_modules ./server/node_modules
 COPY --from=builder /tmp/mediasoup-client.min.js ./public/assets/js/mediasoup-client.min.js

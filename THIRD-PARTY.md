@@ -30,6 +30,7 @@ third-party components, each under its own license.
 
 | Asset | License |
 |-------|---------|
+| [RNNoise](https://gitlab.xiph.org/xiph/rnnoise) noise suppression, WebAssembly build from [@jitsi/rnnoise-wasm](https://github.com/jitsi/rnnoise-wasm) (`public/assets/vendor/rnnoise/rnnoise.wasm`) | RNNoise: BSD-3-Clause — © Xiph.Org, Mozilla; wasm build: Apache-2.0 — © 8x8 / Jitsi (license text alongside the file) |
 | Fonts: [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque), [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans) (`public/assets/fonts`) | SIL Open Font License 1.1 |
 | Reaction sounds (`public/assets/sounds`) | from [MiroTalk SFU](https://github.com/miroslavpejic85/mirotalksfu), AGPL-3.0 — © Miroslav Pejic |
 | Background placeholders (`public/assets/backgrounds/*.svg`) | part of Tiditalk, AGPL-3.0 |

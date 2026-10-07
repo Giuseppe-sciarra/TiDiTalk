@@ -22,13 +22,25 @@ tuo marchio.
 
 **Presentare**
 - Condivisione schermo con **disegno in diretta** sopra lo schermo condiviso:
-  penna, evidenziatore, freccia, riquadro, cerchio e **puntatore laser** col
-  nome di chi indica
+  penna, evidenziatore, freccia, riquadro, cerchio, **testo**, **gomma** e
+  **puntatore laser** col nome di chi indica; "nascondi disegni" solo per te,
+  **salva un PNG** dello schermo condiviso con sopra i disegni
 - Chi presenta decide se possono disegnare tutti o solo lui e gli organizzatori
-- **Registrazione** locale che include disegni e puntatore laser
+- **Registrazione** locale che include disegni e puntatore laser; uscendo dalla
+  stanza si aspetta che il file sia salvato
 
 **Nella stanza**
-- Chat, reazioni, alzata di mano, elenco partecipanti
+- Chat, reazioni, alzata di mano, elenco partecipanti, **sondaggi** (li creano
+  gli organizzatori, votano tutti, risultati in diretta, anonimi o con i nomi)
+- **Push-to-talk**: da muto, tieni premuto Spazio per parlare
+- **Riduzione rumore avanzata** (rete neurale RNNoise in WebAssembly, gira nel
+  browser, nessun dato esce dal computer) — interruttore nel popup del microfono
+- Finestra **Rete e qualità**: grafici live di banda, latenza e jitter,
+  pacchetti persi, statistiche per flusso, percorso diretto o TURN
+- **Pagina di fine chiamata per gli ospiti**: due colonne con il tuo brand,
+  costellazione animata dei partecipanti, dati della chiamata, voto a stelle
+  facoltativo, scheda contatto e bottoni — oppure reindirizzamento a un tuo URL
+  (Impostazioni → Fine chiamata)
 - **Finestra mobile** con tutta la riunione (Chrome/Edge): tutti i partecipanti,
   chi parla evidenziato, microfono/camera/mano/esci. Si apre da sola quando
   cambi scheda
@@ -37,7 +49,8 @@ tuo marchio.
   interruttore della regolazione automatica del volume
 - **Controllo del microfono**: se il sistema o un'altra app lo silenziano, o
   muore dopo un cambio dispositivo, viene riaperto senza interrompere la chiamata
-- Qualità della connessione per ogni riquadro con statistiche, risparmio dati
+- Qualità della connessione per ogni riquadro con statistiche, risparmio dati;
+  condivisione nativa del link d'invito dal telefono
 - Tooltip e scorciatoie da tastiera su ogni comando, guida iniziale facoltativa
 - Tema chiaro e scuro, interfaccia in **italiano, inglese, francese e tedesco**
 
@@ -218,8 +231,9 @@ ed è usato dall'aggiornamento automatico per non riavviare durante una chiamata
 ## Scorciatoie da tastiera
 
 `M` microfono · `V` videocamera · `S` presenta · `D` disegna · `H` alza la mano ·
-`C` chat · `U` persone. Mentre disegni: `P` penna, `E` evidenziatore,
-`A` freccia, `R` riquadro, `O` cerchio, `L` laser, `Ctrl+Z` annulla, `Esc` esci.
+`C` chat · `U` persone · `Spazio` tenuto premuto da muto per parlare (push-to-talk).
+Mentre disegni: `P` penna, `E` evidenziatore, `A` freccia, `R` riquadro,
+`O` cerchio, `T` testo, `X` gomma, `L` laser, `Ctrl+Z` annulla, `Esc` esci.
 
 ---
 

@@ -39,6 +39,7 @@
       <nav class="settings-nav" id="settingsNav">
         <button class="active" data-tab="brand">Brand</button>
         <button data-tab="rooms">Riunioni</button>
+        <button data-tab="bye">Fine chiamata</button>
         <button data-tab="users">Utenti</button>
         <button data-tab="system">Sistema</button>
       </nav>
@@ -152,6 +153,123 @@
               <div class="hint">Quattro fumetti che spiegano microfono, condivisione schermo e disegno. Spenta di default: utile se inviti clienti poco pratici. Chiunque può rivederla dal "?" in alto nella stanza.</div>
             </div>
             <button class="btn" id="btnSaveRooms">Salva</button>
+          </div>
+        </section>
+
+        <!-- ── FINE CHIAMATA ─────────────────────────────────────── -->
+        <section class="panel" id="panel-bye">
+          <div class="card">
+            <h2 class="card-title">Pagina di fine chiamata</h2>
+            <p class="card-sub">Dove finiscono gli <b>ospiti</b> quando la riunione termina (tasto Esci, organizzatore che chiude, connessione persa). Tu e gli organizzatori tornate sempre alla home. <a href="/bye" target="_blank" rel="noopener">Anteprima della pagina</a></p>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="byeEnabled"><span class="track"></span><span>Attiva la pagina di fine chiamata per gli ospiti</span></label>
+              <div class="hint">Spenta: gli ospiti tornano alla pagina iniziale come prima.</div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="byeMode">Cosa mostrare</label>
+                <select id="byeMode">
+                  <option value="page">La pagina con il tuo brand (qui sotto)</option>
+                  <option value="redirect">Reindirizza a un indirizzo esterno</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="byeRedirect">Indirizzo esterno</label>
+                <input type="url" id="byeRedirect" placeholder="https://tuosito.it/grazie" />
+                <div class="hint">Usato solo con "Reindirizza".</div>
+              </div>
+            </div>
+            <div class="field">
+              <label for="byeOnHostLeft">Quando l'organizzatore chiude la riunione, gli ospiti…</label>
+              <select id="byeOnHostLeft" style="max-width:420px">
+                <option value="bye">vanno alla pagina di fine chiamata</option>
+                <option value="wait">tornano in sala d'attesa (come prima)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Testi</h2>
+            <p class="card-sub">Segnaposto disponibili: <code>{nome}</code> dell'ospite, <code>{host}</code> chi ha organizzato, <code>{durata}</code>, <code>{partecipanti}</code>, <code>{azienda}</code>. Una riga vuota nel titolo va a capo.</p>
+            <div class="grid-2">
+              <div class="field"><label for="byeTitle">Titolo (colonna colorata)</label><textarea id="byeTitle" rows="2" maxlength="120" placeholder="Grazie, {nome}.&#10;È stato un piacere."></textarea></div>
+              <div class="field"><label for="byeSubtitle">Sottotitolo</label><input type="text" id="byeSubtitle" maxlength="200" placeholder="La chiamata è finita. A presto!" /></div>
+              <div class="field"><label for="byeHeading">Intestazione (colonna destra)</label><input type="text" id="byeHeading" maxlength="80" placeholder="Chiamata conclusa" /></div>
+              <div class="field"><label for="byeText">Testo</label><input type="text" id="byeText" maxlength="300" placeholder="Ti mandiamo un riepilogo via email entro oggi." /></div>
+            </div>
+            <div class="field"><label for="byeBrandText">Frase del brand (in basso nella colonna colorata)</label><input type="text" id="byeBrandText" maxlength="200" placeholder="Siti web, gestionali e strumenti su misura…" /></div>
+            <div class="field">
+              <label>Immagine di sfondo della colonna colorata (facoltativa)</label>
+              <div class="logo-preview">
+                <img id="byeBgPreview" src="" alt="" style="height:60px;width:100px;object-fit:cover;background:var(--ink-3)" />
+                <div style="flex:1;min-width:0">
+                  <input type="file" id="byeBgFile" accept="image/png,image/jpeg,image/webp" />
+                  <div class="hint">JPG/PNG/WEBP fino a 2 MB. Senza immagine si usa una sfumatura del colore accento. Sopra l'immagine va una velatura scura per tenere leggibile il testo.</div>
+                  <input type="text" id="byeBgUrl" placeholder="/assets/uploads/…" style="margin-top:8px" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Animazione e dati</h2>
+            <div class="grid-2">
+              <div class="field">
+                <label for="byeAnimation">Animazione</label>
+                <select id="byeAnimation">
+                  <option value="constellation">Costellazione dei partecipanti</option>
+                  <option value="check">Spunta e onde</option>
+                  <option value="ring">Anello della durata</option>
+                  <option value="none">Nessuna</option>
+                </select>
+              </div>
+              <div class="field" style="padding-top:26px">
+                <label class="switch"><input type="checkbox" id="byeShowStats"><span class="track"></span><span>Mostra durata, partecipanti e data</span></label>
+              </div>
+            </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="byeAskRating"><span class="track"></span><span>Chiedi un voto da 1 a 5 stelle (con commento facoltativo)</span></label>
+              <div class="hint">I voti arrivano solo a te: li vedi nella tabella "Voti ricevuti" qui sotto.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Scheda contatto</h2>
+            <p class="card-sub">Compare nella colonna destra. Lascia vuoto il nome per nasconderla.</p>
+            <div class="grid-2">
+              <div class="field"><label for="byeContactName">Nome</label><input type="text" id="byeContactName" maxlength="60" placeholder="Giuseppe Sciarra" /></div>
+              <div class="field"><label for="byeContactRole">Ruolo</label><input type="text" id="byeContactRole" maxlength="60" placeholder="Titolare" /></div>
+              <div class="field"><label for="byeContactEmail">Email</label><input type="email" id="byeContactEmail" maxlength="120" /></div>
+              <div class="field"><label for="byeContactPhone">Telefono</label><input type="text" id="byeContactPhone" maxlength="40" placeholder="+39 …" /></div>
+            </div>
+            <div class="field">
+              <label>Foto (facoltativa, altrimenti le iniziali)</label>
+              <div class="logo-preview">
+                <img id="byeContactPreview" src="" alt="" style="height:48px;width:48px;border-radius:50%;object-fit:cover;background:var(--ink-3)" />
+                <div style="flex:1;min-width:0">
+                  <input type="file" id="byeContactFile" accept="image/png,image/jpeg,image/webp" />
+                  <input type="text" id="byeContactUrl" placeholder="/assets/uploads/…" style="margin-top:8px" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Bottoni</h2>
+            <p class="card-sub">Fino a tre link: sito, WhatsApp, pagina per prenotare la prossima chiamata… Il primo è quello evidenziato.</p>
+            <div id="byeButtons">
+              <div class="grid-2"><div class="field"><label>Etichetta 1</label><input type="text" class="bye-btn-label" maxlength="40" placeholder="Il nostro sito" /></div><div class="field"><label>Link 1</label><input type="url" class="bye-btn-url" placeholder="https://…" /></div></div>
+              <div class="grid-2"><div class="field"><label>Etichetta 2</label><input type="text" class="bye-btn-label" maxlength="40" placeholder="Scrivici su WhatsApp" /></div><div class="field"><label>Link 2</label><input type="url" class="bye-btn-url" placeholder="https://wa.me/39…" /></div></div>
+              <div class="grid-2"><div class="field"><label>Etichetta 3</label><input type="text" class="bye-btn-label" maxlength="40" placeholder="Prenota la prossima chiamata" /></div><div class="field"><label>Link 3</label><input type="url" class="bye-btn-url" placeholder="https://…" /></div></div>
+            </div>
+            <button class="btn" id="btnSaveBye">Salva</button>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Voti ricevuti</h2>
+            <p class="card-sub">Gli ultimi voti lasciati dagli ospiti sulla pagina di fine chiamata.</p>
+            <div class="table-wrap"><table class="table" id="feedbackTable"><thead><tr><th>Quando</th><th>Ospite</th><th>Organizzatore</th><th>Voto</th><th>Commento</th><th></th></tr></thead><tbody></tbody></table></div>
+            <div class="hint" id="feedbackEmpty" style="margin-top:8px">Nessun voto ancora.</div>
           </div>
         </section>
 
@@ -308,7 +426,73 @@
       document.getElementById('annotateAll').checked = r.annotateAll === true;
       document.getElementById('roomTour').checked = r.tour === true;
       renderSystem(S.system);
+      loadBye(S.bye || {});
       loadUsers();
+      loadFeedback();
+    }
+
+    // ── Fine chiamata ─────────────────────────────────────────────────
+    function loadBye(b) {
+      const v = (id, val) => { const el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
+      document.getElementById('byeEnabled').checked = b.enabled !== false;
+      v('byeMode', b.mode || 'page'); v('byeRedirect', b.redirectUrl); v('byeOnHostLeft', b.onHostLeft || 'bye');
+      v('byeTitle', b.title); v('byeSubtitle', b.subtitle); v('byeHeading', b.heading); v('byeText', b.text); v('byeBrandText', b.brandText);
+      v('byeBgUrl', b.bgImageUrl); if (b.bgImageUrl) document.getElementById('byeBgPreview').src = b.bgImageUrl;
+      v('byeAnimation', b.animation || 'constellation');
+      document.getElementById('byeShowStats').checked = b.showStats !== false;
+      document.getElementById('byeAskRating').checked = b.askRating === true;
+      v('byeContactName', b.contactName); v('byeContactRole', b.contactRole); v('byeContactEmail', b.contactEmail); v('byeContactPhone', b.contactPhone);
+      v('byeContactUrl', b.contactPhotoUrl); if (b.contactPhotoUrl) document.getElementById('byeContactPreview').src = b.contactPhotoUrl;
+      const labels = document.querySelectorAll('.bye-btn-label'), urls = document.querySelectorAll('.bye-btn-url');
+      (b.buttons || []).forEach((btn, i) => { if (labels[i]) { labels[i].value = btn.label || ''; urls[i].value = btn.url || ''; } });
+    }
+    document.getElementById('byeBgFile').addEventListener('change', e => upload('byebg', e.target.files[0], 'byeBgPreview'));
+    document.getElementById('byeContactFile').addEventListener('change', e => upload('contact', e.target.files[0], 'byeContactPreview'));
+    document.getElementById('btnSaveBye').addEventListener('click', async () => {
+      try {
+        const labels = [...document.querySelectorAll('.bye-btn-label')], urls = [...document.querySelectorAll('.bye-btn-url')];
+        await Tdt.api('/api/settings/bye', {
+          method: 'POST', body: JSON.stringify({
+            enabled: document.getElementById('byeEnabled').checked,
+            mode: document.getElementById('byeMode').value,
+            redirectUrl: document.getElementById('byeRedirect').value.trim(),
+            onHostLeft: document.getElementById('byeOnHostLeft').value,
+            title: document.getElementById('byeTitle').value.trim(),
+            subtitle: document.getElementById('byeSubtitle').value.trim(),
+            heading: document.getElementById('byeHeading').value.trim(),
+            text: document.getElementById('byeText').value.trim(),
+            brandText: document.getElementById('byeBrandText').value.trim(),
+            bgImageUrl: document.getElementById('byeBgUrl').value.trim() || document.getElementById('byeBgPreview').dataset.url || '',
+            animation: document.getElementById('byeAnimation').value,
+            showStats: document.getElementById('byeShowStats').checked,
+            askRating: document.getElementById('byeAskRating').checked,
+            contactName: document.getElementById('byeContactName').value.trim(),
+            contactRole: document.getElementById('byeContactRole').value.trim(),
+            contactEmail: document.getElementById('byeContactEmail').value.trim(),
+            contactPhone: document.getElementById('byeContactPhone').value.trim(),
+            contactPhotoUrl: document.getElementById('byeContactUrl').value.trim() || document.getElementById('byeContactPreview').dataset.url || '',
+            buttons: labels.map((l, i) => ({ label: l.value.trim(), url: urls[i].value.trim() })),
+          }),
+        });
+        Tdt.toast('Pagina di fine chiamata salvata');
+      } catch (e) { Tdt.toast(e.message); }
+    });
+    async function loadFeedback() {
+      try {
+        const data = await Tdt.api('/api/feedback');
+        const rows = data.feedback || [];
+        const tb = document.querySelector('#feedbackTable tbody');
+        document.getElementById('feedbackEmpty').style.display = rows.length ? 'none' : '';
+        tb.innerHTML = rows.map(f => `<tr>
+          <td>${new Date(f.createdAt * 1000).toLocaleString(I18n.locale, { dateStyle: 'short', timeStyle: 'short' })}</td>
+          <td>${Tdt.esc(f.name || '—')}</td><td>${Tdt.esc(f.host || '—')}</td>
+          <td title="${f.stars}/5" style="color:var(--warn);white-space:nowrap">${'★'.repeat(f.stars)}<span style="opacity:.25">${'★'.repeat(5 - f.stars)}</span></td>
+          <td style="max-width:360px;white-space:normal">${Tdt.esc(f.comment || '')}</td>
+          <td><button class="btn-icon" data-del="${f.id}" data-tip="Elimina">✕</button></td></tr>`).join('');
+        tb.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+          await Tdt.api('/api/feedback/' + b.dataset.del, { method: 'DELETE' }); loadFeedback();
+        }));
+      } catch (e) { /* tabella non disponibile */ }
     }
 
     function renderSystem(sys) {
@@ -341,7 +525,7 @@
         if (!r.ok) throw new Error(data.error || 'Caricamento non riuscito');
         const img = document.getElementById(previewId);
         img.src = data.url; img.dataset.url = data.url;
-        const urlField = document.getElementById(kind === 'logo' ? 'logoUrl' : 'faviconUrl');
+        const urlField = document.getElementById({ logo: 'logoUrl', favicon: 'faviconUrl', byebg: 'byeBgUrl', contact: 'byeContactUrl' }[kind]);
         if (urlField) urlField.value = data.url;
         Tdt.toast('Immagine caricata: ora premi Salva');
       } catch (e) { Tdt.toast(e.message); }

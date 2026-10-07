@@ -21,13 +21,24 @@ cloud, your branding.
 
 **Presenting**
 - Screen sharing with **live annotations** on top of the shared screen: pen,
-  highlighter, arrow, rectangle, circle and **laser pointer** with the
-  presenter's name
+  highlighter, arrow, rectangle, circle, **text**, **eraser** and **laser
+  pointer** with the presenter's name; hide drawings for yourself, **save a
+  PNG** of the shared screen with the drawings
 - The presenter decides whether everyone can draw or only presenter and hosts
-- Local **recording** that includes annotations and laser pointer
+- Local **recording** that includes annotations and laser pointer; leaving the
+  room waits for the file to be saved
 
 **In the room**
-- Chat, reactions, raise hand, participant list
+- Chat, reactions, raise hand, participant list, **polls** (hosts create,
+  everyone votes, live results, anonymous or with names)
+- **Push-to-talk**: while muted, hold Space to talk
+- **Advanced noise reduction** (RNNoise neural network in WebAssembly, runs
+  in the browser, no data leaves the computer) — switch in the microphone popup
+- **Network & quality** window: live bandwidth, latency and jitter graphs,
+  packet loss, per-stream stats, direct/TURN path
+- **End-of-call page for guests**: branded two-column page with an animated
+  constellation of the participants, stats, optional star rating, contact
+  card and buttons — or a redirect to your own URL (Settings → End of call)
 - **Floating window** with the whole meeting (Chrome/Edge): all participants,
   speaker highlight, mic/camera/hand/leave. Opens by itself when you switch tab
 - Virtual backgrounds (blur or image), color styles and face effects (MediaPipe)
@@ -35,7 +46,8 @@ cloud, your branding.
   automatic gain control
 - **Microphone watchdog**: a mic silenced by the OS or another app, or dead
   after a device change, is reopened without interrupting the call
-- Per-tile connection quality with detailed stats, data saver mode
+- Per-tile connection quality with detailed stats, data saver mode; native
+  share sheet for the invite link on phones
 - Tooltips and keyboard shortcuts on every control, optional first-join guide
 - Light and dark theme, UI in **Italian, English, French and German**
 
@@ -214,8 +226,9 @@ is used by the updater to avoid restarting during a call.
 ## Keyboard shortcuts
 
 `M` microphone · `V` camera · `S` present · `D` draw · `H` raise hand ·
-`C` chat · `U` people. While drawing: `P` pen, `E` highlighter, `A` arrow,
-`R` rectangle, `O` circle, `L` laser, `Ctrl+Z` undo, `Esc` exit.
+`C` chat · `U` people · hold `Space` while muted to talk (push-to-talk).
+While drawing: `P` pen, `E` highlighter, `A` arrow, `R` rectangle, `O` circle,
+`T` text, `X` eraser, `L` laser, `Ctrl+Z` undo, `Esc` exit.
 
 ---
 

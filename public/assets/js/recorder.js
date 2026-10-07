@@ -101,7 +101,7 @@ class ClientRecorder {
       if (e.data && e.data.size > 0) this.chunks.push(e.data);
     };
 
-    this.mediaRecorder.onstop = () => this._save();
+    this.mediaRecorder.onstop = () => { this._save(); this._onSaved?.(); this._onSaved = null; };
 
     this.mediaRecorder.start(1000); // chunk ogni 1s
     this.recording  = true;
@@ -118,9 +118,16 @@ class ClientRecorder {
 
   // ─── Stop ─────────────────────────────────────────────────────────────────
 
+  /** Ferma e salva. Ritorna una Promise che si risolve quando il file è stato
+   *  consegnato al download: chi esce dalla stanza deve aspettarla, altrimenti
+   *  la pagina cambia prima che MediaRecorder abbia svuotato l'ultimo chunk. */
   stop() {
-    if (!this.recording) return;
+    if (!this.recording) return Promise.resolve();
     this.recording = false;
+    const saved = new Promise((resolve) => {
+      this._onSaved = resolve;
+      setTimeout(resolve, 8000); // rete di sicurezza: mai bloccare l'uscita per sempre
+    });
 
     if (this._ticker) { this._ticker.stop(); this._ticker = null; }
     cancelAnimationFrame(this.animFrameId);
@@ -131,13 +138,14 @@ class ClientRecorder {
 
     if (this.mediaRecorder?.state !== 'inactive') {
       this.mediaRecorder.stop();
-    }
+    } else { this._onSaved?.(); this._onSaved = null; }
 
     // Chiudi audio context
     this.audioCtx?.close();
     this.audioCtx    = null;
     this.audioDest   = null;
     this.audioSources.clear();
+    return saved;
   }
 
   // ─── Canvas compositor ────────────────────────────────────────────────────
@@ -335,9 +343,13 @@ class ClientRecorder {
     const slug = (window.__BRAND?.branding?.platformName || 'riunione')
       .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'riunione';
     a.download = `${slug}_${ts}.${ext}`;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);   // iOS/Android: il click su un anchor fuori dal DOM viene ignorato
     a.click();
+    setTimeout(() => a.remove(), 2000);
 
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    setTimeout(() => URL.revokeObjectURL(url), 60000); // su mobile il download parte con ritardo
     this.chunks = [];
   }
 
