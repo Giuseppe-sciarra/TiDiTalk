@@ -1,6 +1,6 @@
 {
   "name": "tiditalk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Tiditalk — self-hosted video meetings (mediasoup SFU)",
   "main": "index.js",
   "engines": {

@@ -13,7 +13,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '
 
 // Repository ufficiale del progetto: se pubblichi una versione MODIFICATA
 // devi far puntare SOURCE_URL (in .env) al TUO sorgente (AGPL-3.0 §13).
-const UPSTREAM_REPO = 'https://github.com/Giuseppe-sciarra/tiditalk';
+const UPSTREAM_REPO = 'https://github.com/Giuseppe-TD/tiditalk';
 
 const DEFAULT_LOGO = '/assets/images/brand-mark.svg';
 const HEX6 = /^#[0-9a-f]{6}$/i;
@@ -60,6 +60,8 @@ function getPublicSettings(db, config) {
     rooms: getRoomPolicy(db),
     // link al sorgente mostrato nella finestra Info (AGPL-3.0 §13)
     sourceUrl: HTTP_URL.test(process.env.SOURCE_URL || '') ? process.env.SOURCE_URL : UPSTREAM_REPO,
+    // numero di versione (da server/package.json) mostrato nel footer di ogni pagina
+    version: APP_VERSION,
   };
 }
 
@@ -194,6 +196,9 @@ function inkFor(hex) {
   return L > 0.36 ? '#17150f' : '#ffffff';
 }
 
+let APP_VERSION = '';
+try { APP_VERSION = require('./package.json').version || ''; } catch (_) { }
+
 const _cache = new Map(); // file → { mtimeMs, html }
 function _read(file) {
   const st = fs.statSync(file);
@@ -230,4 +235,4 @@ document.documentElement.dataset.theme=(t==='light'?'light':'dark');}catch(e){do
   res.send(out);
 }
 
-module.exports = { esc, getBrand, getRoomPolicy, getPublicSettings, saveCategory, sendPage, inkFor, accentFor, accentForEmail, DEFAULT_LOGO };
+module.exports = { APP_VERSION, esc, getBrand, getRoomPolicy, getPublicSettings, saveCategory, sendPage, inkFor, accentFor, accentForEmail, DEFAULT_LOGO };
