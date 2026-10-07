@@ -74,7 +74,7 @@ tuo marchio.
 ## Installazione
 
 ```bash
-git clone https://github.com/Giuseppe-sciarra/tiditalk.git
+git clone https://github.com/Giuseppe-TD/tiditalk.git
 cd tiditalk
 
 # 1. Configurazione

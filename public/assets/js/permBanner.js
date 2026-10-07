@@ -489,11 +489,7 @@
       return 'blocked';
     }
     if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'nodevice';
-    if (n === 'NotReadableError' || n === 'TrackStartError' || n === 'AbortError') {
-      // su Windows il blocco di privacy arriva spesso come NotReadableError
-      if (/could not start|starting video|starting audio|device in use/.test(m) && detectOS() === 'windows') return 'busy';
-      return 'busy';
-    }
+    if (n === 'NotReadableError' || n === 'TrackStartError' || n === 'AbortError') return 'busy';
     return null;
   }
 
@@ -545,12 +541,21 @@
     const again = remembered();
     let timer = null, closed = false;
     const start = async () => {
-      let delay = again ? 900 : 350;
+      // Stato sconosciuto (Firefox, Safari): l'avvio della webcam può durare
+      // 1-2 s anche senza richiesta → attesa più lunga per non far lampeggiare
+      // il pannello quando il permesso c'è già.
+      let delay = again ? 2000 : 700;
       try {
         const st = await permState();
         if (st.mic === 'granted' && st.cam === 'granted') return;         // niente richiesta: non serve il pannello
         if (st.mic === 'denied' && st.cam === 'denied') return;           // gUM fallirà → fromError
         if (st.mic === 'prompt' || st.cam === 'prompt') delay = 150;      // la richiesta sta comparendo adesso
+        else if (st.mic == null && st.cam == null) {
+          // Senza Permissions API: se i dispositivi hanno già un nome il
+          // permesso è stato concesso in modo persistente → nessuna richiesta
+          const devs = await navigator.mediaDevices.enumerateDevices();
+          if (devs.some(d => (d.kind === 'audioinput' || d.kind === 'videoinput') && d.label)) return;
+        }
       } catch { }
       if (closed) return;
       timer = setTimeout(() => { if (!closed) ask({ onRetry: opts.onRetry, again }); }, delay);
@@ -560,8 +565,7 @@
       done(stream) {
         closed = true; clearTimeout(timer);
         if (stream) remember();
-        if (_mode === 'ask' || !_el) hide();
-        else hide();
+        hide();
       },
       fail(err, o = {}) {
         closed = true; clearTimeout(timer);

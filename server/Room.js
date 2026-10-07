@@ -16,6 +16,7 @@ class Peer {
     this.handRaised = false;
     this.isScreenSharing = false;
     this.isGuest = false;
+    this.closed = false;
   }
 
   addTransport(t) { this.transports.set(t.id, t); }
@@ -24,7 +25,7 @@ class Peer {
   removeProducer(id) { this.producers.delete(id); }
   removeConsumer(id) { this.consumers.delete(id); }
 
-  close() { this.transports.forEach((t) => t.close()); }
+  close() { this.closed = true; this.transports.forEach((t) => t.close()); }
 
   toJSON() {
     return {
@@ -64,7 +65,7 @@ class Room {
     // peer remoto = drain CPU pesante su mobile). Ora il server calcola UNA volta
     // chi sta parlando e notifica tutti i client via socket 'activeSpeaker' / 'silence'.
     this.audioLevelObserver = null;
-    this._initAudioLevelObserver();
+    this.aloReady = this._initAudioLevelObserver();
   }
 
   async _initAudioLevelObserver() {
@@ -129,6 +130,11 @@ class Room {
   // ─── Peers ──────────────────────────────────────────────────────────────────
 
   addPeer(socketId, displayName, isGuest = false) {
+    if (this.peers.has(socketId)) {
+      // join doppio dallo stesso socket: il Peer vecchio va chiuso (transport,
+      // producer) altrimenti resta orfano fino alla chiusura della stanza
+      try { this.removePeer(socketId); } catch (_) { }
+    }
     if (this.peers.size >= this.maxPeers) throw new Error('Stanza piena (max 20)');
     const peer = new Peer(socketId, displayName);
     peer.isGuest = isGuest;
@@ -251,7 +257,13 @@ class Room {
     });
 
     const peer = this.getPeer(socketId);
-    if (peer) peer.addTransport(transport);
+    if (!peer) {
+      // il socket si è disconnesso mentre il transport veniva creato: senza
+      // questo chiudi resterebbe sul router con le porte UDP allocate
+      try { transport.close(); } catch (_) { }
+      throw new Error('Peer non in stanza');
+    }
+    peer.addTransport(transport);
 
     return {
       transport,
@@ -324,6 +336,14 @@ class Room {
       producer.close();
       peer.removeProducer(producer.id);
       if (appData?.mediaType === 'screen') { peer.isScreenSharing = false; this.clearSurface(socketId); }
+      // Il transport è morto da solo (ICE caduto, DTLS fallito): 'producerClosed'
+      // veniva emesso solo dall'handler socket closeProducer, quindi gli altri
+      // restavano con il tile dello schermo / la camera congelati per sempre.
+      // Se il peer è ancora in stanza (es. solo il transport dello screen share è
+      // caduto) li si avvisa; se sta uscendo ci pensa già peerLeft.
+      if (this.peers.get(socketId) === peer && !peer.closed) {
+        this.broadcast('producerClosed', { producerId: producer.id, peerId: socketId, mediaType: appData?.mediaType });
+      }
     });
 
     return producer;

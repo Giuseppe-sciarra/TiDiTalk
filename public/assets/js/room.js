@@ -50,6 +50,7 @@ let chatOpen = false;
 let rawCamStream = null;
 
 let recorder = null;
+Object.defineProperty(window, 'recorder', { get: () => recorder }); // devices.js aggiorna il mix audio dopo un cambio mic
 let isRecording = false;
 
 let localMicTrack, localCamTrack;
@@ -186,7 +187,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       showGuestWaitOverlay();
 
       // Ascolta evento server "host arrivato": completa il join
-      socket.once('hostAvailable', async () => {
+      const onHostAvailable = async () => {
         console.log('[lobby] host arrivato, completo il join');
         try {
           hideGuestWaitOverlay();
@@ -194,6 +195,13 @@ window.addEventListener('DOMContentLoaded', async () => {
           document.getElementById('loadingScreen').classList.remove('hidden');
           const res2 = await joinRoom(micMuted, camOff);
           if (res2 && res2.error) throw new Error(res2.error);
+          if (res2 && res2.waitingForHost) {
+            // l'host è uscito subito: torna in attesa e riarma l'ascolto
+            hideLoading(); showGuestWaitOverlay();
+            socket.once('hostAvailable', onHostAvailable);
+            return;
+          }
+          if (micMuted) startMuteWarningDetection();
           if (micMuted) {
             document.getElementById('btnMic').classList.add('off');
             document.querySelector('#btnMic .icon-on').classList.add('hidden');
@@ -214,7 +222,8 @@ window.addEventListener('DOMContentLoaded', async () => {
           console.error('[lobby join retry]', e);
           setLoading('Errore: ' + e.message);
         }
-      });
+      };
+      socket.once('hostAvailable', onHostAvailable);
 
       // Ritorna senza fare il setup mediasoup (lo fa hostAvailable)
       return;
@@ -377,10 +386,12 @@ function getAvatarColor(id) {
  *  senza questo il ritaglio "cover" mostrava solo una fetta della persona. */
 function _watchAspect(videoEl, tile) {
   if (!videoEl || !tile) return;
+  if (videoEl._tdAspectWatched) { videoEl._tdAspectWatched(); return; }
   const update = () => {
     if (!videoEl.videoWidth || !videoEl.videoHeight) return;
     tile.classList.toggle('is-portrait', videoEl.videoHeight > videoEl.videoWidth * 1.05);
   };
+  videoEl._tdAspectWatched = update;
   videoEl.addEventListener('resize', update);
   videoEl.addEventListener('loadedmetadata', update);
   update();
@@ -715,7 +726,7 @@ function applySpotlight() {
   strips.forEach(t => {
     t.classList.add('spotlight-strip');
     col.appendChild(t);
-    t.onclick = () => { _spotlightPeer = t.dataset.peerId; applySpotlight(); };
+    t.onclick = () => { _spotlightPeer = t.dataset.peerId; applySpotlight(); scheduleLayerUpdate?.(); };
   });
 
   // Appendi col DOPO il main nel DOM → main a sinistra, strip a destra
@@ -938,7 +949,7 @@ async function initSocket() {
     // ⭐ Indicatore qualità rete: il server manda il livello (3=buona 2=media
   // 1=scarsa) calcolato dagli score mediasoup dei producer del peer (uplink).
   socket.on('peerNetQuality', ({ peerId, level }) => {
-    const el = document.getElementById(`netq-${peerId}`);
+    const el = document.getElementById(`netq-${peerId === socket.id ? 'local' : peerId}`);
     if (!el) return;
     el.dataset.level = level;
     el.title = level === 3 ? 'Connessione buona' : level === 2 ? 'Connessione instabile' : 'Connessione scarsa';
@@ -985,8 +996,17 @@ async function initSocket() {
         const iid = _remoteSpeakingIntervals.get(peerId);
         if (iid) { clearInterval(iid); _remoteSpeakingIntervals.delete(peerId); }
       }
+      if (_spotlightPeer === peerId || _spotlightPeer === `${peerId}-screen`) _spotlightPeer = null; // pin su chi è uscito
       removeTile(peerId);
       peerStreams.delete(peerId);
+      consumers.forEach((c, id) => {
+        if (c.appData?.producerPeerId !== peerId) return;
+        try { c.close(); } catch { }
+        consumers.delete(id);
+        if (c.appData?.producerId) _consumedProducers.delete(c.appData.producerId);
+        if (typeof _lastSentLayers !== 'undefined') _lastSentLayers.delete(id);
+      });
+      recorder?.refreshAudio?.();
       speakingStates.delete(peerId);
       clearTimeout(speakingTimers.get(peerId)); speakingTimers.delete(peerId);
       updatePeerCount();
@@ -1019,12 +1039,13 @@ async function initSocket() {
     socket.on('peerHandRaise', ({ peerId, displayName, raised }) => {
       if (peerId === socket.id) { document.getElementById('btnHand').classList.toggle('active', raised); }
       const peer = peers.get(peerId); if (peer) peer.handRaised = raised;
-      setTileHand(peerId, raised);
+      setTileHand(peerId === socket.id ? 'local' : peerId, raised);
+      if (peerId === socket.id) window._setHandRaised?.(raised);
       refreshParticipants();
       if (raised) showToast(`✋ ${displayName} ha alzato la mano`);
     });
 
-    socket.on('peerReaction', ({ emoji }) => spawnReaction(emoji));
+    socket.on('peerReaction', ({ peerId, emoji }) => { if (peerId !== socket.id) spawnReaction(emoji); });
 
     socket.on('newProducer', async ({ producerId, peerId, kind, appData, audioMuted, videoOff }) => {
       _jlog('newProducer', { peer: peerId, kind, tileExists: !!document.getElementById(`video-${peerId}`) });
@@ -1078,9 +1099,13 @@ async function initSocket() {
           document.getElementById(`avatar-${peerId}`)?.style.setProperty('display', 'flex');
         }
       });
-      const _ss = document.querySelector(`[data-peer-id="${peerId}-screen"]`) || document.querySelector(`[data-peer-id="${peerId}"].screenshare`);
-      if (_ss && mediaType === 'screen') annotator?.detach(peerId);
-      if (_ss) { _ss.remove(); updateGridLayout(); }
+      // ⭐ FIX: prima il tile dello schermo veniva tolto per QUALSIASI producer del
+      // presentatore (es. cuffie staccate → producer audio chiuso → tutti perdevano
+      // lo schermo condiviso ancora attivo).
+      if (mediaType === 'screen') {
+        const _ss = document.querySelector(`[data-peer-id="${peerId}-screen"]`) || document.querySelector(`[data-peer-id="${peerId}"].screenshare`);
+        if (_ss) { annotator?.detach(peerId); _ss.remove(); updateGridLayout(); }
+      }
     });
 
     socket.on('chatMessage', (msg) => {
@@ -1196,7 +1221,8 @@ async function joinRoom(micMuted = false, camOff = false) {
       await consume(prod.id, peer.id, prod.kind, prod.appData);
     }
   }
-  _jlog('joinComplete', { consumers: consumers.size });
+  await _drainPendingConsumes();
+  _jlog('joinComplete', { consumers: consumers.size, pendingDrained: true });
 }
 
 // ─── Transports ──────────────────────────────────────────────────────────────
@@ -1271,19 +1297,45 @@ async function createRecvTransport() {
 }
 
 // ─── Producers ───────────────────────────────────────────────────────────────
+// getUserMedia audio con fallback: se il microfono scelto non esiste più
+// (cuffia USB/Bluetooth staccata) il vincolo `deviceId: {exact}` fallisce per
+// sempre → si passa al microfono predefinito e si azzera la selezione.
+async function _getMicStream(deviceId) {
+  const build = (id) => window._tdmeetBuildAudioConstraints
+    ? window._tdmeetBuildAudioConstraints(id)
+    : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio: build(deviceId) });
+  } catch (e) {
+    const n = e?.name || '';
+    if (!deviceId || !(n === 'OverconstrainedError' || n === 'NotFoundError' || n === 'ConstraintNotSatisfiedError')) throw e;
+    console.warn('[mic] dispositivo scelto non disponibile, passo al predefinito:', n);
+    window._tdmeetSelectedAudio = null;
+    try { localStorage.removeItem('vc_audioId'); } catch { }
+    return await navigator.mediaDevices.getUserMedia({ audio: build(null) });
+  }
+}
+
+let _audioProducing = null; // lock: più entry-point (bottone, Riprova, recovery) non devono creare due producer
 async function produceAudio() {
+  if (_audioProducing) return _audioProducing;
+  _audioProducing = _produceAudioInner().finally(() => { _audioProducing = null; });
+  return _audioProducing;
+}
+async function _produceAudioInner() {
+  const existing = producers.get('audio');
+  if (existing && !existing.closed) {
+    if (existing.track && existing.track.readyState !== 'ended') return; // già in trasmissione
+    closeProducer('audio'); // producer con track morto: lo si ricrea pulito
+  }
   // FIX: se non abbiamo un mic track valido (prejoin con stream senza audio,
   // track ended dopo getUserMedia, ecc.), tenta un getUserMedia di fallback
   // invece di entrare silenziosi senza nessun avviso all'utente.
   if (!localMicTrack || localMicTrack.readyState === 'ended') {
     console.warn('[produceAudio] mic track mancante o ended, fallback getUserMedia');
     try {
-      // ⭐ FIX BUG 6: usa l'helper iOS-aware (definito in devices.js).
       const audioDeviceId = window._tdmeetSelectedAudio || (prejoin && prejoin.selectedAudio);
-      const audioConstraints = window._tdmeetBuildAudioConstraints
-        ? window._tdmeetBuildAudioConstraints(audioDeviceId)
-        : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-      const fallback = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+      const fallback = await _getMicStream(audioDeviceId);
       const track = fallback.getAudioTracks()[0];
       if (!track) throw new Error('Nessun audio track ottenuto dal fallback');
       localMicTrack = track;
@@ -1294,6 +1346,7 @@ async function produceAudio() {
         rawCamStream.addTrack(track);
       }
       window._reinitSpeakingDetection?.();
+      recorder?.refreshAudio?.();
       showToast?.('Microfono attivato');
     } catch (e) {
       console.error('[produceAudio] fallback fallito', e);
@@ -1334,12 +1387,7 @@ async function produceAudio() {
     // Aspetta che il sistema rilasci il device, poi retry
     await new Promise(r => setTimeout(r, 800));
     try {
-      // ⭐ FIX BUG 6: anche qui usa l'helper iOS-aware
-      const audioDeviceId = window._tdmeetSelectedAudio;
-      const audioConstraints = window._tdmeetBuildAudioConstraints
-        ? window._tdmeetBuildAudioConstraints(audioDeviceId)
-        : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-      const s = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+      const s = await _getMicStream(window._tdmeetSelectedAudio);
       const newTrack = s.getAudioTracks()[0];
       if (!newTrack) throw new Error('no track');
       // Sostituisci nel rawCamStream
@@ -1349,6 +1397,7 @@ async function produceAudio() {
       window._localMicTrack = newTrack;
       // Riproduci e ri-inizializza speaking detection
       window._reinitSpeakingDetection?.();
+      recorder?.refreshAudio?.();
       // Se non eravamo in mute, ricrea il producer
       const btnMicEl = document.getElementById('btnMic');
       const wasMuted = btnMicEl?.classList.contains('off');
@@ -1363,8 +1412,34 @@ async function produceAudio() {
   });
 }
 
+// Track video da trasmettere: canvas dell'effetto viso o dello sfondo se
+// attivi, altrimenti la camera raw. Prima produceVideo mandava SEMPRE il raw:
+// entrando con camera spenta, attivando la sfocatura e poi accendendo la camera
+// gli altri vedevano la stanza NON sfocata mentre il bottone diceva "sfondo attivo".
+function _currentOutgoingVideoTrack() {
+  const live = t => t && t.readyState === 'live' ? t : null;
+  return live(faceEffects?.outputStream?.getVideoTracks()[0])
+      || live(backgroundEffect?.outputStream?.getVideoTracks()[0])
+      || localCamTrack;
+}
+
+// Anteprima locale coerente con quello che si trasmette (effetto / sfondo / raw).
+function _restoreLocalVideo() {
+  const _lv = document.getElementById('video-local');
+  if (!_lv || !rawCamStream) return;
+  const _camIsOff = document.getElementById('btnCamera')?.classList.contains('off');
+  if (_camIsOff) return;
+  const _av = document.getElementById('avatar-local');
+  const t = _currentOutgoingVideoTrack();
+  if (t && t !== localCamTrack) _lv.srcObject = new MediaStream([t]);
+  else _lv.srcObject = rawCamStream;
+  _lv.style.display = 'block';
+  if (_av) _av.style.display = 'none';
+}
+window._tdRestoreLocalVideo = _restoreLocalVideo;
+
 async function produceVideo() {
-  const track = localCamTrack;
+  const track = _currentOutgoingVideoTrack();
   if (!track) { setCamError('Nessuna videocamera rilevata.'); return; }
   let p;
   try {
@@ -1522,42 +1597,6 @@ async function _produceScreenInner() {
     showToast('Stai presentando. Premi "Disegna" per evidenziare o usare il puntatore laser.', 5000);
   }
 
-  const _restoreLocalVideo = () => {
-    const _lv = document.getElementById('video-local');
-    if (!_lv || !rawCamStream) return;
-    const _camIsOff = document.getElementById('btnCamera')?.classList.contains('off');
-    if (_camIsOff) return;
-
-    // Se c'è un effetto viso attivo, ripristina il canvas stream (non il raw camera)
-    if (faceEffects && faceEffects.outputStream) {
-      const effTrack = faceEffects.outputStream.getVideoTracks()[0];
-      if (effTrack && effTrack.readyState === 'live') {
-        _lv.srcObject = new MediaStream([effTrack]);
-        _lv.style.display = 'block';
-        document.getElementById('avatar-local').style.display = 'none';
-        return;
-      }
-    }
-
-    // Se c'è uno sfondo virtuale attivo, ripristina il canvas del background
-    if (backgroundEffect && backgroundEffect.outputStream) {
-      const bgTrack = backgroundEffect.outputStream.getVideoTracks()[0];
-      if (bgTrack && bgTrack.readyState === 'live') {
-        _lv.srcObject = new MediaStream([bgTrack]);
-        _lv.style.display = 'block';
-        const _av = document.getElementById('avatar-local');
-        if (_av) _av.style.display = 'none';
-        return;
-      }
-    }
-
-    _lv.srcObject = rawCamStream;
-    _lv.style.display = 'block';
-    const _av = document.getElementById('avatar-local');
-    if (_av) _av.style.display = 'none';
-  };
-
-  window._tdRestoreLocalVideo = _restoreLocalVideo;
   screenTrack.addEventListener('ended', () => stopScreenShare());
   sp.on('transportclose', () => stopScreenShare({ transportGone: true }));
 }
@@ -1581,7 +1620,7 @@ async function stopScreenShare({ transportGone = false } = {}) {
     _closeScreenTransport();
     if (socket?.id) annotator?.detach(socket.id);
     document.querySelector('[data-peer-id="local-screen"]')?.remove();
-    _spotlightPeer = null;
+    if (_spotlightPeer === 'local-screen') _spotlightPeer = null; // non buttare via un pin manuale precedente
     updateGridLayout();
     window._tdRestoreLocalVideo?.();
     document.getElementById('btnScreen')?.classList.remove('active');
@@ -1624,8 +1663,22 @@ function closeProducer(label) {
 // join sia via 'newProducer' → senza guard si creano due consumer sullo stesso
 // producer. Il Set agisce da lock sincrono (add PRIMA di qualsiasi await).
 const _consumedProducers = new Set();
+// ⭐ FIX race al join: il server ci mette nella stanza PRIMA che il client abbia
+// caricato il device e creato il recv transport. Un 'newProducer' arrivato in
+// quella finestra veniva scartato per sempre (peer senza audio/video finché non
+// ri-produceva). Ora si accoda e si consuma appena i transport sono pronti.
+const _pendingConsumes = [];
+async function _drainPendingConsumes() {
+  while (_pendingConsumes.length) {
+    const c = _pendingConsumes.shift();
+    try { await consume(c.producerId, c.peerId, c.kind, c.appData); } catch (e) { console.warn('[consume pending]', e); }
+  }
+}
 async function consume(producerId, peerId, kind, appData) {
-  if (!device?.loaded) return;
+  if (!device?.loaded || !recvTransport) {
+    if (!_pendingConsumes.some(c => c.producerId === producerId)) _pendingConsumes.push({ producerId, peerId, kind, appData });
+    return;
+  }
   if (_consumedProducers.has(producerId)) return;
   _consumedProducers.add(producerId);
 
@@ -1878,6 +1931,9 @@ function bindControls() {
     try {
       camOff = !camOff;
       if (localCamTrack) localCamTrack.enabled = !camOff;
+      // con effetto/sfondo attivo la pipeline lavora su un clone della camera:
+      // va messa in pausa, altrimenti MediaPipe gira a pieno regime a camera spenta
+      try { faceEffects?.setPaused?.(camOff); backgroundEffect?.setPaused?.(camOff); } catch (_) { }
       const p = producers.get('video');
       let voluntaryOff = false;
       if (p) {
@@ -1901,7 +1957,10 @@ function bindControls() {
       btn.classList.toggle('off', camOff);
       document.querySelector('#btnCamera .icon-on').classList.toggle('hidden', camOff);
       document.querySelector('#btnCamera .icon-off').classList.toggle('hidden', !camOff);
+      // anteprima: effetto/sfondo se attivi, non il raw (prima riaccendendo la
+      // camera "io mi vedevo senza sfondo, gli altri con")
       setTileVideo('local', rawCamStream, !camOff);
+      if (!camOff) _restoreLocalVideo();
     } finally {
       btn.disabled = false;
       _camToggling = false;
@@ -1929,6 +1988,7 @@ function bindControls() {
 
   let handRaised = false;
   let _handAutoLowerTimer = null;
+  window._setHandRaised = (v) => { handRaised = !!v; if (!v) clearTimeout(_handAutoLowerTimer); };
   document.getElementById('btnHand').addEventListener('click', () => {
     handRaised = !handRaised;
     socket?.emit('handRaise', { raised: handRaised });
@@ -2150,7 +2210,7 @@ function buildEffectsPicker() {
     btn.innerHTML = `<span class="effect-icon">${eff.icon}</span><span class="effect-label">${eff.label}</span>`;
     btn.addEventListener('click', async () => {
       await applyFaceEffect(eff.id);
-      picker.querySelectorAll('.effect-btn').forEach(b => b.classList.toggle('active', b.dataset.id === eff.id));
+      grid.querySelectorAll('.effect-btn').forEach(b => b.classList.toggle('active', b.dataset.id === eff.id));
     });
     grid.appendChild(btn);
   });
@@ -2506,6 +2566,10 @@ async function _applyFaceEffectImpl(effectId) {
     }
 
     // ── Primo uso: istanzia pipeline ────────────────────────────────────
+    if (backgroundEffect) {           // mutua esclusione: uno sfondo attivo va tolto prima
+      showToast('Rimosso sfondo per applicare l\'effetto');
+      await _applyBackgroundImpl('none');
+    }
     _saveCamBaseline();
     showToast('Caricamento effetto...', 2500);
 
@@ -2562,6 +2626,10 @@ async function _applyStyleImpl(styleId) {
     }
 
     // Pipeline non attiva → avviala (stesso percorso del primo uso effetti)
+    if (backgroundEffect) {
+      showToast('Rimosso sfondo per applicare lo stile');
+      await _applyBackgroundImpl('none');
+    }
     showToast('Applico stile...', 2000);
     if (faceEffects) { try { faceEffects.stop(); } catch { } faceEffects = null; }
     faceEffects = new FaceEffects();
@@ -2818,7 +2886,10 @@ async function _applyBackgroundImpl(type, imageUrl) {
   // ── Mutua esclusione con effetti viso ───────────────────────────────────
   if (type !== 'none' && faceEffects) {
     showToast('Rimosso effetto viso per applicare sfondo');
-    // Simula click "Nessuno" sugli effetti prima
+    // Azzera anche lo stile colore, altrimenti _applyFaceEffectImpl('none')
+    // lascerebbe la pipeline viva: due MediaPipe insieme e stato UI falso.
+    _currentStyle = null;
+    document.querySelectorAll('#stylesPickerGrid .effect-btn').forEach(b => b.classList.toggle('active', b.dataset.styleId === 'none'));
     await _applyFaceEffectImpl('none');   // stessa coda: chiamata diretta
   }
 
@@ -3003,7 +3074,7 @@ function _nqClose() {
 }
 
 async function _nqSample(peerId) {
-  const isLocal = peerId === socket?.id;
+  const isLocal = peerId === 'local' || peerId === socket?.id;
   const rows = [];
   const kb = (key, bytes, ts) => {
     const p = _nqPrev.get(key); _nqPrev.set(key, { bytes, ts });
@@ -3079,7 +3150,7 @@ async function _nqOpen(peerId, anchorEl) {
   _nqPop = document.createElement('div');
   _nqPop.className = 'netq-popover';
   document.body.appendChild(_nqPop);
-  const name = peerId === socket?.id ? 'Tu' : (peers.get(peerId)?.displayName || 'Partecipante');
+  const name = (peerId === 'local' || peerId === socket?.id) ? 'Tu' : (peers.get(peerId)?.displayName || 'Partecipante');
   const level = anchorEl?.dataset.level || 3;
   _nqRender([], name, level);
   // posizione: sotto le barrette, dentro lo schermo
@@ -3570,10 +3641,7 @@ async function _recoverMic(reason) {
   _micDiag('mic-fix:' + reason);
   try {
     const deviceId = window._tdmeetSelectedAudio || localMicTrack?.getSettings?.()?.deviceId;
-    const constraints = window._tdmeetBuildAudioConstraints
-      ? window._tdmeetBuildAudioConstraints(deviceId)
-      : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-    const s = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+    const s = await _getMicStream(deviceId);
     const nt = s.getAudioTracks()[0];
     if (!nt) throw new Error('nessun track');
     const old = localMicTrack;
@@ -3588,6 +3656,7 @@ async function _recoverMic(reason) {
     window._localMicTrack = nt;
     if (old && old !== nt) { try { old.stop(); } catch (_) { } }
     window._reinitSpeakingDetection?.();
+    recorder?.refreshAudio?.();
     _micHealth.trackId = null;
     _micHealth.mutedSince = _micHealth.zeroSince = _micHealth.flatSince = 0;
     _micHealth.lastBytes = -1;

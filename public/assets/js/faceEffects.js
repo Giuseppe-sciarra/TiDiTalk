@@ -1,5 +1,9 @@
 'use strict';
 
+// Pseudo-casuale deterministico per i dettagli decorativi (pois, texture,
+// bolle): Math.random() a ogni frame li faceva sfarfallare 30 volte al secondo.
+function _rnd(i, k = 0) { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); }
+
 /**
  * FaceEffects v2
  * Overlay AR vettoriali che si adattano alla geometria del viso.
@@ -235,14 +239,23 @@ class FaceEffects {
   }
 
   _startLoop() {
-    const loop = async () => {
-      if (!this.sourceVideo) return;
-      if (!this.sourceVideo.paused && !this.sourceVideo.ended) {
-        await this._renderFrame();
-      }
-      this.rafId = requestAnimationFrame(loop);
+    // Un frame alla volta: _renderFrame è async (drawImage + send a MediaPipe)
+    let busy = false;
+    const tick = async () => {
+      if (!this.sourceVideo || busy) return;
+      if (this.sourceVideo.paused || this.sourceVideo.ended) return;
+      busy = true;
+      try { await this._renderFrame(); } finally { busy = false; }
     };
-    loop();
+    if (this._ticker) { this._ticker.stop(); this._ticker = null; }
+    if (window.TdtTicker) {
+      // continua anche con la scheda in background (rAF verrebbe sospeso e
+      // gli altri vedrebbero il video congelato)
+      this._ticker = window.TdtTicker.start(tick, 33);
+    } else {
+      const loop = async () => { await tick(); this.rafId = requestAnimationFrame(loop); };
+      loop();
+    }
   }
 
   async _renderFrame() {
@@ -261,7 +274,7 @@ class FaceEffects {
       if (!this._sendBusy && now - this._lastSend >= this._sendInterval) {
         this._sendBusy = true;
         this._lastSend = now;
-        this.faceMesh.send({ image: v }).catch(() => { this._sendBusy = false; });
+        this.faceMesh.send({ image: v }).then(() => { this._sendBusy = false; }, () => { this._sendBusy = false; });
       }
       if (this.lastLandmarks) {
         this._drawOverlay(this.ctx, this.lastLandmarks, w, h);
@@ -458,8 +471,8 @@ class FaceEffects {
     // Pois
     ctx.fillStyle = '#fff';
     for (let i = 0; i < 6; i++) {
-      const y = -H * (0.15 + Math.random() * 0.65);
-      const x = (Math.random() - 0.5) * W * 0.7 * (1 - Math.abs(y) / H);
+      const y = -H * (0.15 + _rnd(i, 1) * 0.65);
+      const x = (_rnd(i, 2) - 0.5) * W * 0.7 * (1 - Math.abs(y) / H);
       ctx.beginPath();
       ctx.arc(x, y, W * 0.05, 0, Math.PI * 2);
       ctx.fill();
@@ -905,8 +918,8 @@ class FaceEffects {
     ctx.strokeStyle = 'rgba(80,50,25,0.4)';
     ctx.lineWidth = 1;
     for (let i = 0; i < 20; i++) {
-      const x = (Math.random() - 0.5) * W * 0.8;
-      const y = (Math.random() * 0.8) * H * 0.5;
+      const x = (_rnd(i, 3) - 0.5) * W * 0.8;
+      const y = (_rnd(i, 4) * 0.8) * H * 0.5;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x + 1, y + 4);
@@ -1708,7 +1721,7 @@ class FaceEffects {
     ctx.moveTo(-W * 0.4, -H * 0.3);
     for (let i = 0; i <= 16; i++) {
       const x = -W * 0.4 + (i / 16) * W * 0.8;
-      const y = -H * 0.3 - W * (0.05 + Math.sin(i * 1.7) * 0.06 + Math.random() * 0.03);
+      const y = -H * 0.3 - W * (0.05 + Math.sin(i * 1.7) * 0.06 + _rnd(i, 5) * 0.03);
       ctx.lineTo(x, y);
     }
     ctx.lineTo(W * 0.4, -H * 0.3);
@@ -1718,8 +1731,8 @@ class FaceEffects {
     // Bolle nella schiuma
     ctx.fillStyle = 'rgba(240,240,240,0.7)';
     for (let i = 0; i < 6; i++) {
-      const x = -W * 0.3 + Math.random() * W * 0.6;
-      const y = -H * 0.35 - Math.random() * W * 0.08;
+      const x = -W * 0.3 + _rnd(i, 6) * W * 0.6;
+      const y = -H * 0.35 - _rnd(i, 7) * W * 0.08;
       ctx.beginPath();
       ctx.arc(x, y, W * 0.025, 0, Math.PI * 2);
       ctx.fill();
@@ -2216,7 +2229,14 @@ class FaceEffects {
   getCurrent() { return this.active; }
   getOutputTrack() { return this.outputStream?.getVideoTracks()[0] || null; }
 
+  /** Camera spenta/riaccesa: ferma l'elaborazione (MediaPipe + canvas) senza smontare la pipeline */
+  setPaused(paused) {
+    const v = this.sourceVideo; if (!v) return;
+    try { if (paused) v.pause(); else v.play().catch(() => { }); } catch (_) { }
+  }
+
   _stopPipeline() {
+    if (this._ticker) { this._ticker.stop(); this._ticker = null; }
     if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
     if (this.sourceVideo) {
       this.sourceVideo.srcObject = null;

@@ -827,11 +827,11 @@ async function _createRoom(roomId) {
   // L'observer è creato dentro Room.constructor in modo asincrono, quindi aspettiamo
   // che sia pronto. Notifica tutti i client della stanza con eventi 'activeSpeaker'
   // e 'speakerSilence', che sostituiscono il polling consumer.getStats() lato client.
+  // Prima si pollava ogni 50 ms finché l'observer non c'era: se la creazione
+  // falliva o la stanza veniva chiusa subito, il timer girava per sempre e
+  // teneva viva la Room in memoria.
   const _attachAlo = () => {
-    if (!room.audioLevelObserver) {
-      setTimeout(_attachAlo, 50);
-      return;
-    }
+    if (!room.audioLevelObserver || room.audioLevelObserver.closed) return;
     room.audioLevelObserver.on('volumes', (volumes) => {
       if (!volumes || !volumes.length) return;
       const { producer, volume } = volumes[0];  // dominant speaker (maxEntries: 1)
@@ -843,7 +843,7 @@ async function _createRoom(roomId) {
       io.to(room.id).emit('speakerSilence');
     });
   };
-  _attachAlo();
+  (room.aloReady || Promise.resolve()).then(_attachAlo).catch(() => { });
 
   return room;
 }
@@ -895,7 +895,8 @@ io.on('connection', (socket) => {
     connlog.log(currentRoom.id, _diagPeer(), 'visibility', { state: String(d.state || '').slice(0, 10), note: d.state === 'hidden' ? 'app in background / schermo bloccato' : undefined });
   });
 
-  socket.on('joinRoom', async ({ roomId, displayName, token, guestToken, audioMuted, videoOff }, callback) => {
+  socket.on('joinRoom', async ({ roomId, displayName, token, guestToken, audioMuted, videoOff } = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
     try {
       if (!roomId || !displayName) throw new Error('roomId e displayName obbligatori');
 
@@ -987,7 +988,8 @@ io.on('connection', (socket) => {
     } catch (err) { callback({ error: err.message }); }
   });
 
-  socket.on('createWebRtcTransport', async ({ direction, isScreenShare = false }, callback) => {
+  socket.on('createWebRtcTransport', async ({ direction, isScreenShare = false } = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
     try {
       if (!_inRoom()) throw new Error('Non in stanza');
       const { transport, params } = await currentRoom.createWebRtcTransport(socket.id, isScreenShare);
@@ -1000,7 +1002,8 @@ io.on('connection', (socket) => {
     } catch (err) { callback({ error: err.message }); }
   });
 
-  socket.on('connectWebRtcTransport', async ({ transportId, dtlsParameters }, callback) => {
+  socket.on('connectWebRtcTransport', async ({ transportId, dtlsParameters } = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
     try {
       const t = currentRoom?.getTransport(socket.id, transportId);
       if (!t) throw new Error('Transport non trovato');
@@ -1011,7 +1014,8 @@ io.on('connection', (socket) => {
 
   // ⭐ FIX BUG 5: restartIce per recovery automatico su disconnect transport.
   // Il client lo chiama quando rileva connectionstatechange === 'disconnected' o 'failed'.
-  socket.on('restartIce', async ({ transportId }, callback) => {
+  socket.on('restartIce', async ({ transportId } = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
     try {
       if (!_inRoom()) throw new Error('Non in stanza');
       const iceParameters = await currentRoom.restartIce(socket.id, transportId);
@@ -1034,7 +1038,8 @@ io.on('connection', (socket) => {
     } catch (err) { callback?.({ error: err.message }); }
   });
 
-  socket.on('produce', async ({ transportId, kind, rtpParameters, appData }, callback) => {
+  socket.on('produce', async ({ transportId, kind, rtpParameters, appData } = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
     try {
       if (!_inRoom()) throw new Error('Non in stanza');
       // ⭐ R12: appData ridotto al solo mediaType (whitelist). Prima l'oggetto del
@@ -1063,7 +1068,8 @@ io.on('connection', (socket) => {
     } catch (err) { callback({ error: err.message }); }
   });
 
-  socket.on('consume', async ({ producerId, producerPeerId, rtpCapabilities }, callback) => {
+  socket.on('consume', async ({ producerId, producerPeerId, rtpCapabilities } = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
     try {
       if (!_inRoom()) throw new Error('Non in stanza');
       const { consumer, params } = await currentRoom.createConsumer(socket.id, producerPeerId, producerId, rtpCapabilities);
@@ -1071,7 +1077,8 @@ io.on('connection', (socket) => {
     } catch (err) { callback({ error: err.message }); }
   });
 
-  socket.on('resumeConsumer', async ({ consumerId }, callback) => {
+  socket.on('resumeConsumer', async ({ consumerId } = {}, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
     try {
       const consumer = currentPeer?.consumers.get(consumerId);
       if (!consumer) throw new Error('Consumer non trovato');

@@ -122,6 +122,7 @@ class ClientRecorder {
     if (!this.recording) return;
     this.recording = false;
 
+    if (this._ticker) { this._ticker.stop(); this._ticker = null; }
     cancelAnimationFrame(this.animFrameId);
     this.animFrameId = null;
 
@@ -145,9 +146,15 @@ class ClientRecorder {
     const draw = () => {
       if (!this.recording) return;
       this._drawFrame();
-      this.animFrameId = requestAnimationFrame(draw);
     };
-    draw();
+    if (window.TdtTicker) {
+      // continua anche con la scheda in background: prima il video registrato
+      // restava fermo sull'ultimo frame (con l'audio che proseguiva)
+      this._ticker = window.TdtTicker.start(draw, 33);
+      return;
+    }
+    const loop = () => { if (!this.recording) return; draw(); this.animFrameId = requestAnimationFrame(loop); };
+    loop();
   }
 
   _drawFrame() {
@@ -276,21 +283,30 @@ class ClientRecorder {
   _refreshAudioSources() {
     if (!this.audioCtx || !this.audioDest) return;
 
+    // Chiave = id del TRACK, non dello stream: il mic locale arriva ogni volta
+    // in un MediaStream nuovo (id diverso) e, dopo un cambio microfono o un
+    // ripristino automatico, il nodo restava legato al track morto → la
+    // propria voce spariva dalla registrazione.
     const streams = this._getAudioStreams?.() || [];
-    const activeIds = new Set(streams.map(s => s.id));
+    const entries = [];
+    streams.forEach(stream => {
+      const track = stream.getAudioTracks().find(t => t.readyState === 'live');
+      if (track) entries.push({ key: track.id, stream, track });
+    });
+    const activeIds = new Set(entries.map(e => e.key));
 
-    // Rimuovi sorgenti non più presenti
+    // Rimuovi sorgenti non più presenti (peer uscito, track sostituito)
     this.audioSources.forEach((node, id) => {
-      if (!activeIds.has(id)) { node.disconnect(); this.audioSources.delete(id); }
+      if (!activeIds.has(id)) { try { node.disconnect(); } catch { } this.audioSources.delete(id); }
     });
 
     // Aggiungi nuove sorgenti
-    streams.forEach(stream => {
-      if (!this.audioSources.has(stream.id)) {
+    entries.forEach(({ key, track }) => {
+      if (!this.audioSources.has(key)) {
         try {
-          const source = this.audioCtx.createMediaStreamSource(stream);
+          const source = this.audioCtx.createMediaStreamSource(new MediaStream([track]));
           source.connect(this.audioDest);
-          this.audioSources.set(stream.id, source);
+          this.audioSources.set(key, source);
         } catch(e) { console.warn('[recorder] Audio source error:', e); }
       }
     });

@@ -103,23 +103,32 @@ class BackgroundEffect {
   _startLoop() {
     let lastInfer = 0;
     const inferEveryMs = this._isMobile ? 100 : 50;  // mobile: 10fps inferenza, desktop: 20fps
-    const loop = async () => {
-      if (!this.selfieSeg || !this.sourceVideo) return;
+    let busy = false;
+    const tick = async () => {
+      if (!this.selfieSeg || !this.sourceVideo || busy) return;
+      if (this.sourceVideo.paused) return; // camera spenta: niente inferenza (CPU)
       const now = performance.now();
       if (this.sourceVideo.readyState >= 2 && now - lastInfer >= inferEveryMs) {
         lastInfer = now;
+        busy = true;
         try {
           await this.selfieSeg.send({ image: this.sourceVideo });
         } catch (e) {
           // ignoro: il loop continua
-        }
+        } finally { busy = false; }
       } else if (this._lastSegMask) {
         // Render intermedio con ultima maschera (interpolazione)
         this._renderWithLastMask();
       }
-      this.rafId = requestAnimationFrame(loop);
     };
-    loop();
+    if (this._ticker) { this._ticker.stop(); this._ticker = null; }
+    if (window.TdtTicker) {
+      // continua anche con la scheda in background (rAF sospeso → video congelato per gli altri)
+      this._ticker = window.TdtTicker.start(tick, 33);
+    } else {
+      const loop = async () => { await tick(); this.rafId = requestAnimationFrame(loop); };
+      loop();
+    }
   }
 
   _onResults(results) {
@@ -191,7 +200,14 @@ class BackgroundEffect {
     this._bgImageUrl = null;
   }
 
+  /** Camera spenta/riaccesa: ferma l'elaborazione senza smontare la pipeline */
+  setPaused(paused) {
+    const v = this.sourceVideo; if (!v) return;
+    try { if (paused) v.pause(); else v.play().catch(() => { }); } catch (_) { }
+  }
+
   _stopPipeline() {
+    if (this._ticker) { this._ticker.stop(); this._ticker = null; }
     if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
     if (this.sourceVideo) {
       if (this._ownsSourceVideo) {

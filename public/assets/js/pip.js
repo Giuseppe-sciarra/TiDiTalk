@@ -170,7 +170,9 @@ html,body{margin:0;height:100%;background:#121318;color:#ece7dc;font:500 13px/1.
     layout(doc, data.length);
     syncButtons();
   }
-  const schedule = () => { if (!raf && pipWin) raf = requestAnimationFrame(render); };
+  // rAF della finestra PiP: quello del documento principale è sospeso proprio
+  // quando la PiP serve (scheda in background) e la finestra non si aggiornava
+  const schedule = () => { if (!raf && pipWin) raf = pipWin.requestAnimationFrame ? pipWin.requestAnimationFrame(render) : setTimeout(render, 0); };
 
   function syncButtons() {
     if (!pipWin) return;

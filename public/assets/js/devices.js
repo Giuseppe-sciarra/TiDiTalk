@@ -491,6 +491,11 @@ class DeviceSelector {
       // STOP dei vecchi track PRIMA di richiederne di nuovi — su macOS Chrome
       // non libera il device se c'è un track attivo, e la richiesta ritorna lo
       // stesso dispositivo di sistema invece di quello richiesto
+      // Da muto gira il rilevatore "stai parlando ma sei muto" su un CLONE del
+      // vecchio microfono: va fermato, altrimenti il vecchio device resta acquisito
+      // (LED acceso) e il banner ascolta il mic sbagliato. Si riaccende alla fine.
+      const _wasMonitoring = type === 'audioinput' && typeof micMuted !== 'undefined' && micMuted && typeof stopMuteWarningDetection === 'function';
+      if (_wasMonitoring) { try { stopMuteWarningDetection(); } catch (_) { } }
       if (type === 'audioinput') {
         const oldTrack = window._localMicTrack;
         console.log('[devices] stopping old mic track', oldTrack?.getSettings?.()?.deviceId, oldTrack?.label);
@@ -582,6 +587,9 @@ class DeviceSelector {
         window._localMicTrack = newTrack;
         // Re-inizializza l'analyser audio con il nuovo track
         window._reinitSpeakingDetection?.();
+        if (_wasMonitoring && typeof startMuteWarningDetection === 'function') { try { startMuteWarningDetection(); } catch (_) { } }
+        // la registrazione in corso deve passare al nuovo microfono
+        try { window.recorder?.refreshAudio?.(); } catch (_) { }
         try { if (!sessionStorage.getItem('tdmeet_guest_token')) localStorage.setItem('vc_audioId', deviceId); } catch {}
         window._tdmeetSelectedAudio = deviceId;
       }
