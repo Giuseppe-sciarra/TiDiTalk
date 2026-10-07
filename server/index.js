@@ -662,7 +662,7 @@ const ALLOWED_UPLOAD_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp']);
 // il body arriva vuoto. Con `type: () => true` il corpo viene sempre letto.
 app.post('/api/upload/:kind', authMiddleware, express.raw({ type: () => true, limit: '8mb' }), (req, res) => {
   const { kind } = req.params;  // 'logo' | 'favicon' | 'background' | 'byebg' (sfondo pagina fine chiamata) | 'contact' (foto contatto)
-  if (!['logo', 'favicon', 'background', 'byebg', 'contact'].includes(kind)) return res.status(400).json({ error: 'kind non valido' });
+  if (!['logo', 'favicon', 'background', 'byebg', 'contact', 'byelogo'].includes(kind)) return res.status(400).json({ error: 'kind non valido' });
   if (kind !== 'background' && req.user.role !== 'admin') return res.status(403).json({ error: 'Serve un account amministratore' });
   const ext = String(req.query.ext || 'png').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4);
   if (!ALLOWED_UPLOAD_EXTS.has(ext)) return res.status(400).json({ error: 'Formato non supportato (png/jpg/jpeg/webp)' });

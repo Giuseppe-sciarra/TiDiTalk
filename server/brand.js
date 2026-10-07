@@ -53,6 +53,10 @@ const BYE_DEFAULTS = {
   text: 'Ti mandiamo un riepilogo via email entro oggi.',
   brandText: '',
   bgImageUrl: '',
+  logoUrl: '',                  // logo dedicato alla pagina (vuoto = logo del brand)
+  logoSize: 'medium',           // 'small' (44px) | 'medium' (80px) | 'large' (120px) | 'xl' (170px)
+  logoBox: true,                // riquadro bianco dietro al logo
+  showName: true,               // nome della piattaforma accanto al logo
   animation: 'constellation',   // 'constellation' | 'check' | 'ring' | 'none'
   showStats: true,
   askRating: false,
@@ -68,6 +72,8 @@ function getBye(db) {
   out.redirectUrl = okUrl(out.redirectUrl, false);
   out.bgImageUrl = okUrl(out.bgImageUrl, true);
   out.contactPhotoUrl = okUrl(out.contactPhotoUrl, true);
+  out.logoUrl = okUrl(out.logoUrl, true);
+  if (!['small', 'medium', 'large', 'xl'].includes(out.logoSize)) out.logoSize = 'medium';
   out.buttons = (Array.isArray(out.buttons) ? out.buttons.slice(0, 3) : [])
     .map(b => ({ label: String(b && b.label || '').slice(0, 40), url: okUrl(b && b.url, false) }))
     .filter(b => b.label && b.url);
@@ -152,6 +158,10 @@ function saveCategory(db, category, data) {
         text: _str(data.text, 300),
         brandText: _str(data.brandText, 200),
         bgImageUrl: _url(data.bgImageUrl, true),
+        logoUrl: _url(data.logoUrl, true),
+        logoSize: ['small', 'medium', 'large', 'xl'].includes(data.logoSize) ? data.logoSize : 'medium',
+        logoBox: data.logoBox !== false,
+        showName: data.showName !== false,
         animation: ['constellation', 'check', 'ring', 'none'].includes(data.animation) ? data.animation : 'constellation',
         showStats: data.showStats !== false,
         askRating: data.askRating === true,
