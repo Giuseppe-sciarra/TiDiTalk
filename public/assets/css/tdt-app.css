@@ -265,3 +265,10 @@ input[type="file"]::file-selector-button {
 }
 input[type="file"]::file-selector-button:hover { border-color: var(--accent-text); color: var(--accent-text); }
 code { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: .92em; background: var(--hair); padding: 2px 6px; border-radius: 6px; }
+
+/* ── Dati azienda sotto la card di accesso ──────────────────────────────── */
+.auth-info { margin-top: 22px; text-align: center; font-size: 13px; color: var(--paper-3); line-height: 1.7; display: flex; flex-direction: column; gap: 2px; }
+.auth-info b { color: var(--paper-2); font-weight: 600; }
+.auth-info a { color: var(--paper-2); text-decoration: none; }
+.auth-info a:hover { color: var(--paper); text-decoration: underline; }
+.auth-info-links i { font-style: normal; margin: 0 8px; opacity: .6; }

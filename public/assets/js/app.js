@@ -79,9 +79,25 @@
       document.body.appendChild(el);
     },
 
+    /** Dati azienda (Impostazioni → Azienda) sotto la card di accesso */
+    infoBlock() {
+      const el = document.getElementById('authInfo'); if (!el) return;
+      const i = window.__BRAND?.info || {};
+      const rows = [];
+      if (i.companyName) rows.push(`<b>${Tdt.esc(i.companyName)}</b>`);
+      if (i.developerTitle) rows.push(`<span>${Tdt.esc(i.developerTitle)}</span>`);
+      const links = [];
+      if (i.companySite) links.push(`<a href="${Tdt.esc(i.companySite)}" target="_blank" rel="noopener">${Tdt.esc(i.companySite.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a>`);
+      if (i.companyEmail) links.push(`<a href="mailto:${Tdt.esc(i.companyEmail)}">${Tdt.esc(i.companyEmail)}</a>`);
+      if (links.length) rows.push(`<span class="auth-info-links">${links.join('<i>·</i>')}</span>`);
+      if (!rows.length) { el.remove(); return; }
+      el.innerHTML = rows.join('');
+    },
+
     init() {
       document.querySelectorAll('[data-logout]').forEach(b => b.addEventListener('click', (e) => { e.preventDefault(); Tdt.logout(); }));
       Tdt.footer();
+      Tdt.infoBlock();
     },
   };
 

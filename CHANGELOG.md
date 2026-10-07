@@ -13,10 +13,15 @@
 - Reached from the Leave button, when the host closes the meeting (choice:
   end-of-call page or waiting room) and on lost connection; alternatively
   redirect guests to an external URL
-- Settings → **End of call** tab: enable/disable, texts with placeholders
+- Settings → **End of call** tab: enable/disable, dedicated logo with size
+  (44/80/120/170 px), white box and name toggles, texts with placeholders
   (`{nome}`, `{host}`, `{durata}`, `{partecipanti}`, `{azienda}`), background
   image, animation, stats, rating, contact card, buttons; table of received
   ratings
+- End-of-call page: wider card, buttons stay on one line, Close button;
+  admin-written texts are not auto-translated
+- Login page shows the company info from Settings → Company; the animated
+  accent beam of the login page is now on every page
 - API: `POST /api/feedback` (rate-limited), `GET/DELETE /api/feedback` (admin);
   new upload kinds `byebg` and `contact`
 
@@ -62,7 +67,7 @@
 - Annotations: **text** tool (multiline, Enter to confirm), **eraser** (own
   strokes; hosts and presenter can erase anyone's), **hide drawings** for
   yourself, **save PNG** of the shared screen with the drawings
-- Leave dialog: confirmation before leaving; while recording, the file is
+- Leave: while recording, a dialog asks to save first and the file is
   saved before the page changes (previously the recording could be lost); the
   browser also warns when closing the tab during a recording
 - Native share sheet for the invite link on phones and tablets

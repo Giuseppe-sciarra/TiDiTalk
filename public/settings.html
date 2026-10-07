@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/assets/i18n/i18n.css">
 </head>
 <body class="tdt-app">
+  <div class="auth-beam" aria-hidden="true"></div>
   <header class="app-header">
     <a href="/home" class="app-brand"><img src="%%LOGO%%" alt="" /><span>%%APP_NAME%%</span></a>
     <nav class="app-nav">
@@ -196,6 +197,32 @@
               <div class="field"><label for="byeSubtitle">Sottotitolo</label><input type="text" id="byeSubtitle" maxlength="200" placeholder="La chiamata è finita. A presto!" /></div>
               <div class="field"><label for="byeHeading">Intestazione (colonna destra)</label><input type="text" id="byeHeading" maxlength="80" placeholder="Chiamata conclusa" /></div>
               <div class="field"><label for="byeText">Testo</label><input type="text" id="byeText" maxlength="300" placeholder="Ti mandiamo un riepilogo via email entro oggi." /></div>
+            </div>
+            <div class="field">
+              <label>Logo della pagina</label>
+              <div class="logo-preview">
+                <img id="byeLogoPreview" src="" alt="" style="height:60px;width:60px;object-fit:contain;background:#fff;border-radius:12px;padding:4px;box-sizing:border-box" />
+                <div style="flex:1;min-width:0">
+                  <input type="file" id="byeLogoFile" accept="image/png,image/jpeg,image/webp" />
+                  <div class="hint">Vuoto = il logo del brand. Qui puoi caricarne uno diverso (es. versione orizzontale o a colori pieni).</div>
+                  <input type="text" id="byeLogoUrl" placeholder="/assets/uploads/…" style="margin-top:8px" />
+                </div>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="byeLogoSize">Misura del logo</label>
+                <select id="byeLogoSize">
+                  <option value="small">Piccolo (44 px)</option>
+                  <option value="medium">Medio (80 px)</option>
+                  <option value="large">Grande (120 px)</option>
+                  <option value="xl">Molto grande (170 px)</option>
+                </select>
+              </div>
+              <div class="field" style="padding-top:26px;display:flex;flex-direction:column;gap:10px">
+                <label class="switch"><input type="checkbox" id="byeLogoBox"><span class="track"></span><span>Riquadro bianco dietro al logo</span></label>
+                <label class="switch"><input type="checkbox" id="byeShowName"><span class="track"></span><span>Mostra il nome accanto al logo</span></label>
+              </div>
             </div>
             <div class="field"><label for="byeBrandText">Frase del brand (in basso nella colonna colorata)</label><input type="text" id="byeBrandText" maxlength="200" placeholder="Siti web, gestionali e strumenti su misura…" /></div>
             <div class="field">
@@ -438,6 +465,10 @@
       v('byeMode', b.mode || 'page'); v('byeRedirect', b.redirectUrl); v('byeOnHostLeft', b.onHostLeft || 'bye');
       v('byeTitle', b.title); v('byeSubtitle', b.subtitle); v('byeHeading', b.heading); v('byeText', b.text); v('byeBrandText', b.brandText);
       v('byeBgUrl', b.bgImageUrl); if (b.bgImageUrl) document.getElementById('byeBgPreview').src = b.bgImageUrl;
+      v('byeLogoUrl', b.logoUrl); document.getElementById('byeLogoPreview').src = b.logoUrl || (S.branding && S.branding.logoUrl) || '';
+      v('byeLogoSize', b.logoSize || 'medium');
+      document.getElementById('byeLogoBox').checked = b.logoBox !== false;
+      document.getElementById('byeShowName').checked = b.showName !== false;
       v('byeAnimation', b.animation || 'constellation');
       document.getElementById('byeShowStats').checked = b.showStats !== false;
       document.getElementById('byeAskRating').checked = b.askRating === true;
@@ -447,6 +478,7 @@
       (b.buttons || []).forEach((btn, i) => { if (labels[i]) { labels[i].value = btn.label || ''; urls[i].value = btn.url || ''; } });
     }
     document.getElementById('byeBgFile').addEventListener('change', e => upload('byebg', e.target.files[0], 'byeBgPreview'));
+    document.getElementById('byeLogoFile').addEventListener('change', e => upload('byelogo', e.target.files[0], 'byeLogoPreview'));
     document.getElementById('byeContactFile').addEventListener('change', e => upload('contact', e.target.files[0], 'byeContactPreview'));
     document.getElementById('btnSaveBye').addEventListener('click', async () => {
       try {
@@ -463,6 +495,10 @@
             text: document.getElementById('byeText').value.trim(),
             brandText: document.getElementById('byeBrandText').value.trim(),
             bgImageUrl: document.getElementById('byeBgUrl').value.trim() || document.getElementById('byeBgPreview').dataset.url || '',
+            logoUrl: document.getElementById('byeLogoUrl').value.trim() || document.getElementById('byeLogoPreview').dataset.url || '',
+            logoSize: document.getElementById('byeLogoSize').value,
+            logoBox: document.getElementById('byeLogoBox').checked,
+            showName: document.getElementById('byeShowName').checked,
             animation: document.getElementById('byeAnimation').value,
             showStats: document.getElementById('byeShowStats').checked,
             askRating: document.getElementById('byeAskRating').checked,
@@ -525,7 +561,7 @@
         if (!r.ok) throw new Error(data.error || 'Caricamento non riuscito');
         const img = document.getElementById(previewId);
         img.src = data.url; img.dataset.url = data.url;
-        const urlField = document.getElementById({ logo: 'logoUrl', favicon: 'faviconUrl', byebg: 'byeBgUrl', contact: 'byeContactUrl' }[kind]);
+        const urlField = document.getElementById({ logo: 'logoUrl', favicon: 'faviconUrl', byebg: 'byeBgUrl', contact: 'byeContactUrl', byelogo: 'byeLogoUrl' }[kind]);
         if (urlField) urlField.value = data.url;
         Tdt.toast('Immagine caricata: ora premi Salva');
       } catch (e) { Tdt.toast(e.message); }

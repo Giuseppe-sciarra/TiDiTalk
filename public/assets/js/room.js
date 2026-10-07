@@ -2103,7 +2103,8 @@ function bindControls() {
     else await produceScreen();
   });
 
-  document.getElementById('btnLeave').addEventListener('click', () => openLeaveDialog());
+  // Esci: conferma solo se si sta registrando (per salvare il file prima); altrimenti si esce subito
+  document.getElementById('btnLeave').addEventListener('click', () => { if (isRecording) openLeaveDialog(); else if (!_leaving) { _leaving = true; _leaveNow(); } });
   // chiusura della scheda mentre si registra: il browser chiede conferma
   window.addEventListener('beforeunload', (e) => {
     if (isRecording && !_leaving) { e.preventDefault(); e.returnValue = ''; }

@@ -8,7 +8,6 @@
   const cfg = B.bye || {};
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const T = (s) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(s) : s;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let data = {};
   try { data = JSON.parse(sessionStorage.getItem('tdt_bye') || '{}') || {}; } catch { }
@@ -34,12 +33,28 @@
 
   // ── testi ──
   const $ = (id) => document.getElementById(id);
+  // I testi scritti dal gestore nel pannello sono parole sue: il traduttore
+  // automatico non deve toccarli (traduceva solo l'inizio: "Thank you per aver…").
+  // I testi predefiniti invece restano traducibili.
+  const DEF = { title: 'Grazie, {nome}.\nÈ stato un piacere.', subtitle: 'La chiamata è finita. A presto!', heading: 'Chiamata conclusa', text: 'Ti mandiamo un riepilogo via email entro oggi.' };
+  const custom = (key) => { const v = String(cfg[key] || '').trim(); return v && v !== DEF[key]; };
+  const noTr = (id, key) => { if (custom(key)) $(id).setAttribute('translate', 'no'); };
+  noTr('byeTitle', 'title'); noTr('byeSubtitle', 'subtitle'); noTr('byeHeading', 'heading'); noTr('byeText', 'text');
+  ['byeQuote', 'byeContact', 'byeActions'].forEach(id => $(id).setAttribute('translate', 'no'));
   // ogni riga in un nodo di testo separato: così il traduttore automatico le trova
   $('byeTitle').innerHTML = tidy(fill(cfg.title || 'Grazie, {nome}.\nÈ stato un piacere.')).split('\n').map(esc).join('<br>');
   $('byeSubtitle').textContent = fill(cfg.subtitle || '');
   $('byeHeading').textContent = fill(cfg.heading || 'Chiamata conclusa');
   $('byeText').textContent = fill(cfg.text || '');
   if (cfg.brandText) { $('byeQuote').textContent = fill(cfg.brandText); $('byeQuote').classList.remove('hidden'); }
+  // logo: dedicato alla pagina oppure quello del brand; misura, riquadro e nome dal pannello
+  {
+    const lg = document.querySelector('.bye-logo'), img = lg.querySelector('img'), nm = lg.querySelector('b');
+    if (cfg.logoUrl) img.src = cfg.logoUrl;
+    lg.classList.add('size-' + (['small', 'medium', 'large', 'xl'].includes(cfg.logoSize) ? cfg.logoSize : 'medium'));
+    if (cfg.logoBox === false) lg.classList.add('nobox');
+    if (cfg.showName === false) nm.style.display = 'none';
+  }
   if (cfg.bgImageUrl) { const b = $('byeBrand'); b.style.backgroundImage = `url("${String(cfg.bgImageUrl).replace(/["\\)]/g, '')}")`; b.classList.add('has-image'); }
   document.title = `${T('Grazie')} · ${B.branding?.platformName || ''}`;
 
@@ -63,6 +78,14 @@
   // ── bottoni ──
   const btns = Array.isArray(cfg.buttons) ? cfg.buttons.filter(b => b && b.label && b.url) : [];
   $('byeActions').innerHTML = btns.map((b, i) => `<a class="btn ${i ? 'ghost' : ''}" href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.label)}</a>`).join('');
+
+  // ── tasto Chiudi: prova a chiudere la scheda; se il browser non lo permette
+  //    (scheda aperta dall'utente) va al sito dell'azienda o alla home
+  $('byeClose').addEventListener('click', () => {
+    const fallback = (B.info && B.info.companySite) || (btns[0] && btns[0].url) || '/';
+    try { window.close(); } catch { }
+    setTimeout(() => { if (!window.closed) window.location.href = fallback; }, 250);
+  });
 
   // ── footer ──
   const info = B.info || {};
@@ -102,7 +125,7 @@
     const fg = stage.querySelector('.fg'); const cnt = $('byeCount');
     const pct = Math.min(1, minutes / 60);
     requestAnimationFrame(() => { fg.style.strokeDashoffset = String(565 - 565 * Math.max(.06, pct)); });
-    const t0 = performance.now(); const dur = reduced ? 0 : 2000;
+    const t0 = performance.now(); const dur = 2000;
     const step = (t) => { const k = dur ? Math.min(1, (t - t0) / dur) : 1; const e = 1 - Math.pow(1 - k, 3); cnt.textContent = Math.round(minutes * e); if (k < 1) requestAnimationFrame(step); };
     requestAnimationFrame(step);
   } else constellation();
@@ -124,13 +147,15 @@
     });
     const N = 24;
     const pts = Array.from({ length: N }, () => ({ x: Math.random(), y: Math.random(), vx: (Math.random() - .5) * .0011, vy: (Math.random() - .5) * .0011 }));
-    let raf = 0;
+    // loop sempre attivo: requestAnimationFrame si ferma da solo quando la
+    // scheda è nascosta e riparte quando torna visibile
     const draw = () => {
+      requestAnimationFrame(draw);
       const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
-      if (!W || !H) { raf = requestAnimationFrame(draw); return; }
+      if (!W || !H) return;
       if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      if (!reduced) for (const p of pts) { p.x += p.vx; p.y += p.vy; if (p.x < 0 || p.x > 1) p.vx *= -1; if (p.y < 0 || p.y > 1) p.vy *= -1; }
+      for (const p of pts) { p.x += p.vx; p.y += p.vy; if (p.x < 0 || p.x > 1) p.vx *= -1; if (p.y < 0 || p.y > 1) p.vy *= -1; }
       ctx.strokeStyle = accent; ctx.lineWidth = 1;
       for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
         const a = pts[i], b = pts[j]; const d = Math.hypot((a.x - b.x) * W, (a.y - b.y) * H);
@@ -138,10 +163,8 @@
       }
       ctx.fillStyle = accent; ctx.globalAlpha = .9;
       for (const p of pts) { ctx.beginPath(); ctx.arc(p.x * W, p.y * H, 2.2, 0, Math.PI * 2); ctx.fill(); }
-      if (!reduced && !document.hidden) raf = requestAnimationFrame(draw);
     };
     draw();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && !raf) draw(); else if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } });
   }
 
 })();

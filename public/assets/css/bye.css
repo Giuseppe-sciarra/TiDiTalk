@@ -1,12 +1,12 @@
 /* ═══ Pagina di fine chiamata (/bye) — layout "vetrina" a due colonne ═══ */
 body.tdt-bye { margin: 0; }
-.bye-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 56px 16px 24px; box-sizing: border-box; }
+.bye-wrap { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 56px 16px 16px; box-sizing: border-box; }
 /* footer (powered by · versione) in fondo alla pagina, non sovrapposto al contenuto */
 body.tdt-bye .app-footer { position: static; transform: none; text-align: center; padding: 6px 0 18px; }
 body.tdt-bye .app-footer:empty { display: none; }
 .bye-split {
-  width: 100%; max-width: 1000px;
-  display: grid; grid-template-columns: 1.05fr 1fr;
+  width: 100%; max-width: 1240px;
+  display: grid; grid-template-columns: 0.95fr 1.15fr;
   border-radius: 24px; overflow: hidden;
   border: 1px solid var(--hair-2); background: var(--ink-2);
   box-shadow: 0 30px 80px -30px rgba(0,0,0,.6);
@@ -25,6 +25,12 @@ body.tdt-bye .app-footer:empty { display: none; }
 .bye-brand > * { position: relative; }
 .bye-logo { display: flex; align-items: center; gap: 12px; }
 .bye-logo img { width: 44px; height: 44px; border-radius: 12px; background: #fff; object-fit: contain; padding: 4px; box-sizing: border-box; }
+.bye-logo.size-medium img { width: 80px; height: 80px; border-radius: 18px; padding: 8px; }
+.bye-logo.size-large img { width: 120px; height: 120px; border-radius: 24px; padding: 12px; }
+.bye-logo.size-xl img { width: 170px; height: 170px; border-radius: 30px; padding: 14px; }
+.bye-logo.size-large, .bye-logo.size-xl { flex-direction: column; align-items: flex-start; gap: 14px; }
+.bye-logo.nobox img { background: transparent; padding: 0; border-radius: 0; }
+.bye-logo.size-medium b { font-size: 22px; } .bye-logo.size-large b, .bye-logo.size-xl b { font-size: 24px; }
 .bye-logo b { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
 .bye-brand-body { margin-top: auto; }
 .bye-brand h1 { font-family: var(--font-display); font-size: clamp(30px, 3.6vw, 42px); line-height: 1.1; letter-spacing: -.02em; margin: 0 0 12px; font-weight: 600; white-space: pre-line; }
@@ -97,6 +103,9 @@ body.tdt-bye .app-footer:empty { display: none; }
 .bye-contact a { color: inherit; text-decoration: none; }
 .bye-contact a:hover { text-decoration: underline; }
 .bye-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.bye-actions .btn { white-space: nowrap; }
+.bye-close { background: var(--ink-2); border: 1px solid var(--hair-2); color: var(--paper-2); border-radius: 999px; padding: 11px 22px; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; animation: bye-in .6s .2s var(--ease) both; }
+.bye-close:hover { color: var(--paper); border-color: var(--paper-3); }
 .bye-actions:empty { display: none; }
 .bye-actions .btn { text-decoration: none; }
 .bye-actions .btn.ghost { background: var(--ink-3); color: var(--paper); border: 1px solid var(--hair-2); }
@@ -104,18 +113,16 @@ body.tdt-bye .app-footer:empty { display: none; }
 .bye-foot a { color: inherit; }
 .hidden { display: none !important; }
 
-@media (prefers-reduced-motion: reduce) {
-  .bye-chip, .bye-ring, .bye-badge, .bye-split { animation: none !important; }
-  .bye-badge path { stroke-dashoffset: 0; animation: none; }
-}
 @media (max-width: 860px) {
   .bye-wrap { padding: 12px 12px 56px; align-items: flex-start; }
   .bye-split { grid-template-columns: 1fr; border-radius: 20px; }
   .bye-brand { min-height: 0; padding: 26px 22px 28px; }
   .bye-brand h1 { font-size: 30px; }
+  .bye-logo.size-xl img { width: 120px; height: 120px; }
   .bye-brand p { font-size: 15px; }
   .bye-content { padding: 22px 20px 22px; gap: 14px; }
   .bye-pill { position: static; order: -1; }
   .bye-stage { height: 180px; }
   .bye-actions .btn { flex: 1 1 auto; justify-content: center; }
+  .bye-close { width: 100%; justify-content: center; border-radius: 14px; }
 }
