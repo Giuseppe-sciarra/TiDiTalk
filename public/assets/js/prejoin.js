@@ -174,21 +174,25 @@ class PreJoin {
     return n === 'NotAllowedError' || n === 'PermissionDeniedError';
   }
 
-  // Mostra il banner full-screen con istruzioni browser-specific (permBanner.js)
-  _showPermBanner() {
-    window.PermBanner?.show({
-      onRetry: async () => {
-        const ok = await this._loadDevices(/*silent=*/true);
-        if (ok) await this._startPreview();
-        return ok;
-      },
-    });
+  // Pannello a schermo intero con le istruzioni giuste per l'errore (permBanner.js)
+  _permRetry() {
+    return async () => {
+      const ok = await this._loadDevices(/*silent=*/true);
+      if (ok) await this._startPreview();
+      return ok;
+    };
+  }
+  _showPermBanner(err) {
+    if (!window.PermBanner) return;
+    if (err) window.PermBanner.fromError(err, { onRetry: this._permRetry() });
+    else window.PermBanner.show({ onRetry: this._permRetry() });
   }
 
   _humanizeGumError(err) {
     const n = err?.name || '';
     const m = err?.message || String(err);
     if (n === 'NotAllowedError' || n === 'PermissionDeniedError') {
+      if (window.PermBanner) return 'Microfono e videocamera bloccati: segui i passaggi nel pannello, poi premi "Consenti microfono e videocamera".';
       return this._buildPermissionDeniedMessage();
     }
     if (n === 'NotFoundError' || n === 'DevicesNotFoundError') {
@@ -288,6 +292,8 @@ class PreJoin {
     try {
       // 1. Chiedi permessi (necessario per ottenere i label dei device)
       let tmp = null;
+      // Pannello "Consenti microfono e videocamera" mentre il browser chiede
+      const req = window.PermBanner?.beginRequest?.({ onRetry: this._permRetry() });
       try {
         tmp = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
       } catch (e1) {
@@ -301,17 +307,16 @@ class PreJoin {
           try {
             tmp = await navigator.mediaDevices.getUserMedia({ video: true });
           } catch (e3) {
-            this._lastErrorMsg = this._humanizeGumError(e3 || e2 || e1);
-            if (!silent) {
-              this._showError(this._lastErrorMsg);
-              if (this._isPermDenied(e3) || this._isPermDenied(e2) || this._isPermDenied(e1)) {
-                this._showPermBanner();
-              }
-            }
+            const err = e3 || e2 || e1;
+            this._lastErrorMsg = this._humanizeGumError(err);
+            this._showError(this._lastErrorMsg);
+            // il pannello giusto (bloccato / sistema / occupato / assente)
+            if (req) req.fail(err); else this._showPermBanner(err);
             return false;
           }
         }
       }
+      req?.done(tmp);
       tmp.getTracks().forEach(t => t.stop());
 
       // 2. Enumera
@@ -384,9 +389,13 @@ class PreJoin {
 
       // Permission state warning (best-effort)
       const perms = await this._checkPermission();
-      if (perms?.mic === 'denied' || perms?.cam === 'denied') {
-        this._showError('Accesso a microfono o camera negato. Clicca sull\'icona del lucchetto nella barra dell\'URL e consenti.');
-        if (!silent) this._showPermBanner();
+      if (perms?.mic === 'denied' && perms?.cam === 'denied') {
+        this._showError('Accesso a microfono e videocamera negato: segui i passaggi nel pannello.');
+        this._showPermBanner();
+      } else if (perms?.mic === 'denied') {
+        this._showError('Il microfono è bloccato dal browser: gli altri non ti sentiranno. Clicca sul lucchetto accanto all\'indirizzo e consenti il microfono.');
+      } else if (perms?.cam === 'denied') {
+        this._showError('La videocamera è bloccata dal browser: gli altri non ti vedranno. Clicca sul lucchetto accanto all\'indirizzo e consenti la videocamera.');
       } else {
         this._hideError();
       }
@@ -485,10 +494,9 @@ class PreJoin {
             this._showError('⚠ Camera non disponibile. Puoi entrare in audio.');
           } catch (e4) {
             this.stream = null;
-            this._showError(this._humanizeGumError(e4 || e3 || e2 || e));
-            if (this._isPermDenied(e4) || this._isPermDenied(e3) || this._isPermDenied(e2) || this._isPermDenied(e)) {
-              this._showPermBanner();
-            }
+            const err = e4 || e3 || e2 || e;
+            this._showError(this._humanizeGumError(err));
+            this._showPermBanner(err);
           }
         }
       }
@@ -537,12 +545,43 @@ class PreJoin {
       this._audioCtx.createMediaStreamSource(this.stream).connect(this._analyser);
 
       const data = new Uint8Array(this._analyser.frequencyBinCount);
+      const wave = new Float32Array(this._analyser.fftSize);
       const bar  = document.getElementById('pjMeterBar');
+      const track = this.stream.getAudioTracks()[0];
+      let mutedSince = 0, zeroSince = 0;
+
+      // l'AudioContext può restare "suspended" finché l'utente non tocca la
+      // pagina: in quel caso il silenzio non dice nulla
+      const resume = () => { if (this._audioCtx?.state === 'suspended') this._audioCtx.resume().catch(() => {}); };
+      document.addEventListener('pointerdown', resume, { once: true, passive: true });
+      document.addEventListener('keydown', resume, { once: true });
 
       const tick = () => {
         this._analyser.getByteFrequencyData(data);
         const avg = data.slice(0, 32).reduce((a, b) => a + b, 0) / 32;
         if (bar) bar.style.width = Math.min(100, avg * 1.5) + '%';
+
+        // ── microfono c'è ma non arriva niente ──
+        const now = Date.now();
+        const PB = window.PermBanner;
+        if (PB && track && track.readyState === 'live' && !this.micMuted) {
+          if (track.muted) {                       // silenziato dal sistema / dalla cuffia
+            if (!mutedSince) mutedSince = now;
+            if (now - mutedSince > 2500) PB.notice('micMuted', true);
+          } else {
+            mutedSince = 0; PB.notice('micMuted', false);
+            if (this._audioCtx?.state === 'running') {
+              this._analyser.getFloatTimeDomainData(wave);
+              let peak = 0;
+              for (let i = 0; i < wave.length; i++) { const v = Math.abs(wave[i]); if (v > peak) peak = v; }
+              if (peak === 0) {                    // silenzio digitale perfetto: volume di ingresso a zero
+                if (!zeroSince) zeroSince = now;
+                if (now - zeroSince > 6000) PB.notice('micSilent', true);
+              } else { zeroSince = 0; PB.notice('micSilent', false); }
+            }
+          }
+        } else if (PB) { PB.notice('micMuted', false); PB.notice('micSilent', false); }
+
         this._meterRAF = requestAnimationFrame(tick);
       };
       tick();
@@ -551,6 +590,7 @@ class PreJoin {
 
   _stopMeter() {
     if (this._meterRAF) { cancelAnimationFrame(this._meterRAF); this._meterRAF = null; }
+    window.PermBanner?.notice('micMuted', false); window.PermBanner?.notice('micSilent', false);
     this._audioCtx?.close(); this._audioCtx = null; this._analyser = null;
   }
 

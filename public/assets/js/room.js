@@ -1298,6 +1298,8 @@ async function produceAudio() {
     } catch (e) {
       console.error('[produceAudio] fallback fallito', e);
       setMicError("Permesso negato o microfono occupato. Premi “Riprova” dopo aver concesso l'accesso.");
+      // pannello con i passaggi giusti (bloccato dal browser / dal sistema / occupato)
+      window.PermBanner?.fromError(e, { onRetry: async () => { await produceAudio(); return !!producers.get('audio'); } });
       return;
     }
   }
@@ -3613,6 +3615,7 @@ async function _micTick() {
   if (!t || !p || micMuted || t.readyState !== 'live' || p.closed) {
     _micHealth.mutedSince = _micHealth.zeroSince = _micHealth.flatSince = 0;
     _micHealth.lastBytes = -1;
+    window.PermBanner?.notice('micMuted', false); window.PermBanner?.notice('micSilent', false);
     return;
   }
   const now = Date.now();
@@ -3620,8 +3623,10 @@ async function _micTick() {
   // 1. sorgente silenziata dal sistema operativo / da un'altra app
   if (t.muted) {
     if (!_micHealth.mutedSince) { _micHealth.mutedSince = now; _micDiag('mic-os-muted'); }
+    // avviso ben visibile ("il microfono è disattivato dal sistema"), come Meet
+    if (now - _micHealth.mutedSince > 2500) window.PermBanner?.notice('micMuted', true);
     if (now - _micHealth.mutedSince > 4000) { _recoverMic('os-muted'); return; }
-  } else _micHealth.mutedSince = 0;
+  } else { _micHealth.mutedSince = 0; window.PermBanner?.notice('micMuted', false); }
 
   // 2. silenzio digitale perfetto (un microfono vero ha sempre un filo di rumore)
   if (_micHealth.trackId !== t.id) _micAttachAnalyser(t);
@@ -3634,12 +3639,13 @@ async function _micTick() {
     if (peak === 0) {
       if (!_micHealth.zeroSince) _micHealth.zeroSince = now;
       // dopo 2 tentativi andati a vuoto il silenzio è "vero" (es. tasto mute
-      // fisico sulla cuffia): si smette di insistere, resta solo nel log
+      // fisico sulla cuffia): si smette di insistere e si avvisa l'utente
       if (now - _micHealth.zeroSince > 8000 && _micHealth.silenceFixes < 2) {
         _micHealth.silenceFixes++;
         _recoverMic('silence'); return;
       }
-    } else { _micHealth.zeroSince = 0; _micHealth.silenceFixes = 0; }
+      if (now - _micHealth.zeroSince > 6000 && _micHealth.silenceFixes >= 2) window.PermBanner?.notice('micSilent', true);
+    } else { _micHealth.zeroSince = 0; _micHealth.silenceFixes = 0; window.PermBanner?.notice('micSilent', false); }
   }
 
   // 3. pacchetti audio fermi (controllo ogni 3 s)
