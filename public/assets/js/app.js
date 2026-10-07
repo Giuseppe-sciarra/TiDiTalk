@@ -63,12 +63,19 @@
 
     footer() {
       const f = window.__BRAND?.footer;
-      if (!f || !f.enabled || !f.text) return;
+      const v = window.__BRAND?.version;
+      const parts = [];
+      if (f && f.enabled && f.text) {
+        parts.push(f.link
+          ? `<a href="${Tdt.esc(f.link)}" target="_blank" rel="noopener">${Tdt.esc(f.text)}</a>`
+          : Tdt.esc(f.text));
+      }
+      // numero di versione: sempre visibile, anche senza "powered by"
+      if (v) parts.push(`<span class="app-version" translate="no" title="Versione">v${Tdt.esc(v)}</span>`);
+      if (!parts.length) return;
       const el = document.createElement('div');
       el.className = 'app-footer';
-      el.innerHTML = f.link
-        ? `<a href="${Tdt.esc(f.link)}" target="_blank" rel="noopener">${Tdt.esc(f.text)}</a>`
-        : Tdt.esc(f.text);
+      el.innerHTML = parts.join('<span class="app-footer-sep">·</span>');
       document.body.appendChild(el);
     },
 

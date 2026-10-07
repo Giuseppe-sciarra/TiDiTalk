@@ -2789,11 +2789,15 @@ function renderFooter() {
   const f = _publicSettings?.footer;
   const el = document.getElementById('roomFooter');
   if (!el) return;
-  if (!f || f.enabled === false || !f.text) { el.innerHTML = ''; return; }
-  const text = escapeHtml(f.text);
-  el.innerHTML = f.link
-    ? `<a href="${escapeHtml(f.link)}" target="_blank" rel="noopener">${text}</a>`
-    : text;
+  const parts = [];
+  if (f && f.enabled !== false && f.text) {
+    const text = escapeHtml(f.text);
+    parts.push(f.link ? `<a href="${escapeHtml(f.link)}" target="_blank" rel="noopener">${text}</a>` : text);
+  }
+  // numero di versione sempre visibile accanto al "powered by"
+  const v = _publicSettings?.version;
+  if (v) parts.push(`<span class="app-version" translate="no" title="Versione">v${escapeHtml(v)}</span>`);
+  el.innerHTML = parts.join('<span class="app-footer-sep">·</span>');
 }
 
 function applyBranding() {
@@ -3051,6 +3055,7 @@ function openInfoModal() {
 
     <div class="info-credits">
       ${devTitle ? `${devTitle}<br>` : ''}
+      ${_publicSettings?.version ? `<span>Versione ${escapeHtml(_publicSettings.version)}</span><br>` : ''}
       Software open source · AGPL-3.0${sourceUrl ? ` · <a href="${sourceUrl}" target="_blank" rel="noopener">Codice sorgente</a>` : ''}
       ${footer.text && footer.link ? `<br><a href="${escapeHtml(footer.link)}" target="_blank" rel="noopener" style="opacity:0.7">${escapeHtml(footer.text)}</a>` : ''}
     </div>

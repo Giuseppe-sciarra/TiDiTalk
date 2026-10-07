@@ -170,3 +170,7 @@
 @media (prefers-reduced-motion: reduce) {
   .tdt-tip, .tdt-tour *, .tdt-beacon::before, .tdt-beacon i { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ── Numero di versione nel footer (sempre visibile, anche senza "powered by") ── */
+.app-version { font-variant-numeric: tabular-nums; letter-spacing: .02em; opacity: .85; white-space: nowrap; }
+.app-footer-sep { opacity: .6; margin: 0 .4em; }
