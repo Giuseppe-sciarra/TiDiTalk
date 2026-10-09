@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.5.0
+
+### Added
+- **Waiting room like Google Meet**: guests wait until a host admits them
+  (on by default, Settings → Meetings). Hosts see a card at the top right
+  with name, waiting time, **Admit / Deny / Admit all**, a sound and a badge
+  on the People button; guests see a "you're in the waiting room" screen and
+  get in without reloading. Registered users always get straight in. Guests
+  already admitted stay admitted if the last host drops and comes back
+- **Call settings window** (gear in the header or ⋮ → Settings), with
+  sections: **Audio & video** (microphone, camera, speakers, live mic level,
+  automatic gain, RNNoise, mirror my video), **Room** (hosts only: waiting
+  room on/off *for this meeting*, **lock the room**, guest screen sharing,
+  drawing for everyone, **mute everyone**, copy invite link), **Recording**
+  (video quality 1.2 / 2.5 / 5 / 8 Mbps), **Appearance** (theme, grid or
+  speaker view, data saver, sounds, language), **Shortcuts** and **Info**
+- Hosts can **remove a guest** from the People list (× next to the name)
+- **New home page**, centred in the viewport, with an animated background of
+  floating geometric shapes: tabs *New meeting / Schedule / Join with code /
+  Recent* that slide in from the right, room code updated live while typing,
+  microphone and camera "on entry" switches. On the right a full **device
+  check**: camera preview, live microphone level, microphone / camera /
+  speakers selectors and a speakers test. Greeting by time of day and date
+- **Registered users go straight into the meeting**: devices checked on the
+  home page are used as they are and the pre-join screen is skipped (guests
+  still get it; if a device fails the pre-join appears as before)
+- **Schedule tab** on the home page: the next meetings on the calendar with
+  invite link and one-tap join, plus a shortcut to schedule a new one
+- README with a screenshot gallery (`docs/screenshots`, EN and IT)
+- **Recent meetings** stored on the server: start date and time, duration,
+  number of people, who took part, "live" badge with the number of people
+  currently inside; one tap to rejoin, × to remove from your list. Each user
+  only sees the meetings they joined
+- API: `GET /api/rooms/recent`, `DELETE /api/rooms/recent/:id`; socket
+  events `lobbyAdmit`, `lobbyDeny`, `roomRules`, `muteAll`, `kickPeer`
+
+### Changed
+- Guest screen sharing and "everyone can draw" are now per-room rules
+  (initialised from Settings → Meetings, changeable by hosts during the call)
+- Brand name no longer wraps letter by letter in the header on narrow phones
+
 ## 1.4.0
 
 ### Added

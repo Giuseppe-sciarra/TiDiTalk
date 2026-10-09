@@ -8,11 +8,48 @@ cloud, your branding.
 
 ---
 
+## Screenshots
+
+<p align="center"><img src="docs/screenshots/en/01-presenting.webp" alt="Screen sharing with live annotations (highlighter, arrow, text, pen) on the presenter's slides — speaker view with the participants on the side" width="100%"></p>
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/en/08-home.webp" alt="Home: device check with camera preview, live mic level and speakers test; new meeting with the room code generated while you type"><br><sub>Home: device check with camera preview, live mic level and speakers test; new meeting with the room code generated while you type</sub></td>
+<td width="50%"><img src="docs/screenshots/en/03-waiting-room.webp" alt="Waiting room like Google Meet: the hosts admit or deny guests from a card, badge on the People button"><br><sub>Waiting room like Google Meet: the hosts admit or deny guests from a card, badge on the People button</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/en/04-call-settings.webp" alt="Call settings — Room section: waiting room, lock the room, guest permissions, mute everyone"><br><sub>Call settings — Room section: waiting room, lock the room, guest permissions, mute everyone</sub></td>
+<td width="50%"><img src="docs/screenshots/en/05-polls.webp" alt="Polls: live results, anonymous or with names, change your vote while it is open"><br><sub>Polls: live results, anonymous or with names, change your vote while it is open</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/en/06-network.webp" alt="Network & quality: bandwidth, latency and jitter graphs, loss, one row per stream, direct or TURN path"><br><sub>Network & quality: bandwidth, latency and jitter graphs, loss, one row per stream, direct or TURN path</sub></td>
+<td width="50%"><img src="docs/screenshots/en/10-end-of-call.webp" alt="End-of-call page for guests: your branding, constellation of the participants, star rating, contact card"><br><sub>End-of-call page for guests: your branding, constellation of the participants, star rating, contact card</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/en/08b-plan.webp" alt="Schedule tab: the next meetings on the calendar, with invite link and one-tap join"><br><sub>Schedule tab: the next meetings on the calendar, with invite link and one-tap join</sub></td>
+<td width="50%"><img src="docs/screenshots/en/09-recent-light.webp" alt="Recent meetings: date, duration, who took part, "live" badge, rejoin with one tap"><br><sub>Recent meetings: date, duration, who took part, "live" badge, rejoin with one tap</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/en/07-prejoin.webp" alt="Pre-join screen for guests: name, microphone test, speakers and camera"><br><sub>Pre-join screen for guests: name, microphone test, speakers and camera</sub></td>
+<td width="50%"><img src="docs/screenshots/en/11-login.webp" alt="Login page with the company info set in Settings"><br><sub>Login page with the company info set in Settings</sub></td>
+</tr>
+</table>
+<p align="center"><img src="docs/screenshots/en/12-mobile.webp" alt="On the phone: home, screen sharing with annotations, speaker view" width="100%"><br><sub>On the phone: home, screen sharing with annotations, speaker view</sub></p>
+
+<sub>The people in the screenshots are illustrations rendered into a fake camera; everything else is the real UI.</sub>
+
+---
+
 ## Features
 
 **Meetings**
-- Rooms with a server-side **waiting room**: guests wait until a host joins,
-  and go back to waiting if the last host leaves
+- **Waiting room** like Google Meet: guests wait until a host admits them
+  (Admit / Deny / Admit all card, on by default, switchable per meeting);
+  registered users get straight in; guests go back to waiting if the last
+  host leaves. Hosts can also **lock the room** and remove a guest
+- Home page with a full **device check** (camera preview, microphone level,
+  speakers test) — registered users then go straight into the meeting — plus
+  **recent meetings** (date, duration, who took part, live badge, one tap to
+  rejoin) and the next scheduled ones
 - **Scheduled meetings** with email invitations and `.ics` calendar event
 - Guest links that expire, no sign-up — works in the browser on desktop and phone
 - Grid view that **sizes every tile to the available space** (all participants
@@ -42,6 +79,8 @@ cloud, your branding.
 - **Floating window** with the whole meeting (Chrome/Edge): all participants,
   speaker highlight, mic/camera/hand/leave. Opens by itself when you switch tab
 - Virtual backgrounds (blur or image), color styles and face effects (MediaPipe)
+- **Call settings window** with sections: audio & video devices, room rules
+  (hosts), recording quality, appearance, shortcuts, info
 - Microphone popup with **live mic and speaker levels** and a switch for
   automatic gain control
 - **Microphone watchdog**: a mic silenced by the OS or another app, or dead
@@ -55,7 +94,7 @@ cloud, your branding.
 - Branding panel: name, tagline, logo, favicon, accent color (automatically
   adjusted for contrast in both themes), default theme, footer, company info
 - Users with **admin** and **host** roles — from the panel or from `.env`
-- Room rules: guest screen sharing, drawing permissions, first-join guide
+- Room rules: waiting room, guest screen sharing, drawing permissions, first-join guide
 - External REST API to create meetings and guest links from a CRM
 - **Automatic daily updates** with email report, automatic rollback and
   ready-to-paste rollback commands
@@ -84,7 +123,7 @@ cloud, your branding.
 ## Installation
 
 ```bash
-git clone https://github.com/Giuseppe-TD/tiditalk.git
+git clone https://github.com/Giuseppe-sciarra/TiDiTalk.git
 cd tiditalk
 
 # 1. Configuration

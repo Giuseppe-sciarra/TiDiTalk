@@ -8,11 +8,51 @@ tuo marchio.
 
 ---
 
+## Screenshot
+
+<p align="center"><img src="docs/screenshots/it/01-presenting.webp" alt="Condivisione schermo con annotazioni in diretta (evidenziatore, freccia, testo, penna) sulle slide di chi presenta — vista relatore con i partecipanti a lato" width="100%"></p>
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/it/08-home.webp" alt="Home: controllo dispositivi con anteprima della videocamera, livello del microfono e prova delle casse; nuova riunione con il codice stanza generato mentre scrivi"><br><sub>Home: controllo dispositivi con anteprima della videocamera, livello del microfono e prova delle casse; nuova riunione con il codice stanza generato mentre scrivi</sub></td>
+<td width="50%"><img src="docs/screenshots/it/03-waiting-room.webp" alt="Sala d'attesa come Google Meet: gli organizzatori ammettono o rifiutano gli ospiti da una scheda, badge sul pulsante Persone"><br><sub>Sala d'attesa come Google Meet: gli organizzatori ammettono o rifiutano gli ospiti da una scheda, badge sul pulsante Persone</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/it/04-call-settings.webp" alt="Impostazioni della chiamata — sezione Stanza: sala d'attesa, blocco della stanza, permessi degli ospiti, silenzia tutti"><br><sub>Impostazioni della chiamata — sezione Stanza: sala d'attesa, blocco della stanza, permessi degli ospiti, silenzia tutti</sub></td>
+<td width="50%"><img src="docs/screenshots/it/05-polls.webp" alt="Sondaggi: risultati in diretta, anonimi o con i nomi, si può cambiare voto finché è aperto"><br><sub>Sondaggi: risultati in diretta, anonimi o con i nomi, si può cambiare voto finché è aperto</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/it/06-network.webp" alt="Rete e qualità: grafici di banda, latenza e jitter, perdita pacchetti, una riga per flusso, percorso diretto o TURN"><br><sub>Rete e qualità: grafici di banda, latenza e jitter, perdita pacchetti, una riga per flusso, percorso diretto o TURN</sub></td>
+<td width="50%"><img src="docs/screenshots/it/10-end-of-call.webp" alt="Pagina di fine chiamata per gli ospiti: il tuo brand, costellazione dei partecipanti, voto a stelle, scheda contatto"><br><sub>Pagina di fine chiamata per gli ospiti: il tuo brand, costellazione dei partecipanti, voto a stelle, scheda contatto</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/it/08b-plan.webp" alt="Tab Pianifica: le prossime riunioni in calendario, con link d'invito e ingresso con un tocco"><br><sub>Tab Pianifica: le prossime riunioni in calendario, con link d'invito e ingresso con un tocco</sub></td>
+<td width="50%"><img src="docs/screenshots/it/09-recent-light.webp" alt="Riunioni recenti: data, durata, chi c'era, badge "in corso", rientro con un tocco"><br><sub>Riunioni recenti: data, durata, chi c'era, badge "in corso", rientro con un tocco</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/it/07-prejoin.webp" alt="Schermata di ingresso per gli ospiti: nome, prova del microfono, casse e videocamera"><br><sub>Schermata di ingresso per gli ospiti: nome, prova del microfono, casse e videocamera</sub></td>
+<td width="50%"><img src="docs/screenshots/it/11-login.webp" alt="Pagina di accesso con i dati dell'azienda impostati nel pannello"><br><sub>Pagina di accesso con i dati dell'azienda impostati nel pannello</sub></td>
+</tr>
+</table>
+<p align="center"><img src="docs/screenshots/it/12-mobile.webp" alt="Da telefono: home, condivisione schermo con annotazioni, vista relatore" width="100%"><br><sub>Da telefono: home, condivisione schermo con annotazioni, vista relatore</sub></p>
+
+<sub>Le persone negli screenshot sono illustrazioni inviate a una videocamera finta; tutto il resto è l'interfaccia reale.</sub>
+
+---
+
 ## Funzionalità
 
 **Riunioni**
-- Stanze con **sala d'attesa** lato server: gli ospiti aspettano che entri un
-  organizzatore, e tornano in attesa se l'ultimo organizzatore esce
+- **Sala d'attesa** come Google Meet: gli ospiti aspettano che un
+  organizzatore li ammetta (scheda Ammetti / Rifiuta / Ammetti tutti, attiva
+  di default, disattivabile riunione per riunione); gli utenti registrati
+  entrano subito; gli ospiti tornano in attesa se l'ultimo organizzatore
+  esce. Gli organizzatori possono anche **bloccare la stanza** e rimuovere
+  un ospite
+- Home con il **controllo completo dei dispositivi** (anteprima videocamera,
+  livello del microfono, prova delle casse) — gli utenti registrati entrano
+  poi direttamente in riunione — più le **riunioni recenti** (data, durata,
+  chi c'era, badge "in corso", un tocco per rientrare) e le prossime in
+  calendario
 - **Riunioni pianificate** con inviti via email ed evento `.ics` per il calendario
 - Link ospite con scadenza, senza registrazione — funziona nel browser, da
   computer e da telefono
@@ -45,6 +85,9 @@ tuo marchio.
   chi parla evidenziato, microfono/camera/mano/esci. Si apre da sola quando
   cambi scheda
 - Sfondi virtuali (sfocatura o immagine), stili colore ed effetti viso (MediaPipe)
+- **Finestra Impostazioni della chiamata** a sezioni: dispositivi audio e
+  video, regole della stanza (organizzatori), qualità registrazione, aspetto,
+  scorciatoie, info
 - Popup del microfono con **livelli in tempo reale di microfono e casse** e
   interruttore della regolazione automatica del volume
 - **Controllo del microfono**: se il sistema o un'altra app lo silenziano, o
@@ -58,7 +101,7 @@ tuo marchio.
 - Pannello brand: nome, sottotitolo, logo, favicon, colore accento (adattato da
   solo per restare leggibile in entrambi i temi), tema, footer, dati azienda
 - Utenti con ruolo **amministratore** e **organizzatore** — dal pannello o da `.env`
-- Regole delle stanze: condivisione schermo ospiti, permessi di disegno, guida
+- Regole delle stanze: sala d'attesa, condivisione schermo ospiti, permessi di disegno, guida
 - API REST esterna per creare riunioni e link ospite da un CRM
 - **Aggiornamenti automatici quotidiani** con email di riepilogo, rollback
   automatico e comandi pronti per tornare indietro
@@ -87,7 +130,7 @@ tuo marchio.
 ## Installazione
 
 ```bash
-git clone https://github.com/Giuseppe-TD/tiditalk.git
+git clone https://github.com/Giuseppe-sciarra/TiDiTalk.git
 cd tiditalk
 
 # 1. Configurazione
