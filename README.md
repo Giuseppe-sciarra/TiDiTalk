@@ -124,7 +124,7 @@ cloud, your branding.
 
 ```bash
 git clone https://github.com/Giuseppe-sciarra/TiDiTalk.git
-cd tiditalk
+cd TiDiTalk
 
 # 1. Configuration
 cp .env.template .env

@@ -131,7 +131,7 @@ tuo marchio.
 
 ```bash
 git clone https://github.com/Giuseppe-sciarra/TiDiTalk.git
-cd tiditalk
+cd TiDiTalk
 
 # 1. Configurazione
 cp .env.template .env
