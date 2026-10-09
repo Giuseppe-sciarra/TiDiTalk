@@ -1047,9 +1047,11 @@ io.on('connection', (socket) => {
       // Senza questo, alla disconnessione l'handler 'disconnect' vedeva
       // hasInLobby()===true e faceva return anticipato SENZA removePeer →
       // tile fantasma per tutti, producer orfani, stanza mai eliminata.
+      const _wasInLobby = room.hasInLobby(socket.id);
       room.removeFromLobby(socket.id);
 
       const peer = room.addPeer(socket.id, displayName, isGuest);
+      if (_wasInLobby && isGuest) _lobbyNotifyHosts(room);
       // ⭐ FIX entrata-muto: registra lo stato iniziale comunicato dal client,
       // così il broadcast peerJoined porta l'icona mute corretta agli altri peer.
       peer.audioMuted = _safeBool(audioMuted);
@@ -1111,6 +1113,10 @@ io.on('connection', (socket) => {
       const e = currentRoom.lobby.get(id);
       if (!e || e.reason !== 'admit') continue;
       currentRoom.admitted.add(id);
+      // fuori subito dalla lista degli organizzatori: prima restava 'admit'
+      // finché il client dell'ospite non rientrava, e la scheda chiedeva di
+      // ammetterlo una seconda volta
+      e.reason = 'admitted';
       io.to(id).emit('hostAvailable', { roomId: currentRoom.id });
       n++;
     }
@@ -1143,7 +1149,11 @@ io.on('connection', (socket) => {
     if (typeof data.annotateAll === 'boolean') r.annotateAll = data.annotateAll;
     // sala d'attesa spenta → chi stava aspettando entra subito
     if (!r.waitingRoom) {
-      for (const w of currentRoom.lobbyWaiting()) { currentRoom.admitted.add(w.peerId); io.to(w.peerId).emit('hostAvailable', { roomId: currentRoom.id }); }
+      for (const w of currentRoom.lobbyWaiting()) {
+        currentRoom.admitted.add(w.peerId);
+        const e = currentRoom.lobby.get(w.peerId); if (e) e.reason = 'admitted';
+        io.to(w.peerId).emit('hostAvailable', { roomId: currentRoom.id });
+      }
     }
     io.to(currentRoom.id).emit('roomRules', { rules: r, by: currentPeer.displayName });
     _lobbyNotifyHosts(currentRoom);
