@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="it" data-project="videochat">
+<head>
+  <meta charset="UTF-8" />
+  <script src="/assets/i18n/catalog.js"></script>
+  <script src="/assets/i18n/i18n.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#121318" />
+  <title>%%APP_NAME%%</title>
+  <link rel="icon" href="%%FAVICON%%" />
+  <link rel="stylesheet" href="/assets/css/fonts.css" />
+  <link rel="stylesheet" href="/assets/css/tdt-base.css" />
+  <link rel="stylesheet" href="/assets/css/tdt-app.css" />
+  %%BRAND_HEAD%%
+  <script src="/assets/js/theme.js"></script>
+
+  <link rel="stylesheet" href="/assets/i18n/i18n.css">
+</head>
+<body class="tdt-app">
+  <div class="auth-beam" aria-hidden="true"></div>
+  <header class="app-header">
+    <a href="/home" class="app-brand"><img src="%%LOGO%%" alt="" /><span>%%APP_NAME%%</span></a>
+    <nav class="app-nav">
+      <a href="/home" class="nav-link active">Riunioni</a><a href="/schedule" class="nav-link">Pianifica</a>
+      <a href="/settings" class="nav-link hidden" data-admin-only data-tip="Impostazioni della piattaforma"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></a>
+      <button class="icon-btn" data-theme-toggle data-tip="Cambia tema">
+        <span class="ico-dark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg></span><span class="ico-light hidden"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.6 8.6 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg></span>
+      </button>
+      <button class="nav-link" data-logout type="button">Esci</button>
+    </nav>
+  </header>
+  <div class="page home-page">
+    <div class="home-grid">
+      <div class="home-left">
+        <h1 class="page-title hr">Ciao <span data-user-name></span> <span class="wave" aria-hidden="true">👋</span></h1>
+        <p class="page-sub hr">Cosa facciamo oggi?</p>
+
+        <div class="tabs hr" id="homeTabs" role="tablist">
+          <div class="tabs-pill" aria-hidden="true"></div>
+          <button type="button" role="tab" class="on" data-t="new">Nuova riunione</button>
+          <button type="button" role="tab" data-t="join">Entra con codice</button>
+          <button type="button" role="tab" data-t="recent">Recenti <span class="tab-badge hidden" id="recentCount"></span></button>
+        </div>
+
+        <div class="panes">
+          <!-- Nuova riunione -->
+          <section class="pane on" id="pane-new">
+            <div class="field hr">
+              <label for="roomNameInput">Nome della riunione</label>
+              <div class="home-row">
+                <input type="text" id="roomNameInput" placeholder="Es. Demo cliente Rossi" maxlength="48" autocomplete="off" />
+                <button class="btn" id="btnNewRoom"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Crea ed entra</button>
+              </div>
+              <div class="hint home-code-line"><span>Codice stanza:</span> <span class="home-code" id="roomPreview" translate="no">NUOVA-RIUNIONE</span></div>
+            </div>
+            <div class="hr">
+              <div class="lbl">Entra con</div>
+              <div class="home-toggles">
+                <button type="button" class="tog on" id="togMic" data-tip="Entrerai con il microfono acceso"><i class="dot"></i><span>Microfono</span></button>
+                <button type="button" class="tog on" id="togCam" data-tip="Entrerai con la videocamera accesa"><i class="dot"></i><span>Videocamera</span></button>
+              </div>
+            </div>
+            <p class="hint hr" style="margin-top:18px"><span translate="no">%%TAGLINE%%</span> Per le riunioni con data e invito via email usa <a href="/schedule" style="color:var(--accent-text)">Pianifica</a>.</p>
+          </section>
+
+          <!-- Entra con codice -->
+          <section class="pane" id="pane-join">
+            <div class="field">
+              <label for="roomIdInput">Codice o link ricevuto</label>
+              <div class="home-row">
+                <input type="text" id="roomIdInput" class="input-code" placeholder="ABC-123" maxlength="200" autocomplete="off" />
+                <button class="btn" id="btnJoinRoom">Entra <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+              </div>
+              <div class="hint">Puoi incollare anche l'intero link: prendiamo noi il codice.</div>
+            </div>
+          </section>
+
+          <!-- Recenti -->
+          <section class="pane" id="pane-recent">
+            <div class="lbl" style="margin-bottom:10px">Le tue ultime riunioni</div>
+            <div class="recent-list" id="recentList"><div class="recent-empty">Carico…</div></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="home-right hr">
+        <div class="home-prev">
+          <div class="home-prev-top"><span>Anteprima</span><span class="home-code" id="prevCode" translate="no">NUOVA-RIUNIONE</span></div>
+          <div class="home-tile" id="homeTile">
+            <video id="homeVideo" autoplay muted playsinline></video>
+            <div class="home-avatar" id="homeAvatar"><span data-user-initials>?</span></div>
+            <span class="home-you"><span data-user-name></span> <span>(tu)</span></span>
+            <span class="home-tile-note hidden" id="homeTileNote"></span>
+          </div>
+          <div class="home-prev-ctrl">
+            <button type="button" class="home-ctrl" id="prevMic" data-tip="Microfono all'ingresso"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg></button>
+            <button type="button" class="home-ctrl" id="prevCam" data-tip="Videocamera all'ingresso"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg></button>
+          </div>
+          <div class="hint" style="text-align:center;margin-top:12px">Così ti vedranno gli altri. Dispositivi, sfondo ed effetti li scegli nella schermata successiva.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/assets/js/tooltip.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/home.js"></script>
+</body>
+</html>
