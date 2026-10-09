@@ -12,6 +12,8 @@ public/assets/uploads/*
 # Asset di terze parti scaricati dagli script di setup
 public/assets/vendor/*
 !public/assets/vendor/.gitkeep
+# RNNoise (WebAssembly, ~110 KB) sta nel repo: non viene scaricato da nessuno script
+!public/assets/vendor/rnnoise/
 public/assets/effects/*.png
 
 # Dipendenze
