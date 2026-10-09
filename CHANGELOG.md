@@ -23,6 +23,17 @@
   microphone and camera "on entry" switches. On the right a full **device
   check**: camera preview, live microphone level, microphone / camera /
   speakers selectors and a speakers test. Greeting by time of day and date
+- **Animated background of geometric shapes on every page** (replaces the
+  accent beam), tinted with the brand colour and different on each page:
+  rising with mouse parallax on the home page, slowly orbiting around the
+  card on login and invite pages, flowing right-to-left on Schedule, almost
+  still on Settings, falling like confetti on the end-of-call page, sparse
+  behind the pre-join screen and pulsing around the guest waiting screen.
+  It pauses when the tab is hidden and stops once you are in the call
+- Texts never sit on the moving shapes: page titles, settings menu, login
+  logo and company info, the home columns, the pre-join panel, the guest
+  waiting screen and the version pill are on solid cards; the top bar is
+  solid too
 - **Registered users go straight into the meeting**: devices checked on the
   home page are used as they are and the pre-join screen is skipped (guests
   still get it; if a device fails the pre-join appears as before)
@@ -40,6 +51,19 @@
 - Guest screen sharing and "everyone can draw" are now per-room rules
   (initialised from Settings → Meetings, changeable by hosts during the call)
 - Brand name no longer wraps letter by letter in the header on narrow phones
+- Leaving the meeting: immediate "leaving…" screen on click, and hosts go
+  straight to the home page (before: room → login page → home, two page
+  loads with no feedback, so it felt like the button needed a second click)
+
+### Fixed
+- Waiting room: admitting a guest needed a second click — the guest stayed in
+  the hosts' list until their browser had fully joined, and the hosts were
+  not notified when they did. Now the row disappears on the first click
+- Call settings window: the content was cut off at the bottom instead of
+  scrolling (Room and Recording sections on smaller screens)
+- Call settings → Appearance: proper icons for Grid / Speaker
+- Name under the avatar duplicated the tile label (overlapping in the side
+  strip); the "powered by" bar no longer shows a dark band in the light theme
 
 ## 1.4.0
 
