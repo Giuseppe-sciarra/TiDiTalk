@@ -30,6 +30,41 @@ class PreJoin {
     this._echoTestTimer = null;
   }
 
+  // ─── Ingresso diretto (dispositivi già controllati nella home) ────────────
+  // Stessa acquisizione del prejoin ma senza mostrare la schermata: usa i
+  // dispositivi e lo stato mic/cam scelti nella home. Se qualcosa va storto
+  // (permessi, dispositivo sparito) torna null e room.js mostra il prejoin.
+  async quick(roomId, name, pref) {
+    try {
+      if (!name) return null;
+      this.selectedAudio = pref.audioId || localStorage.getItem('vc_audioId') || null;
+      this.selectedVideo = pref.videoId || localStorage.getItem('vc_videoId') || null;
+      this.selectedSpeaker = pref.speakerId || localStorage.getItem('vc_speakerId') || null;
+      this.micMuted = pref.mic === false;
+      this.camOff = pref.cam === false;
+      const pj = document.getElementById('prejoinScreen');
+      pj.classList.add('hidden');
+      await this._startPreview();
+      this._stopMeter(); this._stopEchoTest();
+      if (!this.stream) { this._hideError(); return null; }
+      if (this.stream.getVideoTracks().length === 0) this.camOff = true;
+      this.stream.getAudioTracks().forEach(t => t.enabled = !this.micMuted);
+      this.stream.getVideoTracks().forEach(t => t.enabled = !this.camOff);
+      try { document.getElementById('pjVideo').srcObject = null; } catch (_) { }
+      localStorage.setItem('vc_displayName', name);
+      window._tdmeetSpeakerId = this.selectedSpeaker || null;
+      return {
+        displayName: name, stream: this.stream, micMuted: this.micMuted, camOff: this.camOff,
+        audioDeviceId: this.selectedAudio, videoDeviceId: this.selectedVideo, speakerDeviceId: this.selectedSpeaker,
+      };
+    } catch (e) {
+      console.warn('[prejoin] ingresso diretto fallito, mostro il prejoin:', e?.message || e);
+      try { this.stream?.getTracks().forEach(t => t.stop()); } catch (_) { }
+      this.stream = null; this.micMuted = false; this.camOff = false;
+      return null;
+    }
+  }
+
   // ─── Avvia schermata pre-join ──────────────────────────────────────────────
 
   async show(roomId, defaultName) {

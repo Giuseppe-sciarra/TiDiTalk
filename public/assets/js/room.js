@@ -125,7 +125,19 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   try {
     // ── 1. Pre-join screen ────────────────────────────────────────────────────
-    const pjResult = await prejoin.show(ROOM_ID, DISPLAY_NAME_DEFAULT);
+    // Utenti registrati che arrivano dalla home con i dispositivi già
+    // controllati: si entra direttamente, senza ripetere il prejoin.
+    let pjResult = null;
+    if (!_guestToken) {
+      let pref = null;
+      try { pref = JSON.parse(sessionStorage.getItem('tdt_home_pref') || 'null'); } catch (_) { }
+      if (pref && pref.checked && pref.roomId === ROOM_ID) {
+        sessionStorage.removeItem('tdt_home_pref');
+        setLoading('Preparo microfono e videocamera…');
+        pjResult = await prejoin.quick(ROOM_ID, pref.name || DISPLAY_NAME_DEFAULT, pref);
+      }
+    }
+    if (!pjResult) pjResult = await prejoin.show(ROOM_ID, DISPLAY_NAME_DEFAULT);
     DISPLAY_NAME = pjResult.displayName;
 
     // Usa lo stream dalla pre-join (già acquisito, non riacquistare)
@@ -281,7 +293,7 @@ function showGuestWaitOverlay(mode = 'host') {
     'align-items:center',
     'justify-content:center',
     'gap:20px',
-    'color:#fff',
+    'color:var(--paper, #fff)',
     'font-family:inherit',
     'padding:24px',
     'text-align:center',
@@ -290,41 +302,54 @@ function showGuestWaitOverlay(mode = 'host') {
   overlay.innerHTML = `
     <style>
       @keyframes _gwSpin { to { transform: rotate(360deg); } }
+      #guestWaitOverlay > canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+      #guestWaitOverlay .gw-card {
+        position: relative; z-index: 1;
+        display: flex; flex-direction: column; align-items: center; gap: 14px;
+        background: var(--ink-2, #1a1d25); color: var(--paper, #ece7dc);
+        border: 1px solid var(--hair-2, rgba(255,255,255,.14)); border-radius: 22px;
+        padding: 30px 32px 26px; max-width: 380px; width: 100%;
+        box-shadow: var(--shadow-2, 0 24px 60px -20px rgba(0,0,0,.75));
+      }
       #guestWaitOverlay .gw-spinner {
-        width: 56px; height: 56px;
-        border: 3px solid rgba(255,255,255,0.12);
+        width: 52px; height: 52px;
+        border: 3px solid var(--hair-2, rgba(255,255,255,0.12));
         border-top-color: var(--accent, #e8913a);
         border-radius: 50%;
         animation: _gwSpin 1s linear infinite;
-        flex-shrink: 0;
+        flex-shrink: 0; margin-bottom: 4px;
       }
       #guestWaitOverlay .gw-title {
-        font-size: 20px; font-weight: 700; letter-spacing: -0.3px;
+        font-family: var(--font-display, inherit); font-size: 21px; font-weight: 600; letter-spacing: -0.2px;
       }
       #guestWaitOverlay .gw-sub {
-        font-size: 14px; color: rgba(255,255,255,0.5);
-        max-width: 280px; line-height: 1.5;
+        font-size: 14px; color: var(--paper-2, rgba(255,255,255,0.6));
+        max-width: 300px; line-height: 1.5;
       }
       #guestWaitOverlay .gw-leave {
-        margin-top: 12px;
-        padding: 10px 20px;
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 8px;
-        color: rgba(255,255,255,0.6);
-        font-size: 13px;
+        margin-top: 8px;
+        padding: 10px 22px;
+        background: transparent;
+        border: 1px solid var(--hair-2, rgba(255,255,255,0.15));
+        border-radius: 999px;
+        color: var(--paper-2, rgba(255,255,255,0.7));
+        font: inherit; font-size: 13.5px; font-weight: 600;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: background 0.2s, color .2s;
       }
-      #guestWaitOverlay .gw-leave:hover { background: rgba(255,255,255,0.14); }
+      #guestWaitOverlay .gw-leave:hover { background: var(--hair, rgba(255,255,255,0.08)); color: var(--paper, #fff); }
     </style>
-    <div class="gw-spinner"></div>
-    <div class="gw-title" id="gwTitle">Aspettiamo l'organizzatore</div>
-    <div class="gw-sub" id="gwSub">Entrerai automaticamente appena si collega. Non serve ricaricare la pagina.</div>
-    <button class="gw-leave" id="gwBtnLeave">Abbandona</button>
+    <canvas class="bg-shapes-local" aria-hidden="true"></canvas>
+    <div class="gw-card">
+      <div class="gw-spinner"></div>
+      <div class="gw-title" id="gwTitle">Aspettiamo l'organizzatore</div>
+      <div class="gw-sub" id="gwSub">Entrerai automaticamente appena si collega. Non serve ricaricare la pagina.</div>
+      <button class="gw-leave" id="gwBtnLeave">Abbandona</button>
+    </div>
   `;
 
   document.body.appendChild(overlay);
+  try { window.TdtShapes?.mount(overlay.querySelector('canvas'), 'wait'); } catch (_) { }
   setGuestWaitMode(mode);
 
   // Pulsante abbandona nell'overlay
@@ -1972,7 +1997,10 @@ function _isGuestUser() {
 }
 function _byeDestination() {
   const bye = _publicSettings?.bye || window.__BRAND?.bye;
-  if (!_isGuestUser() || !bye || bye.enabled === false) return '/';
+  // organizzatori e utenti registrati: direttamente alla home (prima '/' →
+  // pagina di login → redirect alla home: due caricamenti di pagina di fila)
+  if (!_isGuestUser()) return '/home';
+  if (!bye || bye.enabled === false) return '/';
   // dati per la pagina (nome, host, durata, partecipanti) — niente nell'URL
   try {
     const hostPeer = [...peers.values()].find(p => p && p.isGuest === false);
@@ -1987,11 +2015,25 @@ function _byeDestination() {
   return '/bye';
 }
 function _leaveNow() {
+  // risposta immediata al clic: mentre la pagina successiva si carica la
+  // stanza non deve sembrare ancora attiva (prima veniva da cliccare due volte)
+  _showLeavingOverlay();
   clearInterval(timerInterval);
   const dest = _byeDestination();
   try { rawCamStream?.getTracks().forEach(t => t.stop()); } catch { }
   try { socket?.disconnect(); } catch { }
   window.location.href = dest;
+}
+function _showLeavingOverlay() {
+  if (document.getElementById('leavingOverlay')) return;
+  const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
+  const o = document.createElement('div');
+  o.id = 'leavingOverlay';
+  o.className = 'leaving-overlay';
+  o.innerHTML = '<div class="leaving-spinner"></div><div class="leaving-text"></div>';
+  o.querySelector('.leaving-text').textContent = T('Stai uscendo dalla riunione…');
+  document.body.appendChild(o);
+  document.getElementById('btnLeave')?.setAttribute('disabled', '');
 }
 let _leaving = false;
 function openLeaveDialog() {

@@ -61,7 +61,7 @@
   <link rel="stylesheet" href="/assets/i18n/i18n.css">
 </head>
 <body class="tdt-app">
-  <div class="auth-beam" aria-hidden="true"></div>
+  <canvas class="bg-shapes" data-variant="guest" aria-hidden="true"></canvas>
   <div class="auth-wrap">
     <div class="auth-box">
       <div class="auth-logo">
@@ -178,6 +178,7 @@
 
 <script src="/assets/js/countdown.js"></script>
   <script src="/assets/js/tooltip.js"></script>
+  <script src="/assets/js/shapes.js"></script>
   <script src="/assets/js/app.js"></script>
   <script>
     const TOKEN = window.location.pathname.split('/').pop();

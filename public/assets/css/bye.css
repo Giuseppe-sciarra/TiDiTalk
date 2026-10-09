@@ -2,7 +2,7 @@
 body.tdt-bye { margin: 0; }
 .bye-wrap { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 56px 16px 16px; box-sizing: border-box; }
 /* footer (powered by · versione) in fondo alla pagina, non sovrapposto al contenuto */
-body.tdt-bye .app-footer { position: static; transform: none; text-align: center; padding: 6px 0 18px; }
+body.tdt-bye .app-footer { position: static; transform: none; text-align: center; display: table; margin: 4px auto 18px; padding: 4px 12px; }
 body.tdt-bye .app-footer:empty { display: none; }
 .bye-split {
   width: 100%; max-width: 1240px;

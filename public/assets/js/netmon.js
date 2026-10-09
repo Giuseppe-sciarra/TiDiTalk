@@ -141,7 +141,7 @@
       ctx.fillText(fmt(max * i / 3, opts.unit), pad.l - 6, y);
     }
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('60 s', pad.l, pad.t + ih + 4); ctx.fillText('ora', W - pad.r, pad.t + ih + 4);
+    ctx.fillText('60 s', pad.l, pad.t + ih + 4); ctx.fillText((window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t('ora') : 'ora', W - pad.r, pad.t + ih + 4);
     series.forEach(s => {
       ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.beginPath(); let started = false;

@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="/assets/i18n/i18n.css">
 </head>
 <body class="tdt-app">
-  <div class="auth-beam" aria-hidden="true"></div>
+  <canvas class="bg-shapes" data-variant="schedule" aria-hidden="true"></canvas>
   <header class="app-header">
     <a href="/home" class="app-brand"><img src="%%LOGO%%" alt="" /><span>%%APP_NAME%%</span></a>
     <nav class="app-nav">
@@ -42,8 +42,10 @@
     </nav>
   </header>
   <div class="page">
-    <h1 class="page-title">Riunioni pianificate</h1>
-    <p class="page-sub">Chi inviti riceve un'email con il link e l'evento da aggiungere al calendario. Il link resta valido fino a fine riunione.</p>
+    <div class="page-head">
+      <h1 class="page-title">Riunioni pianificate</h1>
+      <p class="page-sub">Chi inviti riceve un'email con il link e l'evento da aggiungere al calendario. Il link resta valido fino a fine riunione.</p>
+    </div>
     <div class="settings-layout schedule-layout">
       <div>
         <div id="meetingsList"><div class="empty">Carico…</div></div>
@@ -89,6 +91,7 @@
     </div>
   </div>
   <script src="/assets/js/tooltip.js"></script>
+  <script src="/assets/js/shapes.js"></script>
   <script src="/assets/js/app.js"></script>
   <script>
     const invitees = [];

@@ -31,10 +31,13 @@
     card.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]'); if (!b) return;
       const act = b.dataset.act, peerId = b.dataset.peer;
-      b.disabled = true;
-      if (act === 'all') socket?.emit('lobbyAdmit', { all: true }, (r) => { if (r?.error) window.showToast?.(r.error, 2500); });
-      else if (act === 'admit') socket?.emit('lobbyAdmit', { peerId }, (r) => { if (r?.error) { b.disabled = false; window.showToast?.(r.error, 2500); } });
-      else if (act === 'deny') socket?.emit('lobbyDeny', { peerId }, (r) => { if (r?.error) { b.disabled = false; window.showToast?.(r.error, 2500); } });
+      // la riga sparisce subito al clic; se il server rifiuta, il prossimo
+      // lobbyUpdate (o il messaggio d'errore) rimette le cose a posto
+      const before = waiting.slice();
+      const undo = (r) => { if (r?.error) { waiting = before; render(); window.showToast?.(r.error, 2500); } };
+      if (act === 'all') { waiting = []; render(); socket?.emit('lobbyAdmit', { all: true }, undo); }
+      else if (act === 'admit') { waiting = waiting.filter(w => w.peerId !== peerId); render(); socket?.emit('lobbyAdmit', { peerId }, undo); }
+      else if (act === 'deny') { waiting = waiting.filter(w => w.peerId !== peerId); render(); socket?.emit('lobbyDeny', { peerId }, undo); }
     });
     return card;
   }
