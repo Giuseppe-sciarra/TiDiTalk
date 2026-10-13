@@ -187,9 +187,6 @@ class SoundManager {
     if (!text || !text.trim()) return;
 
     try {
-      // Cancella eventuali speech in coda per evitare accumuli
-      window.speechSynthesis.cancel();
-
       // Se le voci non sono ancora state caricate, ripesca adesso
       if (!this._ttsVoice) this._initTTS();
 
@@ -200,10 +197,15 @@ class SoundManager {
       utter.pitch = 1.0;
       utter.volume = 1.0;
       if (this._ttsVoice) utter.voice = this._ttsVoice;
-
-      utter.onerror = (e) => console.warn('[TTS utterance error]', e);
-
-      window.speechSynthesis.speak(utter);
+      utter.onerror = (e) => { if (e?.error !== 'interrupted' && e?.error !== 'canceled') console.warn('[TTS utterance error]', e?.error || e); };
+      // ⭐ 1.5.1 FIX "esplosione" all'inizio: cancel() seguito subito da speak()
+      // fa partire la voce con un botto / le prime sillabe mangiate (Chrome e
+      // Safari). Si cancella solo se c'è davvero qualcosa in corso, e la nuova
+      // lettura parte dopo che il motore si è fermato.
+      const ss = window.speechSynthesis;
+      const go = () => { try { ss.speak(utter); } catch (e) { console.warn('[TTS]', e); } };
+      if (ss.speaking || ss.pending) { ss.cancel(); clearTimeout(this._ttsTimer); this._ttsTimer = setTimeout(go, 150); }
+      else go();
     } catch (e) {
       console.warn('[TTS]', e);
     }
@@ -216,9 +218,17 @@ class SoundManager {
     const ctx = this._getCtx();
     if (!ctx) return;
 
-    if (ctx.state === 'suspended') ctx.resume();
+    // ⭐ 1.5.1 FIX botto all'inizio dei suoni: con il contesto audio sospeso
+    // (prima interazione, scheda tornata in primo piano) le note venivano
+    // programmate su un orologio fermo e alla ripresa suonavano tutte insieme,
+    // tagliate, come uno scoppio. Ora si aspetta la ripresa, si parte con un
+    // margine e l'attacco è più morbido.
+    if (ctx.state === 'suspended') { ctx.resume().then(() => this._schedule(ctx, notes, gap)).catch(() => { }); return; }
+    this._schedule(ctx, notes, gap);
+  }
 
-    let t = ctx.currentTime + 0.01;
+  _schedule(ctx, notes, gap) {
+    let t = ctx.currentTime + 0.04;
     notes.forEach((note) => {
       const delay = note.delay || 0;
       const start = t + delay;
@@ -230,7 +240,7 @@ class SoundManager {
       osc.frequency.setValueAtTime(note.freq, start);
 
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(note.vol, start + 0.01);
+      gain.gain.linearRampToValueAtTime(note.vol, start + 0.025);
       gain.gain.exponentialRampToValueAtTime(0.001, start + note.dur);
 
       osc.connect(gain);

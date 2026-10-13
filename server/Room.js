@@ -17,6 +17,14 @@ class Peer {
     this.isScreenSharing = false;
     this.isGuest = false;
     this.closed = false;
+    // ⭐ 1.5.1 — mai inviati agli altri client (fuori da toJSON):
+    // admitTicket = "biglietto" dell'ospite già fatto entrare (vedi Room.issueTicket)
+    // tabId       = id casuale della scheda del browser (sessionStorage): se la
+    //               stessa scheda rientra dopo una caduta, la connessione vecchia
+    //               viene chiusa subito invece di restare come doppione
+    this.admitTicket = null;
+    this.tabId = null;
+    this.username = '';
   }
 
   addTransport(t) { this.transports.set(t.id, t); }
@@ -66,6 +74,12 @@ class Room {
     // socket dei guest già ammessi da un organizzatore (restano ammessi anche se
     // vengono rimessi in lobby perché l'ultimo host è uscito)
     this.admitted = new Set();
+    // ⭐ 1.5.1 — biglietti degli ospiti già entrati: Map<ticket, displayName>.
+    // L'ammissione prima era legata al socket.id, che cambia a ogni ricarica
+    // della pagina: una caduta di rete rimandava l'ospite in sala d'attesa e
+    // l'organizzatore doveva riammetterlo. Il biglietto vale finché la stanza
+    // esiste (fine riunione = stanza chiusa = biglietti spariti).
+    this.tickets = new Map();
     // ── Statistiche per il registro riunioni ─────────────────────────────────
     this.logId = null;          // id riga nel DB (vedi db.startRoomLog)
     this.peakPeers = 0;
@@ -102,9 +116,21 @@ class Room {
   }
 
   // ─── Lobby ──────────────────────────────────────────────────────────────────
-  addToLobby(socketId, displayName, reason = 'nohost') {
-    this.lobby.set(socketId, { displayName, reason, since: Date.now() });
+  // extra: { tabId, ticketOk } — dati interni, mai inviati agli organizzatori
+  addToLobby(socketId, displayName, reason = 'nohost', extra = {}) {
+    this.lobby.set(socketId, { displayName, reason, since: Date.now(), tabId: extra.tabId || null, ticketOk: !!extra.ticketOk });
   }
+
+  // ─── Biglietti ospiti (1.5.1) ───────────────────────────────────────────────
+  issueTicket(displayName) {
+    const t = require('crypto').randomBytes(18).toString('base64url');
+    this.tickets.set(t, displayName);
+    // tetto di sicurezza: i più vecchi escono per primi (Map = ordine di inserimento)
+    while (this.tickets.size > 500) this.tickets.delete(this.tickets.keys().next().value);
+    return t;
+  }
+  hasTicket(t) { return typeof t === 'string' && t.length > 0 && this.tickets.has(t); }
+  revokeTicket(t) { if (t) this.tickets.delete(t); }
   removeFromLobby(socketId) {
     this.lobby.delete(socketId);
   }
@@ -139,12 +165,12 @@ class Room {
       if (peer.isGuest) {
         peer.close();
         this.clearSurface(socketId);
-        moved.push({ socketId, displayName: peer.displayName });
+        moved.push({ socketId, displayName: peer.displayName, tabId: peer.tabId, ticketOk: !!peer.admitTicket });
       }
     }
     for (const m of moved) {
       this.peers.delete(m.socketId);
-      this.lobby.set(m.socketId, { displayName: m.displayName, reason: 'nohost', since: Date.now() });
+      this.lobby.set(m.socketId, { displayName: m.displayName, reason: 'nohost', since: Date.now(), tabId: m.tabId || null, ticketOk: m.ticketOk });
     }
     return moved;
   }
@@ -191,6 +217,47 @@ class Room {
       if (s) producers.push(s);
     }
     return { transports, producers };
+  }
+
+  // ⭐ 1.5.1 — rete di TUTTI i partecipanti vista dal server (per gli organizzatori:
+  // finestra "Rete e qualità" → sezione Partecipanti). Per ogni peer: livello
+  // 1-3, kbps in arrivo da lui / in uscita verso di lui, RTT e jitter del suo
+  // uplink, perdita pacchetti, percorso (diretto o TURN), browser e rete del
+  // dispositivo (quella che il suo browser ci ha comunicato). relay = l'IP con
+  // cui il server scambia i media non è quello del browser (coturn in mezzo).
+  async roomNetSnapshot() {
+    const out = [];
+    for (const [id, peer] of this.peers) {
+      const row = { peerId: id, name: peer.displayName, guest: !!peer.isGuest, level: peer._netQ?.level || null, score: null,
+        up: 0, down: 0, rtt: null, jit: null, loss: null, relay: null, proto: null, ua: peer.ua || null, net: peer.netInfo || null };
+      let lossN = 0, lossSum = 0;
+      for (const t of peer.transports.values()) {
+        if (t.closed) continue;
+        const s = await connlog.transportSnapshot(t);
+        if (!s) continue;
+        if (s.dir === 'send') { row.up += s.recvKbps || 0; if (s.lossRecv != null) { lossSum += Number(s.lossRecv) * 100; lossN++; } }
+        else if (s.dir === 'recv') { row.down += s.sendKbps || 0; }
+        else { row.up += s.recvKbps || 0; }
+        if (s.remote && row.relay == null) {
+          const ip = s.remote.replace(/:\d+$/, '');
+          // il server parla con un IP diverso da quello del browser → relay TURN
+          row.relay = !!(peer.ip && ip !== peer.ip); row.proto = s.proto || null;
+        }
+      }
+      for (const p of peer.producers.values()) {
+        if (p.closed) continue;
+        const s = await connlog.producerSnapshot(p);
+        if (!s) continue;
+        if (s.rtt != null) row.rtt = Math.max(row.rtt || 0, s.rtt);
+        if (s.jitterMs != null && p.kind === 'audio') row.jit = s.jitterMs;
+        if (s.fracLost != null) { lossSum += Number(s.fracLost) * 100; lossN++; }
+        if (typeof s.score === 'number') row.score = row.score == null ? s.score : Math.min(row.score, s.score);
+      }
+      if (lossN) row.loss = Math.round(lossSum / lossN * 10) / 10;
+      if (row.level == null && row.score != null) row.level = row.score >= 7 ? 3 : row.score >= 4 ? 2 : 1;
+      out.push(row);
+    }
+    return out;
   }
 
   removePeer(socketId) {

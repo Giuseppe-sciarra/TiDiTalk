@@ -74,7 +74,10 @@ cloud, your branding.
 - **Advanced noise reduction** (RNNoise neural network in WebAssembly, runs
   in the browser, no data leaves the computer) — switch in the microphone popup
 - **Network & quality** window: live bandwidth, latency and jitter graphs,
-  packet loss, per-stream stats, direct/TURN path
+  packet loss, per-stream stats, direct/TURN path; hosts also see a
+  **Participants** section with every participant's connection as the
+  server sees it (quality, bitrates, latency, jitter, loss, direct or TURN,
+  browser and device network)
 - **End-of-call page for guests**: branded two-column page with an animated
   constellation of the participants, stats, optional star rating, contact
   card and buttons — or a redirect to your own URL (Settings → End of call)
@@ -287,6 +290,12 @@ While drawing: `P` pen, `E` highlighter, `A` arrow, `R` rectangle, `O` circle,
 - **Invitations not delivered** — Settings → System shows the SMTP status and
   has a test button.
 - **Updates not happening** — `bash install-cron.sh --status`.
+- **Someone joins and can't hear** — open ⋮ → *Network & quality* as a host:
+  the Participants section shows their connection. On the server,
+  `docker logs tdt-app 2>&1 | grep CONN` also logs what their browser did with
+  the audio (`audio ev=play-blocked` = the browser blocked playback until a
+  tap, `no-data` = the stream carries no data, `consume-error`, `sink-error`),
+  plus `rejoin` lines when someone comes back after a network drop.
 - **Browser console diagnostics** (hosts):
   `tdConnLog('Name')` disconnections and microphone events of a participant,
   `tdMicInfo()` real state of your microphone,

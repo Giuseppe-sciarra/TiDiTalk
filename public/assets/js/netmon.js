@@ -84,7 +84,9 @@
         const key = 'p:' + p.id; const pb = sample._b.get(key); let bytes = 0;
         stats.forEach(r => { if (r.type === 'outbound-rtp') { bytes += r.bytesSent || 0; if (r.active !== false && (r.bytesSent || 0) > 0) layers++; if (r.frameWidth) { res = `${r.frameWidth}×${r.frameHeight}`; fps = r.framesPerSecond; } } });
         if (pb) kb = Math.max(0, Math.round((bytes - pb.bytes) * 8 / Math.max(0.2, (now - pb.t) / 1000) / 1000)); sample._b.set(key, { bytes, t: now }); seen.add(key);
-        out.rows.push({ dir: '↑', label: kind === 'video' ? 'Video' : kind === 'screen' ? 'Schermo' : kind === 'screen-audio' ? 'Audio schermo' : 'Audio', kb, res, fps, extra: kind === 'video' && layers ? `${layers} layer` : '' });
+        // etichetta "Tu" come per gli altri (prima c'era solo "Audio"/"Video" e
+        // non si capiva che fossero i flussi personali)
+        out.rows.push({ dir: '↑', label: 'Tu', sub: kind === 'video' ? 'video' : kind === 'screen' ? 'schermo' : kind === 'screen-audio' ? 'audio schermo' : 'audio', kb, res, fps, extra: kind === 'video' && layers ? `${layers} layer` : '' });
       }
       for (const [, c] of src.consumers || []) {
         if (!c || c.closed) continue;
@@ -184,8 +186,10 @@
         <canvas class="netmon-chart" id="nmChartBw" height="120"></canvas>
         <div class="netmon-sec"><span>Latenza e jitter</span><span class="nm-legend"><i style="--c:var(--warn)"></i>Latenza <i style="--c:var(--paper-2)"></i>Jitter</span></div>
         <canvas class="netmon-chart" id="nmChartLat" height="100"></canvas>
-        <div class="netmon-sec"><span>Flussi</span></div>
+        <div class="netmon-sec"><span>Flussi</span><span class="nm-legend">↑ invio · ↓ ricezione</span></div>
         <div class="netmon-rows" id="nmRows"></div>
+        <div class="netmon-sec nm-host-only hidden" id="nmPeersSec"><span>Partecipanti</span><span class="nm-legend">come li vede il server</span></div>
+        <div class="netmon-rows nm-host-only hidden" id="nmPeers"></div>
         <div class="netmon-foot" id="nmFoot"></div>
       </div>`;
     document.body.appendChild(modal);
@@ -217,6 +221,47 @@
     q('#nmFoot').innerHTML = parts.map(p => `<div>${p}</div>`).join('');
   }
 
+  // ── Partecipanti (solo organizzatori): rete di ognuno vista dal server ──
+  // Prima la finestra mostrava solo la PROPRIA connessione; per capire chi
+  // "entra e non sente" serve vedere anche la loro. Chiesto al server ogni 2 s
+  // finché la finestra è aperta.
+  let peersTimer = null, peersBusy = false;
+  function renderPeers(res) {
+    if (!modal) return;
+    const sec = modal.querySelector('#nmPeersSec'), box = modal.querySelector('#nmPeers');
+    if (!res || res.error) { sec.classList.add('hidden'); box.classList.add('hidden'); return; }
+    sec.classList.remove('hidden'); box.classList.remove('hidden');
+    const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
+    const list = (res.peers || []).filter(p => p.peerId !== res.self);
+    if (!list.length) { box.innerHTML = `<div class="nm-row nm-empty">${esc(T('Nessun altro partecipante'))}</div>`; return; }
+    box.innerHTML = list.map(p => {
+      const lvl = p.level || 3;
+      const path = p.relay == null ? '' : p.relay ? T('tramite TURN') : T('diretto');
+      const dev = p.ua ? `${p.ua.browser}${p.ua.mobile ? ' · ' + T('mobile') : ''}` : '';
+      const net = p.net && (p.net.type || p.net.down) ? `${p.net.type || ''}${p.net.down ? ` ~${p.net.down} Mbps` : ''}${p.net.save ? ' · ' + T('risparmio dati') : ''}` : '';
+      const kv = [];
+      kv.push(`↑ ${p.up} kbps`, `↓ ${p.down} kbps`);
+      if (p.rtt != null) kv.push(`${T('latenza')} ${p.rtt} ms`);
+      if (p.jit != null) kv.push(`jitter ${p.jit} ms`);
+      if (p.loss != null) kv.push(`${T('persi')} ${p.loss}%`);
+      if (path) kv.push(path + (p.proto ? ` · ${p.proto}` : ''));
+      return `<div class="nm-peer" data-level="${lvl}">
+        <div class="nm-peer-head"><span class="netmon-badge nm-mini" data-level="${lvl}"><i></i><i></i><i></i></span><span class="nm-lbl">${esc(p.name)}${p.guest ? ` <span>· ${esc(T('ospite'))}</span>` : ''}</span><span class="nm-res">${esc(dev)}${net ? ` · ${esc(net)}` : ''}</span></div>
+        <div class="nm-peer-kv">${kv.map(x => `<span>${esc(x)}</span>`).join('')}</div>
+      </div>`;
+    }).join('');
+  }
+  async function pollPeers() {
+    if (!isOpen() || !window.__isHostRole || !window._tdSocket?.connected || peersBusy) return;
+    peersBusy = true;
+    try {
+      const res = await new Promise(r => { let done = false; window._tdSocket.emit('roomNetStats', {}, (x) => { if (!done) { done = true; r(x); } }); setTimeout(() => { if (!done) { done = true; r(null); } }, 2500); });
+      if (isOpen()) renderPeers(res);
+    } catch (_) { } finally { peersBusy = false; }
+  }
+  function startPeers() { if (!window.__isHostRole) return; stopPeers(); pollPeers(); peersTimer = setInterval(pollPeers, 2000); }
+  function stopPeers() { if (peersTimer) { clearInterval(peersTimer); peersTimer = null; } }
+
   let lastSample = null, busy = false;
   async function tick() {
     if (busy) return;                       // getStats su molti flussi può durare più di 1 s
@@ -239,9 +284,11 @@
     requestAnimationFrame(() => modal.classList.add('visible'));
     start();
     if (lastSample) render(lastSample); else tick();
+    startPeers();
   }
   function close() {
     if (!modal) return;
+    stopPeers();
     modal.classList.remove('visible');
     setTimeout(() => modal.classList.add('hidden'), 180);
   }

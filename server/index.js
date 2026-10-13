@@ -862,7 +862,13 @@ function makeRateLimiter(capacity, refillPerSec) {
 // Pattern: promise pendente condivisa — il secondo chiamante attende la stessa.
 const _pendingRooms = new Map();
 // Chiude la stanza e registra la fine nel registro riunioni
+// ⭐ 1.5.1 — i biglietti degli ospiti sopravvivono 90 s alla chiusura della
+// stanza: quando l'organizzatore esce e l'ultimo ospite ricarica la pagina, per
+// un attimo la stanza è vuota e viene distrutta; senza questo l'ospite al
+// rientro avrebbe perso il biglietto e sarebbe ripassato dalla sala d'attesa.
+const _ticketGrace = new Map(); // roomId → { tickets, ts }
 function _destroyRoom(room) {
+  if (room.tickets && room.tickets.size) _ticketGrace.set(room.id, { tickets: room.tickets, ts: Date.now() });
   try { db.endRoomLog(room.logId, room.peakPeers, room.seenNames); } catch (_) { }
   try { room.close(); } catch (_) { }
   rooms.delete(room.id);
@@ -888,6 +894,9 @@ async function _createRoom(roomId) {
   // possono cambiarle al volo dal pannello Impostazioni della chiamata
   const pol = _roomPolicy();
   room.rules = { waitingRoom: pol.waitingRoom, locked: false, guestScreenShare: pol.guestScreenShare, annotateAll: pol.annotateAll };
+  const g = _ticketGrace.get(roomId); _ticketGrace.delete(roomId);
+  if (g && Date.now() - g.ts < 90000) room.tickets = g.tickets;
+  for (const [k, v] of _ticketGrace) if (Date.now() - v.ts > 90000) _ticketGrace.delete(k);
   room.onBroadcast = (event, data) => io.to(roomId).emit(event, data);
   room.onEmitTo = (socketId, event, data) => io.to(socketId).emit(event, data);
   rooms.set(roomId, room);
@@ -932,6 +941,7 @@ io.on('connection', (socket) => {
   // Capacità = burst breve, refillPerSec = sostenibile.
   const _rl = {
     diag: makeRateLimiter(10, 1),    // diagnostica connessione (net/ice/visibility): 10 burst, 1/s
+    mdiag: makeRateLimiter(30, 2),   // diagnostica audio lato client (1.5.1): una riga per partecipante al join
     chat: makeRateLimiter(10, 2),    // chat: max 10 burst, 2 msg/s sostenuti
     wb: makeRateLimiter(80, 40),   // annotazioni: burst 80, 40 msg/s (disegno fluido)
     ptr: makeRateLimiter(40, 30),  // puntatore laser: 30 pos/s
@@ -949,9 +959,12 @@ io.on('connection', (socket) => {
 
   // ── Diagnostica connessione inviata dal client (vedi connlog.js) ──────────
   const _diagPeer = () => currentPeer?.displayName || socket.id;
+  let _lastNet = null; // ultima rete del dispositivo comunicata dal browser (per la vista organizzatore)
   socket.on('clientNetInfo', (d) => {
     if (!_checkRl('diag', 'clientNetInfo') || !currentRoom || !d || typeof d !== 'object') return;
     const c = d.conn || {};
+    _lastNet = { type: _safeStr(String(c.effectiveType || c.type || ''), 10) || null, down: Number.isFinite(c.downlink) ? c.downlink : null, rtt: Number.isFinite(c.rtt) ? c.rtt : null, save: !!c.saveData };
+    if (currentPeer) currentPeer.netInfo = _lastNet;
     connlog.log(currentRoom.id, _diagPeer(), 'net', {
       why: String(d.why || '').slice(0, 20), online: d.online,
       type: c.type, eff: c.effectiveType, downMbps: c.downlink, rttMs: c.rtt, saveData: c.saveData,
@@ -961,15 +974,75 @@ io.on('connection', (socket) => {
     if (!_checkRl('diag', 'clientIceState') || !currentRoom || !d || typeof d !== 'object') return;
     connlog.log(currentRoom.id, _diagPeer(), 'client-ice', { transport: String(d.label || '').slice(0, 20), state: String(d.state || '').slice(0, 20) });
   });
+  // ⭐ 1.5.1 — audio visto dal browser di chi ascolta. Prima queste cose stavano
+  // solo nella console dell'ospite (tdJoinReport) e dal server non si capiva
+  // perché uno "entra e non sente": ora finiscono nei log [CONN] come 'audio'.
+  //   join          riepilogo a ingresso completato (n stream ricevuti, audio)
+  //   play-ok       audio di <from> partito (retries = tentativi serviti)
+  //   play-blocked  il browser blocca la riproduzione: serve un tocco (banner)
+  //   unblocked     l'utente ha toccato e l'audio è partito
+  //   unblock-failed tocco ricevuto ma qualche audio resta fermo
+  //   no-data       stream audio di <from> creato ma senza dati dopo 8 s
+  //   consume-error ricezione dello stream di <from> fallita
+  //   sink-error    altoparlante scelto non utilizzabile (setSinkId)
+  const _MEDIA_DIAG = new Set(['join', 'play-ok', 'play-blocked', 'unblocked', 'unblock-failed', 'no-data', 'consume-error', 'sink-error']);
+  socket.on('clientMedia', (d) => {
+    if (!_isPlainObject(d) || !_MEDIA_DIAG.has(d.ev) || !currentRoom || !_checkRl('mdiag', 'clientMedia')) return;
+    const num = (v) => (Number.isFinite(v) ? Math.max(0, Math.min(9999, Math.round(v))) : undefined);
+    connlog.log(currentRoom.id, _diagPeer(), 'audio', {
+      ev: d.ev,
+      from: _safeStr(d.from, 50) || undefined,
+      kind: d.kind === 'video' || d.kind === 'audio' ? d.kind : undefined,
+      err: _safeStr(d.err, 80) || undefined,
+      n: num(d.n), audio: num(d.audio), retries: num(d.retries), ms: num(d.ms),
+    });
+  });
+  // ⭐ 1.5.1 — rete di tutti i partecipanti (solo organizzatori), per la
+  // finestra "Rete e qualità": il client la chiede ogni 2 s finché è aperta.
+  socket.on('roomNetStats', async (_d, callback) => {
+    if (typeof callback !== 'function') return;
+    if (!_inRoom() || currentPeer.isGuest) return callback({ error: 'Solo gli organizzatori' });
+    if (!_checkRl('diag', 'roomNetStats')) return callback({ error: 'Troppe richieste' });
+    try {
+      const peers = await Promise.race([currentRoom.roomNetSnapshot(), new Promise(r => setTimeout(() => r(null), 1500))]);
+      callback({ peers: peers || [], self: socket.id });
+    } catch (e) { callback({ error: e.message }); }
+  });
   socket.on('clientVisibility', (d) => {
     if (!_checkRl('diag', 'clientVisibility') || !currentRoom || !d || typeof d !== 'object') return;
     connlog.log(currentRoom.id, _diagPeer(), 'visibility', { state: String(d.state || '').slice(0, 10), note: d.state === 'hidden' ? 'app in background / schermo bloccato' : undefined });
   });
 
-  socket.on('joinRoom', async ({ roomId, displayName, token, guestToken, audioMuted, videoOff } = {}, callback) => {
+  // ⭐ 1.5.1 — stessa scheda del browser rientrata (ricarica dopo una caduta di
+  // rete): la connessione vecchia è morta ma il server se ne accorge solo al
+  // ping timeout (fino a ~45 s) → nel frattempo doppione in griglia o in sala
+  // d'attesa. La chiudiamo subito. Va chiamata DOPO aver registrato il socket
+  // nuovo (peer o lobby): così la stanza non risulta mai vuota e non viene
+  // distrutta dal disconnect del vecchio. Il tabId non esce mai dal server.
+  const _dropStaleTab = (room, tabId, isGuest, username) => {
+    if (!tabId) return 0;
+    const stale = [];
+    for (const [id, e] of room.lobby) if (id !== socket.id && isGuest && e.tabId === tabId) stale.push(id);
+    for (const [id, p] of room.peers) {
+      if (id === socket.id || p.tabId !== tabId || p.isGuest !== isGuest) continue;
+      if (!isGuest && p.username !== username) continue;
+      stale.push(id);
+    }
+    for (const id of stale) {
+      // se quella scheda è ancora viva (es. scheda duplicata) le diciamo perché
+      // viene chiusa, invece di lasciarla su "Connessione persa, riprovo…"
+      io.to(id).emit('sessionReplaced');
+      io.in(id).disconnectSockets(true);
+    }
+    return stale.length;
+  };
+
+  socket.on('joinRoom', async ({ roomId, displayName, token, guestToken, audioMuted, videoOff, admitTicket, tabId } = {}, callback) => {
     if (typeof callback !== 'function') callback = () => { };
     try {
       if (!roomId || !displayName) throw new Error('roomId e displayName obbligatori');
+      tabId = /^[A-Za-z0-9_-]{8,64}$/.test(String(tabId || '')) ? String(tabId) : null;
+      admitTicket = /^[A-Za-z0-9_-]{16,64}$/.test(String(admitTicket || '')) ? String(admitTicket) : null;
 
       // Limiti lunghezza input (anti-flood)
       roomId = String(roomId).slice(0, 64);
@@ -1010,9 +1083,15 @@ io.on('connection', (socket) => {
       // Strict: il guest non può entrare nemmeno come peer finché non c'è
       // almeno un utente loggato (host) in stanza. Niente transport, niente
       // producer, niente consumer. Il client mostrerà l'overlay di attesa.
+      // ⭐ 1.5.1 — ospite già fatto entrare in questa riunione (ricarica, caduta
+      // di rete, organizzatore uscito e rientrato): non ripassa dalla sala
+      // d'attesa e rientra anche se nel frattempo la stanza è stata bloccata.
+      const ticketOk = isGuest && room.hasTicket(admitTicket);
+
       if (isGuest && !room.hasHost()) {
-        room.addToLobby(socket.id, displayName, 'nohost');
+        room.addToLobby(socket.id, displayName, 'nohost', { tabId, ticketOk });
         currentRoom = room;
+        _dropStaleTab(room, tabId, true, '');
         // currentPeer resta null finché non viene effettivamente ammesso
         // ⭐ FIX R11: NIENTE socket.join qui. Prima il guest in lobby era nella
         // room socket.io e riceveva chat, reazioni, disegni e activeSpeaker della
@@ -1027,16 +1106,17 @@ io.on('connection', (socket) => {
       }
 
       // ── STANZA BLOCCATA: nessun ospite nuovo entra (chi era già ammesso sì)
-      if (isGuest && room.rules.locked && !room.admitted.has(socket.id)) {
+      if (isGuest && room.rules.locked && !room.admitted.has(socket.id) && !ticketOk) {
         if (room.isFullyEmpty()) _destroyRoom(room);
         return callback({ error: 'ROOM_LOCKED', message: 'La stanza è bloccata dall\'organizzatore' });
       }
 
       // ── SALA D'ATTESA: l'ospite aspetta che un organizzatore lo ammetta ────
       // Come Google Meet. Gli utenti registrati entrano sempre direttamente.
-      if (isGuest && room.rules.waitingRoom && !room.admitted.has(socket.id)) {
-        room.addToLobby(socket.id, displayName, 'admit');
+      if (isGuest && room.rules.waitingRoom && !room.admitted.has(socket.id) && !ticketOk) {
+        room.addToLobby(socket.id, displayName, 'admit', { tabId });
         currentRoom = room;
+        _dropStaleTab(room, tabId, true, '');
         _lobbyNotifyHosts(room);
         console.log(`[Meet lobby] ${displayName} → sala d'attesa ${roomId}`);
         return callback({ waitingForHost: true, waitingForAdmit: true, roomId, peerId: socket.id, isGuest: true });
@@ -1058,8 +1138,13 @@ io.on('connection', (socket) => {
       peer.videoOff = _safeBool(videoOff);
       currentRoom = room; currentPeer = peer;
       peer.username = username;
+      peer.tabId = tabId;
+      // biglietto: chi l'aveva lo tiene, gli altri ospiti lo ricevono ora
+      if (isGuest) peer.admitTicket = ticketOk ? admitTicket : room.issueTicket(displayName);
       socket.join(roomId);
       socket.to(roomId).emit('peerJoined', peer.toJSON());
+      const _replaced = _dropStaleTab(room, tabId, isGuest, username);
+      if (_replaced || ticketOk) connlog.log(roomId, displayName, 'rejoin', { replacedOld: _replaced || undefined, ticket: ticketOk || undefined });
       if (!isGuest) {
         if (!room.seenUsers.size) db.setRoomLogHost(room.logId, username, displayName);
         if (!room.seenUsers.has(username)) { room.seenUsers.add(username); db.addRoomLogUser(room.logId, username); }
@@ -1067,14 +1152,17 @@ io.on('connection', (socket) => {
       db.touchRoomLog(room.logId, room.peakPeers, room.seenNames);
       console.log(`[Meet room] ${displayName}${isGuest ? ' (guest)' : ''} → ${roomId}`);
       peer.joinedAt = Date.now();
-      connlog.log(roomId, displayName, 'join', { guest: isGuest, ip: connlog.clientIp(socket), ...connlog.summarizeUA(socket.handshake.headers['user-agent']) });
+      peer.ip = connlog.clientIp(socket);
+      peer.ua = connlog.summarizeUA(socket.handshake.headers['user-agent']);
+      if (_lastNet) peer.netInfo = _lastNet;
+      connlog.log(roomId, displayName, 'join', { guest: isGuest, ip: peer.ip, ...peer.ua });
 
       // ── Se è entrato un HOST e ci sono guest in lobby → li sblocca ─────────
       if (!isGuest && room.lobby.size > 0) {
         let freed = 0;
         for (const [lobbySocketId, e] of room.lobby) {
           if (e.reason !== 'nohost') continue;
-          if (room.rules.waitingRoom && !room.admitted.has(lobbySocketId)) {
+          if (room.rules.waitingRoom && !room.admitted.has(lobbySocketId) && !e.ticketOk) {
             // c'è la sala d'attesa: ora tocca all'organizzatore ammetterlo
             e.reason = 'admit'; e.since = Date.now();
             io.to(lobbySocketId).emit('lobbyWaitAdmit', { roomId });
@@ -1098,6 +1186,7 @@ io.on('connection', (socket) => {
         rules: room.rules,
         lobby: isGuest ? [] : room.lobbyWaiting(),
         isHostRole: !isGuest,
+        admitTicket: isGuest ? peer.admitTicket : undefined,
       });
     } catch (err) { callback({ error: err.message }); }
   });
@@ -1174,6 +1263,8 @@ io.on('connection', (socket) => {
     const target = currentRoom.peers.get(id);
     if (!target) return callback({ error: 'Partecipante non trovato' });
     if (!target.isGuest) return callback({ error: 'Non puoi rimuovere un altro organizzatore' });
+    // chi viene rimosso perde il biglietto: se ricarica, ripassa dalla sala d'attesa
+    currentRoom.revokeTicket(target.admitTicket);
     io.to(id).emit('kicked', { by: currentPeer.displayName });
     setTimeout(() => io.in(id).disconnectSockets(true), 400);
     callback({ ok: true });

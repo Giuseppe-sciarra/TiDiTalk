@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.5.1
+
+### Added
+- **Network & quality → Participants** (hosts): every participant's
+  connection as the server sees it — quality level, bitrate in and out,
+  latency, jitter, packet loss, direct or TURN path, browser and device
+  network. Own streams in the Streams list are now labelled "You"
+- **Audio diagnostics in the server log**: what the listener's browser did
+  with the audio now reaches `docker logs tdt-app | grep CONN` as
+  `audio ev=…` lines (`join` summary, `play-ok`, `play-blocked`, `unblocked`,
+  `unblock-failed`, `no-data` after 8 s without packets, `consume-error`,
+  `sink-error`), plus `rejoin` lines when someone comes back after a drop.
+  New socket events `clientMedia` (client → server) and `roomNetStats`
+  (hosts)
+
+### Changed
+- **Admission survives network drops**: a guest admitted from the waiting
+  room gets a ticket that lasts for the whole meeting. After a reload or a
+  network drop they come straight back in — no second admission, even if the
+  room was locked in the meantime. Removing a guest revokes the ticket. The
+  ticket also survives 90 s after the room empties (host leaving and the
+  last guest reloading at the same time)
+- **Automatic rejoin after a drop**: after "Connection lost… reconnected" the
+  page reloads straight into the meeting with the same name, microphone,
+  camera and devices — no pre-join screen (guests and hosts alike). Same
+  when the host leaves and guests go back to waiting
+- When the same browser tab comes back (reload after a drop) the old,
+  dead connection is closed at once instead of lingering as a duplicate
+  tile or waiting-room entry until the ping timeout; a duplicated tab is
+  told "Meeting opened elsewhere"
+- "Server namespace disconnect" is now explained in the CONN log
+
+### Fixed
+- **"Browser blocked the audio" banner**: it used to close by itself after
+  60 s saying "Audio enabled" even when the browser still blocked playback,
+  so whoever had not tapped in time stayed deaf without knowing. It now
+  stays until the audio really plays, any tap on the page unblocks it, and
+  "Audio enabled" appears only on success
+- **Read-aloud "explosion"**: the first syllables of a chat message read
+  aloud started with a burst (`cancel()` immediately followed by `speak()`);
+  the notification chimes could also pop when the audio context was
+  suspended (first interaction, tab back in foreground)
+
 ## 1.5.0
 
 ### Added

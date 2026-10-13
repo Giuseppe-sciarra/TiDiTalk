@@ -10,6 +10,9 @@
    ICE client-side, info rete del client (4g/wifi, rtt, downlink), visibilità
    pagina (schermo bloccato / app in background su mobile), online/offline,
    snapshot stats (packet loss, jitter, bitrate) alla disconnessione.
+   Dalla 1.5.1 anche l'audio visto dal browser di chi ascolta (evento 'audio':
+   riproduzione partita/bloccata dal browser, sblocco col tocco, flusso audio
+   senza dati, errori di ricezione) e i rientri dopo una caduta ('rejoin').
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const MAX_EVENTS = 600;
@@ -21,7 +24,7 @@ const DISCONNECT_REASONS = {
   'transport close':             'connessione chiusa dal client: tab chiusa, app in background/schermo bloccato (iOS), cambio rete',
   'transport error':             'errore di trasporto: proxy/rete ha troncato il websocket',
   'client namespace disconnect': 'disconnessione ESPLICITA del client (ha premuto esci / reload)',
-  'server namespace disconnect': 'disconnessione forzata dal server',
+  'server namespace disconnect': 'disconnessione forzata dal server (rimosso, non ammesso, o sostituito dalla stessa scheda rientrata dopo una caduta)',
   'forced close':                'chiusura forzata',
   'parse error':                 'pacchetto malformato',
 };
@@ -71,7 +74,7 @@ function fmtDetails(d) {
  * Registra un evento di connessione.
  * @param {string} roomId
  * @param {string} peer   display name (o socket id se non ancora peer)
- * @param {string} event  join | leave | ice | dtls | tuple | client-ice | net | visibility | stats | lobby
+ * @param {string} event  join | leave | rejoin | ice | dtls | tuple | client-ice | net | visibility | stats | lobby | audio
  * @param {object} details
  */
 function log(roomId, peer, event, details = {}) {

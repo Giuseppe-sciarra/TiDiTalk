@@ -16,6 +16,59 @@ window.tdJoinReport = function () {
   return window._tdJoinTrace;
 };
 
+// ─── 1.5.1: diagnostica audio verso il server (log [CONN] evento 'audio') ────
+// Cosa succede all'audio nel browser di chi ascolta: prima si vedeva solo nella
+// sua console, ora finisce anche in `docker logs tdt-app | grep CONN`.
+function _mediaDiag(ev, data) {
+  try { if (socket?.connected) socket.emit('clientMedia', { ev, ...(data || {}) }); } catch (_) { }
+}
+
+// ─── 1.5.1: id della scheda + biglietto dell'ospite ──────────────────────────
+// tdt_tab resta uguale finché la scheda è aperta (anche se la pagina si
+// ricarica): il server lo usa per chiudere subito la connessione vecchia della
+// stessa scheda dopo una caduta di rete, invece di lasciare un doppione.
+// Il biglietto (tdt_admit_<stanza>) lo dà il server all'ospite già entrato:
+// ricaricando o dopo una caduta rientra senza ripassare dalla sala d'attesa.
+function _tabId() {
+  try {
+    let t = sessionStorage.getItem('tdt_tab');
+    if (!t || !/^[A-Za-z0-9_-]{8,64}$/.test(t)) {
+      const rnd = (window.crypto && typeof crypto.randomUUID === 'function')
+        ? crypto.randomUUID()
+        : (Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+      t = rnd.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+      sessionStorage.setItem('tdt_tab', t);
+    }
+    return t;
+  } catch (_) { return null; }
+}
+const _ticketKey = () => 'tdt_admit_' + ROOM_ID;
+
+// ─── 1.5.1: rientro automatico dopo una ricarica "di servizio" ───────────────
+// (connessione caduta e tornata, organizzatore uscito). Prima di ricaricare si
+// salvano nome, microfono/videocamera e dispositivi: al giro dopo si rientra
+// senza rifare il prejoin (prima toccava rifarlo, e l'ospite ripassava anche
+// dalla sala d'attesa).
+function _saveRejoin(why) {
+  const dev = (t) => { try { return t && t.readyState === 'live' ? (t.getSettings().deviceId || '') : ''; } catch (_) { return ''; } };
+  try {
+    sessionStorage.setItem('tdt_rejoin', JSON.stringify({
+      roomId: ROOM_ID, ts: Date.now(), why,
+      name: DISPLAY_NAME,
+      mic: !micMuted, cam: !camOff,
+      audioId: dev(window._localMicTrack || localMicTrack) || window._tdmeetSelectedAudio || '',
+      videoId: dev(window._localCamTrack || localCamTrack) || window._tdmeetSelectedVideo || '',
+      speakerId: window._tdmeetSpeakerId || '',
+    }));
+  } catch (_) { }
+}
+function _takeRejoin() {
+  let rj = null;
+  try { rj = JSON.parse(sessionStorage.getItem('tdt_rejoin') || 'null'); sessionStorage.removeItem('tdt_rejoin'); } catch (_) { }
+  if (!rj || rj.roomId !== ROOM_ID || !rj.ts || Date.now() - rj.ts > 120000) return null;
+  return rj;
+}
+
 // ─── Parametri URL ────────────────────────────────────────────────────────────
 const params = new URLSearchParams(window.location.search);
 const ROOM_ID = window.location.pathname.split('/').pop();
@@ -128,7 +181,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     // Utenti registrati che arrivano dalla home con i dispositivi già
     // controllati: si entra direttamente, senza ripetere il prejoin.
     let pjResult = null;
-    if (!_guestToken) {
+    // Rientro dopo una caduta di rete / organizzatore uscito: niente prejoin
+    // (vale anche per gli ospiti; se i dispositivi non partono → prejoin normale)
+    const _rj = _takeRejoin();
+    if (_rj) {
+      setLoading('Rientro nella riunione…');
+      pjResult = await prejoin.quick(ROOM_ID, _rj.name || DISPLAY_NAME_DEFAULT, _rj);
+      _jlog('rejoin', { why: _rj.why, ok: !!pjResult });
+    }
+    if (!pjResult && !_guestToken) {
       let pref = null;
       try { pref = JSON.parse(sessionStorage.getItem('tdt_home_pref') || 'null'); } catch (_) { }
       if (pref && pref.checked && pref.roomId === ROOM_ID) {
@@ -940,18 +1001,23 @@ window._reinitSpeakingDetection = initSpeakingDetection;
 // ritenta il play() su tutti i media remoti. Su iOS Safari il play() ha bisogno di
 // un gesture; ascoltiamo pointerdown/touchstart/keydown/click (non solo click) perché
 // su mobile un tap non sempre genera un evento 'click' (pattern preso da MiroTalk).
+// ⭐ 1.5.1: i play() partono tutti SUBITO dentro il gesto (su iOS dopo un await
+// il gesto non vale più); se il banner "audio bloccato" è aperto, a tentativi
+// finiti si controlla se l'audio è ripartito davvero.
 function _tdUnblockMedia() {
   if (audioContext && audioContext.state === 'suspended') {
     audioContext.resume().catch(() => { });
   }
+  const tries = [];
   if (window._tdmeetPeerAudios) {
     for (const [, a] of window._tdmeetPeerAudios) {
-      if (a && a.srcObject && a.paused) a.play().catch(() => { });
+      if (a && a.srcObject && a.paused) { const p = a.play(); if (p) { p.catch(() => { }); tries.push(p); } }
     }
   }
   document.querySelectorAll('video').forEach(v => {
     if (v.srcObject && v.paused) v.play().catch(() => { });
   });
+  if (_audioUnblockShown) _afterUnblockTry(tries);
 }
 ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(ev =>
   document.addEventListener(ev, _tdUnblockMedia, { capture: true, passive: true })
@@ -1001,6 +1067,7 @@ async function initSocket() {
       // che è 10x più complicato del semplice reload).
       if (_wasDisconnected) {
         showToast?.('🔄 Riconnessione completata, ricarico la stanza…', 2000);
+        _saveRejoin('reconnect'); // ⭐ 1.5.1: si rientra senza prejoin né sala d'attesa
         setTimeout(() => location.reload(), 1500);
       }
     });
@@ -1096,6 +1163,7 @@ async function initSocket() {
         window.location.href = dest;
         return;
       }
+      _saveRejoin('host-left'); // ⭐ 1.5.1: dopo il reload si aspetta senza rifare il prejoin
       try { rawCamStream?.getTracks().forEach(t => t.stop()); } catch { }
       try { socket?.disconnect(); } catch { }
       // Notifica visiva prima del reload
@@ -1116,7 +1184,13 @@ async function initSocket() {
       if (prev.waitingRoom !== rules.waitingRoom && window.__isHostRole) showToast(rules.waitingRoom ? `🚪 Sala d'attesa attivata da ${by}` : `🚪 Sala d'attesa disattivata da ${by}`);
     });
     socket.on('admitDenied', () => showGuestStopScreen('Non sei stato ammesso', 'L\'organizzatore non ti ha fatto entrare in questa riunione.'));
-    socket.on('kicked', ({ by }) => showGuestStopScreen('Sei stato rimosso dalla riunione', (by || 'L\'organizzatore') + ' ti ha rimosso dalla riunione.'));
+    // ⭐ 1.5.1: la stessa scheda è rientrata da un'altra connessione (o la
+    // scheda è stata duplicata): questa viene chiusa dal server
+    socket.on('sessionReplaced', () => showGuestStopScreen('Riunione aperta altrove', 'Questa riunione è stata riaperta in un\'altra scheda o finestra: qui la chiudiamo.'));
+    socket.on('kicked', ({ by }) => {
+      try { sessionStorage.removeItem(_ticketKey()); } catch (_) { } // il server l'ha già revocato
+      showGuestStopScreen('Sei stato rimosso dalla riunione', (by || 'L\'organizzatore') + ' ti ha rimosso dalla riunione.');
+    });
     socket.on('forceMute', ({ by }) => {
       if (window._tdIsMicMuted?.()) return;
       try { window._tdSetMicMuted?.(true); } catch (_) { }
@@ -1246,8 +1320,12 @@ async function initSocket() {
 async function joinRoom(micMuted = false, camOff = false) {
   const authToken = localStorage.getItem('tdmeet_token');
   const guestToken = sessionStorage.getItem('tdmeet_guest_token');
-  const joinPayload = { roomId: ROOM_ID, displayName: DISPLAY_NAME, audioMuted: micMuted, videoOff: camOff };
-  if (guestToken) joinPayload.guestToken = guestToken;
+  const _t0 = Date.now();
+  const joinPayload = { roomId: ROOM_ID, displayName: DISPLAY_NAME, audioMuted: micMuted, videoOff: camOff, tabId: _tabId() };
+  if (guestToken) {
+    joinPayload.guestToken = guestToken;
+    try { const tk = sessionStorage.getItem(_ticketKey()); if (tk) joinPayload.admitTicket = tk; } catch (_) { }
+  }
   else joinPayload.token = authToken;
 
   const res = await socketEmit('joinRoom', joinPayload);
@@ -1263,6 +1341,8 @@ async function joinRoom(micMuted = false, camOff = false) {
   // ── LOBBY: server dice di aspettare l'host. Niente setup mediasoup. ──────
   // Il caller (init) mostra l'overlay e ascolta 'hostAvailable' per ritentare.
   if (res.waitingForHost) return res;
+  // ⭐ 1.5.1: biglietto dell'ospite entrato → dopo una caduta si rientra diretti
+  if (res.admitTicket) { try { sessionStorage.setItem(_ticketKey(), res.admitTicket); } catch (_) { } }
 
   _startConnDiag(); // ⭐ diagnostica rete + wake lock (idempotente)
 
@@ -1326,6 +1406,8 @@ async function joinRoom(micMuted = false, camOff = false) {
   }
   await _drainPendingConsumes();
   _jlog('joinComplete', { consumers: consumers.size, pendingDrained: true });
+  let _nAudio = 0; consumers.forEach((c) => { if (c.kind === 'audio') _nAudio++; });
+  _mediaDiag('join', { n: consumers.size, audio: _nAudio, ms: Date.now() - _t0 });
 }
 
 // ─── Transports ──────────────────────────────────────────────────────────────
@@ -1802,10 +1884,15 @@ async function consume(producerId, peerId, kind, appData) {
   if (_consumedProducers.has(producerId)) return;
   _consumedProducers.add(producerId);
 
+  const _fromName = () => (peers.get(peerId)?.displayName || '?') + (appData?.mediaType === 'screen-audio' || appData?.mediaType === 'screen' ? ' (schermo)' : '');
   const { params, error } = await socketEmit('consume', {
     producerId, producerPeerId: peerId, rtpCapabilities: device.rtpCapabilities,
   });
-  if (error) { _consumedProducers.delete(producerId); console.error('[consume]', error); return; }
+  if (error) {
+    _consumedProducers.delete(producerId); console.error('[consume]', error);
+    _mediaDiag('consume-error', { from: _fromName(), kind, err: String(error) });
+    return;
+  }
 
   let consumer;
   try {
@@ -1813,6 +1900,7 @@ async function consume(producerId, peerId, kind, appData) {
   } catch (e) {
     _consumedProducers.delete(producerId);
     console.error('[consume] recvTransport.consume fallito', e);
+    _mediaDiag('consume-error', { from: _fromName(), kind, err: e?.name || e?.message || 'consume' });
     return;
   }
   consumer.appData = { ...(consumer.appData || {}), producerId, producerPeerId: peerId, kind, mediaType: appData?.mediaType };
@@ -1875,7 +1963,7 @@ async function consume(producerId, peerId, kind, appData) {
     // ⭐ FIX Safari: applica speakerId se supportato (Chrome/Edge; Safari ignora)
     const spkId = window._tdmeetSpeakerId;
     if (spkId && typeof audio.setSinkId === 'function') {
-      audio.setSinkId(spkId).catch((e) => console.warn('[consume] setSinkId fallito', e?.name));
+      audio.setSinkId(spkId).catch((e) => { console.warn('[consume] setSinkId fallito', e?.name); _mediaDiag('sink-error', { from: _fromName(), err: e?.name }); });
     }
 
     // ⭐ FIX Safari "non sento": Safari spesso NON emette 'loadedmetadata' per i
@@ -1884,12 +1972,23 @@ async function consume(producerId, peerId, kind, appData) {
     // spiaggia ri-attacchiamo lo stream (pattern preso da Jitsi AudioTrack).
     let _played = false;
     let _retries = 0;
+    let _okSent = false;
+    const _playedOk = () => {
+      _played = true;
+      if (_okSent) return; _okSent = true;
+      _jlog('audio play OK', { peer: peerId, retries: _retries });
+      _mediaDiag('play-ok', { from: _fromName(), retries: _retries });
+      _checkAudioUnblocked();
+    };
+    // partito anche dopo (tocco dell'utente sul banner, retry): lo registriamo una volta
+    audio.addEventListener('playing', _playedOk);
     const tryPlay = () => {
       if (_played) return;
-      audio.play().then(() => { _played = true; _jlog('audio play OK', { peer: peerId, retries: _retries }); }).catch((err) => {
+      audio.play().then(_playedOk).catch((err) => {
         if (_retries === 0) {
           console.warn('[consume audio] play() bloccato — banner unblock', err?.name);
           _jlog('audio play BLOCKED', { peer: peerId, error: err?.name });
+          _mediaDiag('play-blocked', { from: _fromName(), err: err?.name });
           showAudioUnblockBanner();
         }
         if (_retries < 3) {
@@ -1910,6 +2009,24 @@ async function consume(producerId, peerId, kind, appData) {
       try { audio.srcObject = stream; audio.play().catch(() => { }); } catch { }
     });
     recorder?.refreshAudio();
+
+    // ⭐ 1.5.1: l'audio arriva davvero? Dopo 8 s lo stream di chi non è muto deve
+    // aver ricevuto dati. Se è a zero il problema è rete/ricezione, non il browser
+    // (che invece si vede da 'play-blocked'): finisce nei log del server.
+    const _consAt = Date.now();
+    setTimeout(async () => {
+      if (consumer.closed) return;
+      if (!isScreenAudio && peers.get(peerId)?.audioMuted) return;
+      try {
+        const rep = await consumer.getStats();
+        let bytes = 0;
+        rep.forEach((s) => { if (s.type === 'inbound-rtp') bytes += (s.bytesReceived || 0); });
+        if (bytes === 0) {
+          _jlog('audio NO DATA', { peer: peerId });
+          _mediaDiag('no-data', { from: _fromName(), ms: Date.now() - _consAt });
+        }
+      } catch (_) { }
+    }, 8000);
   }
 
   // NB: gli eventi 'producerpause'/'producerresume' NON esistono su mediasoup-client
@@ -3619,39 +3736,57 @@ window.tdDiag = async function () {
 // ════════════════════════════════════════════════════════════════════════════
 
 // ─── Banner "Audio bloccato dal browser" ─────────────────────────────────────
+// ⭐ 1.5.1: il banner resta finché l'audio non parte DAVVERO.
+// Prima si chiudeva da solo dopo 60 s mostrando "🔊 Audio attivato" anche se
+// il browser lo teneva ancora bloccato: chi non toccava in tempo restava senza
+// sentire e senza saperlo. Ora: si sblocca con un tocco qualsiasi sulla pagina
+// (listener globale _tdUnblockMedia) o sul banner, e il banner sparisce solo
+// quando nessun audio remoto è più fermo.
 let _audioUnblockShown = false;
+let _unblockCheckPending = false;
+let _unblockFailAt = 0;
+function _remoteAudiosPaused() {
+  let n = 0;
+  if (window._tdmeetPeerAudios) {
+    for (const [, a] of window._tdmeetPeerAudios) if (a && a.srcObject && a.isConnected && a.paused) n++;
+  }
+  return n;
+}
+function _hideAudioUnblockBanner() {
+  document.getElementById('audioUnblockBanner')?.classList.add('hidden');
+  _audioUnblockShown = false;
+}
+// chiamata quando un audio remoto parte (anche da solo): se era tutto bloccato e ora no, via il banner
+function _checkAudioUnblocked() {
+  if (!_audioUnblockShown || _remoteAudiosPaused() > 0) return;
+  _hideAudioUnblockBanner();
+  let playing = 0;
+  if (window._tdmeetPeerAudios) for (const [, a] of window._tdmeetPeerAudios) if (a && a.isConnected && !a.paused) playing++;
+  if (!playing) return; // chi era bloccato è uscito: niente da annunciare
+  showToast?.('🔊 Audio attivato', 2000);
+  _mediaDiag('unblocked', { n: playing });
+}
+function _afterUnblockTry(tries) {
+  if (_unblockCheckPending) return;
+  _unblockCheckPending = true;
+  Promise.allSettled(tries).then(() => {
+    _unblockCheckPending = false;
+    if (!_audioUnblockShown) return;
+    const still = _remoteAudiosPaused();
+    if (still === 0) { _checkAudioUnblocked(); return; }
+    console.warn('[unblock] audio ancora bloccato su', still, 'stream');
+    if (Date.now() - _unblockFailAt > 10000) { _unblockFailAt = Date.now(); _mediaDiag('unblock-failed', { n: still }); }
+  });
+}
 function showAudioUnblockBanner() {
   if (_audioUnblockShown) return;
   const banner = document.getElementById('audioUnblockBanner');
   if (!banner) return;
   _audioUnblockShown = true;
   banner.classList.remove('hidden');
-
-  const handler = async () => {
-    banner.classList.add('hidden');
-    _audioUnblockShown = false;
-    banner.removeEventListener('click', handler);
-    // Riprova play su tutti gli audio remoti + resume audioContext
-    if (audioContext && audioContext.state === 'suspended') {
-      try { await audioContext.resume(); } catch { }
-    }
-    if (window._tdmeetPeerAudios) {
-      for (const [, audio] of window._tdmeetPeerAudios) {
-        if (audio && audio.srcObject) {
-          try { await audio.play(); } catch (e) { console.warn('[unblock] play() ancora bloccato', e?.name); }
-        }
-      }
-    }
-    // Anche tutti i video con audio nel DOM
-    document.querySelectorAll('video, audio').forEach(el => {
-      if (el.srcObject && !el.muted) { el.play().catch(() => { }); }
-    });
-    showToast?.('🔊 Audio attivato', 2000);
-  };
-  banner.addEventListener('click', handler);
-
-  // Auto-dismiss dopo 60s se l'utente non clicca (per non lasciare il banner per sempre)
-  setTimeout(() => { if (_audioUnblockShown) handler(); }, 60000);
+  // il tocco sul banner è già preso dal listener globale (capture); questo è
+  // solo una sicurezza per i browser che non propagano l'evento
+  banner.onclick = () => _tdUnblockMedia();
 }
 
 // ─── Media health: avvisa l'utente quando il SUO audio/video non sta partendo ─

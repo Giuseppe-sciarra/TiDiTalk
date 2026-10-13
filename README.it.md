@@ -78,7 +78,10 @@ tuo marchio.
 - **Riduzione rumore avanzata** (rete neurale RNNoise in WebAssembly, gira nel
   browser, nessun dato esce dal computer) — interruttore nel popup del microfono
 - Finestra **Rete e qualità**: grafici live di banda, latenza e jitter,
-  pacchetti persi, statistiche per flusso, percorso diretto o TURN
+  pacchetti persi, statistiche per flusso, percorso diretto o TURN; gli
+  organizzatori vedono anche la sezione **Partecipanti** con la connessione
+  di ognuno come la vede il server (qualità, banda, latenza, jitter, perdita,
+  diretto o TURN, browser e rete del dispositivo)
 - **Pagina di fine chiamata per gli ospiti**: due colonne con il tuo brand,
   costellazione animata dei partecipanti, dati della chiamata, voto a stelle
   facoltativo, scheda contatto e bottoni — oppure reindirizzamento a un tuo URL
@@ -297,6 +300,12 @@ Mentre disegni: `P` penna, `E` evidenziatore, `A` freccia, `R` riquadro,
 - **Gli inviti non arrivano** — Impostazioni → Sistema mostra lo stato SMTP e ha
   il pulsante per l'email di prova.
 - **Gli aggiornamenti non partono** — `bash install-cron.sh --status`.
+- **Qualcuno entra e non sente** — da organizzatore apri ⋮ → *Rete e
+  qualità*: la sezione Partecipanti mostra la sua connessione. Sul server
+  `docker logs tdt-app 2>&1 | grep CONN` registra anche cosa ha fatto il suo
+  browser con l'audio (`audio ev=play-blocked` = riproduzione bloccata finché
+  non tocca lo schermo, `no-data` = flusso senza dati, `consume-error`,
+  `sink-error`) e le righe `rejoin` di chi rientra dopo una caduta.
 - **Diagnostica dalla console del browser** (organizzatori):
   `tdConnLog('Nome')` cadute ed eventi del microfono di un partecipante,
   `tdMicInfo()` stato reale del tuo microfono,
