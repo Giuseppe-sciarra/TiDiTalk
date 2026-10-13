@@ -34,11 +34,29 @@ window._tdmeetSetAgc = function (on) {
 };
 
 /**
+ * ⭐ 1.5.7 — Cancellazione dell'eco: accesa o spenta di base da Impostazioni →
+ * Riunioni (default accesa); il cambio dal menu del microfono vale solo per
+ * quella riunione (sessionStorage per stanza: resta se si ricarica o si rientra).
+ */
+const _aecKey = () => 'tdt_aec_' + ((location.pathname.match(/\/room\/([^/?#]+)/) || [])[1] || '');
+window._tdmeetAec = function () {
+  try {
+    const v = sessionStorage.getItem(_aecKey());
+    if (v === '1') return true;
+    if (v === '0') return false;
+  } catch (_) { }
+  return window.__BRAND?.rooms?.echoCancel !== false;
+};
+window._tdmeetSetAec = function (on) {
+  try { sessionStorage.setItem(_aecKey(), on ? '1' : '0'); } catch (_) { }
+};
+
+/**
  * Costruisce constraints audio robusti per il dispositivo corrente.
  * Esposto globalmente perché lo usano anche prejoin.js e room.js (fallback).
  */
 window._tdmeetBuildAudioConstraints = function(deviceId) {
-  const audioBase = { echoCancellation: true, noiseSuppression: true, autoGainControl: window._tdmeetAgc() };
+  const audioBase = { echoCancellation: window._tdmeetAec(), noiseSuppression: true, autoGainControl: window._tdmeetAgc() };
   if (!deviceId || deviceId === 'default' || deviceId === 'communications') return audioBase;
   if (_isIOSSafari) return audioBase;                                  // iOS: ignora deviceId
   if (_isMobileDevice) return { ...audioBase, deviceId: { ideal: deviceId } };
@@ -241,10 +259,18 @@ class DeviceSelector {
     }
     const agcOn = window._tdmeetAgc();
     const actual = window._localMicTrack?.getSettings?.()?.autoGainControl;
+    const aecOn = window._tdmeetAec();
+    const aecActual = window._localMicTrack?.getSettings?.()?.echoCancellation;
     box.innerHTML = `
       <div class="device-popup-sep">Livello</div>
       <div class="dp-row"><span class="dp-lbl">Microfono</span><div class="dp-meter"><i id="dpMicBar"></i></div></div>
       <div class="dp-hint" id="dpMicHint">Parla per vedere il livello</div>
+      <label class="dp-switch">
+        <input type="checkbox" id="dpAec" ${aecOn ? 'checked' : ''}>
+        <span class="dp-track"></span>
+        <span class="dp-switch-text">Cancellazione dell'eco</span>
+      </label>
+      <div class="dp-hint"><span>Spegnila solo se usi le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Vale per questa riunione.</span>${aecActual === undefined ? '' : ' <span>' + (aecActual ? 'Ora è attiva' : 'Ora è spenta') + '</span>'}</div>
       <label class="dp-switch">
         <input type="checkbox" id="dpAgc" ${agcOn ? 'checked' : ''}>
         <span class="dp-track"></span>
@@ -272,6 +298,9 @@ class DeviceSelector {
     const agc = box.querySelector('#dpAgc');
     agc.addEventListener('click', (e) => e.stopPropagation());
     agc.addEventListener('change', () => this.setAgc(agc.checked));
+    const aec = box.querySelector('#dpAec');
+    aec.addEventListener('click', (e) => e.stopPropagation());
+    aec.addEventListener('change', () => this.setAec(aec.checked));
     this._startMeters('mic');
   }
 
@@ -328,11 +357,21 @@ class DeviceSelector {
     document.dispatchEvent(new CustomEvent('tdt:devices'));
   }
 
+  // ── 1.5.7: cancellazione dell'eco, stessa strada del volume automatico ──
+  async setAec(on) {
+    window._tdmeetSetAec(on);
+    await this._reopenMic(on ? 'Cancellazione dell\'eco attivata' : 'Cancellazione dell\'eco spenta');
+  }
+
   // ── Volume automatico (AGC): riapre lo stesso microfono con la nuova impostazione ──
   async setAgc(on) {
     window._tdmeetSetAgc(on);
+    await this._reopenMic(on ? 'Volume automatico attivato' : 'Volume automatico spento');
+  }
+
+  async _reopenMic(msg) {
     const cur = window._localMicTrack?.getSettings?.()?.deviceId || 'default';
-    window.showToast?.(on ? 'Volume automatico attivato' : 'Volume automatico spento', 2500);
+    window.showToast?.(msg, 2500);
     // Da mutato gira il rilevatore "stai parlando ma sei muto", che tiene un
     // CLONE del microfono: Chrome riusa quella sorgente (con il vecchio AGC)
     // per il track nuovo e l'impostazione non cambierebbe. Lo si ferma prima
@@ -478,9 +517,13 @@ class DeviceSelector {
     popup.classList.remove('hidden');
 
     // Forza reflow per avere dimensioni reali del popup
+    // 1.5.7: altezza libera per misurarlo; sotto si limita allo spazio che c'è
+    // (con l'interruttore dell'eco su un telefono basso usciva dallo schermo)
+    popup.style.maxHeight = ''; popup.style.overflowY = '';
     popup.style.visibility = 'hidden';
     popup.style.display = 'block';
     const popupH = popup.offsetHeight;
+    const fitTo = (avail) => { if (popupH > avail) { popup.style.maxHeight = Math.max(160, Math.floor(avail)) + 'px'; popup.style.overflowY = 'auto'; } };
     popup.style.visibility = '';
     popup.style.display = '';
 
@@ -505,10 +548,12 @@ class DeviceSelector {
         // Sopra il pulsante
         popup.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
         popup.style.top    = 'auto';
+        fitTo(spaceAbove - 8);
       } else {
         // Sotto il pulsante (fallback)
         popup.style.top    = (rect.bottom + 8) + 'px';
         popup.style.bottom = 'auto';
+        fitTo(spaceBelow - 8);
       }
     } else {
       // Desktop: centrato sull'anchor, agganciato in basso a 90px dal footer
@@ -520,6 +565,7 @@ class DeviceSelector {
       popup.style.right  = 'auto';
       popup.style.bottom = '90px';
       popup.style.top    = 'auto';
+      fitTo(window.innerHeight - 90 - 8);
     }
   }
 
@@ -612,7 +658,7 @@ class DeviceSelector {
         console.warn('[devices] gUM con constraints preferiti fallito, fallback minimale:', errExact.message);
         // Fallback estremo: nessun deviceId, solo i constraints base
         const fallback = type === 'audioinput'
-          ? { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: window._tdmeetAgc() } }
+          ? { audio: { echoCancellation: window._tdmeetAec(), noiseSuppression: true, autoGainControl: window._tdmeetAgc() } }
           : { video: { width: { ideal: 1280 }, height: { ideal: 720 } } };
         stream = await navigator.mediaDevices.getUserMedia(fallback);
       }

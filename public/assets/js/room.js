@@ -1565,7 +1565,7 @@ async function createRecvTransport() {
 async function _getMicStream(deviceId) {
   const build = (id) => window._tdmeetBuildAudioConstraints
     ? window._tdmeetBuildAudioConstraints(id)
-    : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+    : { echoCancellation: window._tdmeetAec ? window._tdmeetAec() : true, noiseSuppression: true, autoGainControl: true };
   try {
     return await navigator.mediaDevices.getUserMedia({ audio: build(deviceId) });
   } catch (e) {

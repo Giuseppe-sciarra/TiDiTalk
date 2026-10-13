@@ -82,7 +82,9 @@ tuo marchio.
   il livello, fa un suono di prova e può ricollegare l'audio
 - **Push-to-talk**: da muto, tieni premuto Spazio per parlare
 - **Riduzione rumore avanzata** (rete neurale RNNoise in WebAssembly, gira nel
-  browser, nessun dato esce dal computer) — interruttore nel popup del microfono
+  browser, nessun dato esce dal computer) e **cancellazione dell'eco**: accese o
+  spente di base da Impostazioni → Riunioni, ognuno le cambia per sé dal popup
+  del microfono per quella riunione
 - Finestra **Rete e qualità**: grafici live di banda, latenza e jitter,
   pacchetti persi, statistiche per flusso, percorso diretto o TURN; gli
   organizzatori vedono anche la sezione **Partecipanti** con la connessione
@@ -112,7 +114,8 @@ tuo marchio.
 - Pannello brand: nome, sottotitolo, logo, favicon, colore accento (adattato da
   solo per restare leggibile in entrambi i temi), tema, footer, dati azienda
 - Utenti con ruolo **amministratore** e **organizzatore** — dal pannello o da `.env`
-- Regole delle stanze: sala d'attesa, condivisione schermo ospiti, permessi di disegno, guida
+- Regole delle stanze: sala d'attesa, condivisione schermo ospiti, permessi di disegno, guida,
+  cancellazione dell'eco e riduzione rumore di base
 - API REST esterna per creare riunioni e link ospite da un CRM
 - **Aggiornamenti automatici quotidiani** con email di riepilogo, rollback
   automatico e comandi pronti per tornare indietro
@@ -204,7 +207,7 @@ lettura nel pannello.
 | Cosa | Dove |
 |------|------|
 | Nome, logo, favicon, colore, tema, footer, dati azienda | Impostazioni → Brand |
-| Condivisione schermo ospiti, disegno per tutti, guida iniziale | Impostazioni → Riunioni |
+| Condivisione schermo ospiti, disegno per tutti, guida iniziale, cancellazione dell'eco e riduzione rumore di base | Impostazioni → Riunioni |
 | Utenti e password | Impostazioni → Utenti, oppure `USERS` in `.env` |
 | SMTP, TURN, IP, porte, chiavi, API key, aggiornamenti | `.env` |
 

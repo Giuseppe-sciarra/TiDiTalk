@@ -7,19 +7,24 @@
  *   microfono (track raw) → AudioWorklet RNNoise → track "pulito" → mediasoup
  *
  * Il track in uscita è STABILE: cambiando microfono basta setSource(nuovoTrack),
- * il producer continua a trasmettere lo stesso track. La preferenza è salvata
- * in localStorage (tdt_mic_rnn, default spento). Niente banda in più: il .wasm
+ * il producer continua a trasmettere lo stesso track. 1.5.7: acceso o spento di
+ * base da Impostazioni → Riunioni (default spento); il cambio fatto dal menu
+ * del microfono vale solo per quella riunione (sessionStorage per stanza,
+ * resta se si ricarica o si rientra). Niente banda in più: il .wasm
  * (~110 KB) si scarica una volta dal server e resta in cache.
  */
 (function () {
-  const KEY = 'tdt_mic_rnn';
+  const KEY = () => 'tdt_rnn_' + ((location.pathname.match(/\/room\/([^/?#]+)/) || [])[1] || '');
   let ctx = null, node = null, src = null, dest = null, ready = null;
   const api = {
     enabled: false,
     pending: false,   // 1.5.4: filtro pronto ma motore audio ancora fermo (si trasmette il mic normale)
     get outputTrack() { return dest?.stream.getAudioTracks()[0] || null; },
-    wanted() { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } },
-    setWanted(v) { try { localStorage.setItem(KEY, v ? '1' : '0'); } catch { } },
+    wanted() {
+      try { const v = sessionStorage.getItem(KEY()); if (v === '1') return true; if (v === '0') return false; } catch { }
+      return window.__BRAND?.rooms?.noiseFilter === true;
+    },
+    setWanted(v) { try { sessionStorage.setItem(KEY(), v ? '1' : '0'); } catch { } },
     supported() { return !!(window.AudioContext && window.AudioWorkletNode && window.WebAssembly); },
 
     /** Avvia (o riusa) la pipeline e collega il microfono. Ritorna il track pulito. */

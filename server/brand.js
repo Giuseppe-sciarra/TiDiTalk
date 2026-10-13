@@ -39,6 +39,10 @@ function getRoomPolicy(db) {
     annotateAll: r.annotateAll === true,             // default: disegna solo chi presenta + organizzatori
     tour: r.tour === true,                           // mini-guida al primo ingresso: spenta di default
     waitingRoom: r.waitingRoom !== false,            // sala d'attesa: gli ospiti entrano solo se un organizzatore li ammette (default: attiva)
+    // 1.5.7: audio di base per tutti i partecipanti; ognuno lo cambia per sé
+    // dal menu del microfono, solo per quella riunione
+    echoCancel: r.echoCancel !== false,              // cancellazione dell'eco del browser (default: accesa)
+    noiseFilter: r.noiseFilter === true,             // riduzione rumore avanzata RNNoise (default: spenta)
   };
 }
 
@@ -139,7 +143,8 @@ function saveCategory(db, category, data) {
       break;
     }
     case 'rooms':
-      out = { guestScreenShare: data.guestScreenShare !== false, annotateAll: data.annotateAll === true, tour: data.tour !== false, waitingRoom: data.waitingRoom !== false };
+      out = { guestScreenShare: data.guestScreenShare !== false, annotateAll: data.annotateAll === true, tour: data.tour !== false, waitingRoom: data.waitingRoom !== false,
+        echoCancel: data.echoCancel !== false, noiseFilter: data.noiseFilter === true };
       break;
     case 'bye': {
       const email = _str(data.contactEmail, 120);

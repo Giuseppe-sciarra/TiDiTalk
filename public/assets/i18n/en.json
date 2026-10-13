@@ -1792,5 +1792,13 @@
   "Chat": "Chat",
   "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Can't use the selected output: the sound plays on the system one",
   "Mostra altre ({0})": "Show more ({0})",
-  "Mostra meno": "Show less"
+  "Mostra meno": "Show less",
+  "Cancellazione dell'eco": "Echo cancellation",
+  "Toglie dal microfono la voce degli altri che esce dalle casse. Spenta va bene solo con le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.": "Removes from the microphone the others' voices coming out of the speakers. Turning it off is fine only with headphones: with speakers the others hear their own voice coming back. Everyone can change it for themselves from the microphone menu, for that meeting only.",
+  "Toglie tastiera, ventole e traffico con una rete neurale che gira nel browser. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.": "Removes keyboard, fans and traffic with a neural network running in the browser. Everyone can change it for themselves from the microphone menu, for that meeting only.",
+  "Spegnila solo se usi le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Vale per questa riunione.": "Turn it off only if you use headphones: with speakers the others hear their own voice coming back. Applies to this meeting.",
+  "Ora è attiva": "It's on now",
+  "Ora è spenta": "It's off now",
+  "Cancellazione dell'eco attivata": "Echo cancellation on",
+  "Cancellazione dell'eco spenta": "Echo cancellation off"
 }

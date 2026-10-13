@@ -1792,5 +1792,13 @@
   "Chat": "Chat",
   "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Impossible d’utiliser la sortie choisie : le son sort par celle du système",
   "Mostra altre ({0})": "Afficher plus ({0})",
-  "Mostra meno": "Afficher moins"
+  "Mostra meno": "Afficher moins",
+  "Cancellazione dell'eco": "Annulation de l’écho",
+  "Toglie dal microfono la voce degli altri che esce dalle casse. Spenta va bene solo con le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.": "Retire du micro la voix des autres qui sort des haut-parleurs. La désactiver ne convient qu’avec un casque : avec des haut-parleurs, les autres entendent leur propre voix revenir. Chacun peut la changer pour soi depuis le menu du micro, pour cette réunion seulement.",
+  "Toglie tastiera, ventole e traffico con una rete neurale che gira nel browser. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.": "Supprime clavier, ventilateurs et circulation grâce à un réseau neuronal qui tourne dans le navigateur. Chacun peut la changer pour soi depuis le menu du micro, pour cette réunion seulement.",
+  "Spegnila solo se usi le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Vale per questa riunione.": "Désactivez-la seulement avec un casque : avec des haut-parleurs, les autres entendent leur propre voix revenir. S’applique à cette réunion.",
+  "Ora è attiva": "Elle est activée",
+  "Ora è spenta": "Elle est désactivée",
+  "Cancellazione dell'eco attivata": "Annulation de l’écho activée",
+  "Cancellazione dell'eco spenta": "Annulation de l’écho désactivée"
 }

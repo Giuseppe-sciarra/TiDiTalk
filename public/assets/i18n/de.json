@@ -1792,5 +1792,13 @@
   "Chat": "Chat",
   "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Die gewählte Ausgabe kann nicht verwendet werden: Der Ton kommt aus der Systemausgabe",
   "Mostra altre ({0})": "Mehr anzeigen ({0})",
-  "Mostra meno": "Weniger anzeigen"
+  "Mostra meno": "Weniger anzeigen",
+  "Cancellazione dell'eco": "Echounterdrückung",
+  "Toglie dal microfono la voce degli altri che esce dalle casse. Spenta va bene solo con le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.": "Entfernt aus dem Mikrofon die Stimmen der anderen, die aus den Lautsprechern kommen. Ausschalten nur mit Kopfhörern: mit Lautsprechern hören die anderen ihre eigene Stimme zurück. Jeder kann sie für sich im Mikrofonmenü ändern, nur für diese Besprechung.",
+  "Toglie tastiera, ventole e traffico con una rete neurale che gira nel browser. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.": "Entfernt Tastatur, Lüfter und Verkehr mit einem neuronalen Netz, das im Browser läuft. Jeder kann sie für sich im Mikrofonmenü ändern, nur für diese Besprechung.",
+  "Spegnila solo se usi le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Vale per questa riunione.": "Nur mit Kopfhörern ausschalten: mit Lautsprechern hören die anderen ihre eigene Stimme zurück. Gilt für diese Besprechung.",
+  "Ora è attiva": "Sie ist jetzt an",
+  "Ora è spenta": "Sie ist jetzt aus",
+  "Cancellazione dell'eco attivata": "Echounterdrückung an",
+  "Cancellazione dell'eco spenta": "Echounterdrückung aus"
 }

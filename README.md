@@ -78,7 +78,9 @@ cloud, your branding.
   choose), shows the level, plays a test sound and can reconnect the audio
 - **Push-to-talk**: while muted, hold Space to talk
 - **Advanced noise reduction** (RNNoise neural network in WebAssembly, runs
-  in the browser, no data leaves the computer) — switch in the microphone popup
+  in the browser, no data leaves the computer) and **echo cancellation**: on or
+  off by default from Settings → Rooms, everyone can switch their own from the
+  microphone popup for that meeting
 - **Network & quality** window: live bandwidth, latency and jitter graphs,
   packet loss, per-stream stats, direct/TURN path; hosts also see a
   **Participants** section with every participant's connection as the
@@ -105,7 +107,8 @@ cloud, your branding.
 - Branding panel: name, tagline, logo, favicon, accent color (automatically
   adjusted for contrast in both themes), default theme, footer, company info
 - Users with **admin** and **host** roles — from the panel or from `.env`
-- Room rules: waiting room, guest screen sharing, drawing permissions, first-join guide
+- Room rules: waiting room, guest screen sharing, drawing permissions, first-join guide,
+  default echo cancellation and noise reduction
 - External REST API to create meetings and guest links from a CRM
 - **Automatic daily updates** with email report, automatic rollback and
   ready-to-paste rollback commands
@@ -195,7 +198,7 @@ Passwords can also be bcrypt hashes (`$2b$...`; inside a compose env file write
 | What | Where |
 |------|-------|
 | Name, logo, favicon, accent color, theme, footer, company info | Settings → Branding |
-| Guest screen sharing, drawing for everyone, first-join guide | Settings → Rooms |
+| Guest screen sharing, drawing for everyone, first-join guide, echo cancellation and noise reduction by default | Settings → Rooms |
 | Users and passwords | Settings → Users, or `USERS` in `.env` |
 | SMTP, TURN, IPs, ports, secrets, API keys, updates | `.env` |
 

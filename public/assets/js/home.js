@@ -229,7 +229,8 @@
     if (!navigator.mediaDevices?.getUserMedia) { note.textContent = T('Anteprima non disponibile su questo browser'); note.classList.remove('hidden'); setStatus('bad', 'Browser non supportato'); syncToggles(); return; }
     setStatus('wait', 'Controllo in corso…');
     const vid = pref.videoId, aud = pref.audioId;
-    const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, ...(aud ? { deviceId: { ideal: aud } } : {}) };
+    // 1.5.7: cancellazione dell'eco come impostata di base in Impostazioni → Riunioni
+    const audio = { echoCancellation: window.__BRAND?.rooms?.echoCancel !== false, noiseSuppression: true, autoGainControl: true, ...(aud ? { deviceId: { ideal: aud } } : {}) };
     const video = { width: { ideal: 1280 }, height: { ideal: 720 }, ...(vid ? { deviceId: { ideal: vid } } : {}) };
     let err = null;
     let got = null;

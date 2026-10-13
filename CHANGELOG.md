@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.5.7
+
+### Added
+- **Settings → Rooms: echo cancellation and noise reduction by default.** Two
+  new switches in *Room rules*: **Echo cancellation** (the browser's, on by
+  default as before) and **Advanced noise reduction (RNNoise)** (off by
+  default as before). They apply to every participant of the meetings
+- **Echo cancellation switch in the microphone popup** (and in Call settings
+  → Audio & video), next to automatic volume and RNNoise: the microphone
+  reopens with the new setting without leaving the meeting
+
+### Changed
+- Echo cancellation and RNNoise changed from the microphone popup apply **to
+  that meeting only** (they survive a reload or a rejoin, the next meeting
+  starts again from the default in Settings). RNNoise used to stay saved in the
+  browser for every meeting
+- The home device check uses the default echo cancellation from Settings
+
+### Fixed
+- The device popup could go off the top of the screen on short phones (and
+  short desktop windows): it now fits the available space and scrolls
+
 ## 1.5.6
 
 ### Changed

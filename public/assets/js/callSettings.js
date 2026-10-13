@@ -83,6 +83,7 @@
     const opts = (list, cur, fallback) => list.length ? list.map((x, i) => `<option value="${esc(x.deviceId)}" ${x.deviceId === cur ? 'selected' : ''}>${esc(x.virtual ? T(x.label) : (x.label || fallback + ' ' + (i + 1)))}</option>`).join('') : `<option value="">${T('Nessun dispositivo')}</option>`;
     const canSink = typeof document.createElement('audio').setSinkId === 'function';
     const agcOn = !!window._tdmeetAgc?.();
+    const aecOn = window._tdmeetAec ? !!window._tdmeetAec() : true;
     const rnnOk = !!window.TdtNoise?.supported?.();
     const rnnOn = !!(window.TdtNoise?.enabled || window.TdtNoise?.wanted?.());
     body.innerHTML = `
@@ -93,6 +94,7 @@
         <div class="cs-field"><label for="csSpk">Uscita audio (casse o cuffie)</label><select id="csSpk" class="cs-select" ${canSink ? '' : 'disabled'}>${opts(canSink ? outs : outs.slice(0, 1), spkId, T('Uscita audio'))}</select>${canSink ? '' : `<small class="cs-hint">${T('Questo browser non permette di scegliere l\'uscita audio: usa le impostazioni di sistema.')}</small>`}</div>
       </div>
       <div class="cs-group">
+        ${sw('csAec', T('Cancellazione dell\'eco'), aecOn, T('Spegnila solo se usi le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Vale per questa riunione.'))}
         ${sw('csAgc', T('Volume del microfono automatico'), agcOn, T('Se il volume d\'ingresso si abbassa da solo durante le chiamate, spegnilo.'))}
         ${rnnOk ? sw('csRnn', T('Riduzione rumore avanzata (RNNoise)'), rnnOn, T('Toglie tastiera, ventole e traffico con una rete neurale che gira nel browser.')) : ''}
         ${sw('csMirror', T('Specchia il mio video'), ls.get('tdt_mirror', '1') !== '0', T('Solo per te: gli altri ti vedono sempre nel verso giusto.'))}
@@ -101,6 +103,7 @@
     bind('#csMic', 'audioinput'); bind('#csCam', 'videoinput');
     body.querySelector('#csSpk')?.addEventListener('change', (e) => ds?._switch('audiooutput', e.target.value)); // '' = uscita di sistema
     body.querySelector('#csAgc').addEventListener('change', (e) => ds?.setAgc(e.target.checked));
+    body.querySelector('#csAec')?.addEventListener('change', (e) => ds?.setAec?.(e.target.checked));
     body.querySelector('#csRnn')?.addEventListener('change', async (e) => { e.target.disabled = true; try { await ds?.setRnn(e.target.checked); } catch (_) { e.target.checked = false; } finally { e.target.disabled = false; } });
     body.querySelector('#csMirror').addEventListener('change', (e) => {
       ls.set('tdt_mirror', e.target.checked ? '1' : '0');

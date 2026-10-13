@@ -479,7 +479,7 @@ class PreJoin {
       frameRate: { ideal: idealFps, max: 30 },
     };
 
-    const audioBase = { echoCancellation: true, noiseSuppression: true, autoGainControl: window._tdmeetAgc ? window._tdmeetAgc() : true };
+    const audioBase = { echoCancellation: window._tdmeetAec ? window._tdmeetAec() : true, noiseSuppression: true, autoGainControl: window._tdmeetAgc ? window._tdmeetAgc() : true };
 
     // ⭐ FIX BUG 6: gestione corretta deviceId per piattaforma.
     // - iOS Safari: ignora SEMPRE deviceId (il routing è gestito dal SO).

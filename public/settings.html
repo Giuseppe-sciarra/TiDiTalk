@@ -159,6 +159,14 @@
               <label class="switch"><input type="checkbox" id="roomTour"><span class="track"></span><span>Mostra la mini-guida al primo ingresso</span></label>
               <div class="hint">Quattro fumetti che spiegano microfono, condivisione schermo e disegno. Spenta di default: utile se inviti clienti poco pratici. Chiunque può rivederla dal "?" in alto nella stanza.</div>
             </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="echoCancel"><span class="track"></span><span>Cancellazione dell'eco</span></label>
+              <div class="hint">Toglie dal microfono la voce degli altri che esce dalle casse. Spenta va bene solo con le cuffie: con le casse gli altri sentono la propria voce tornare indietro. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.</div>
+            </div>
+            <div class="field">
+              <label class="switch"><input type="checkbox" id="noiseFilter"><span class="track"></span><span>Riduzione rumore avanzata (RNNoise)</span></label>
+              <div class="hint">Toglie tastiera, ventole e traffico con una rete neurale che gira nel browser. Ognuno può cambiarla per sé dal menu del microfono, solo per quella riunione.</div>
+            </div>
             <button class="btn" id="btnSaveRooms">Salva</button>
           </div>
         </section>
@@ -460,6 +468,8 @@
       document.getElementById('guestScreenShare').checked = r.guestScreenShare !== false;
       document.getElementById('annotateAll').checked = r.annotateAll === true;
       document.getElementById('roomTour').checked = r.tour === true;
+      document.getElementById('echoCancel').checked = r.echoCancel !== false;
+      document.getElementById('noiseFilter').checked = r.noiseFilter === true;
       renderSystem(S.system);
       loadBye(S.bye || {});
       loadUsers();
@@ -631,6 +641,8 @@
             guestScreenShare: document.getElementById('guestScreenShare').checked,
             annotateAll: document.getElementById('annotateAll').checked,
             tour: document.getElementById('roomTour').checked,
+            echoCancel: document.getElementById('echoCancel').checked,
+            noiseFilter: document.getElementById('noiseFilter').checked,
           }),
         });
         Tdt.toast('Regole salvate: valgono dalle prossime riunioni');
