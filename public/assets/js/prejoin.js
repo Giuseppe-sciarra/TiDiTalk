@@ -125,7 +125,7 @@ class PreJoin {
       const speakerSel = document.getElementById('pjSpeakerSelect');
       if (speakerSel) {
         speakerSel.addEventListener('change', (e) => {
-          this.selectedSpeaker = e.target.value;
+          this.selectedSpeaker = e.target.value || null;   // '' = uscita di sistema
           if (!this._isGuest) localStorage.setItem('vc_speakerId', this.selectedSpeaker || '');
           // Esponi globalmente, devices.js / room.js lo riprendono
           window._tdmeetSpeakerId = this.selectedSpeaker;
@@ -401,21 +401,23 @@ class PreJoin {
       const speakerNote = document.getElementById('pjSpeakerNote');
       if (speakerSel && speakerWrap) {
         if (speakerSupported) {
-          speakers.forEach((d, i) => {
+          // 1.5.4: voce "Predefinita del sistema" quando il browser non ha la sua
+          // (Firefox); senza una scelta salvata si usa QUELLA, non il primo
+          // dispositivo della lista (era "Altoparlanti MacBook" con le cuffie in testa)
+          const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
+          const opts = window._tdmeetOutputOptions ? window._tdmeetOutputOptions(speakers) : speakers;
+          const known = this.selectedSpeaker && speakers.some(d => d.deviceId === this.selectedSpeaker);
+          if (!known) this.selectedSpeaker = speakers.some(d => d.deviceId === 'default') ? 'default' : null;
+          opts.forEach((d, i) => {
             const opt = document.createElement('option');
             opt.value = d.deviceId;
-            opt.textContent = d.label || `Speaker ${i + 1}`;
-            if (d.deviceId === this.selectedSpeaker) opt.selected = true;
+            opt.textContent = d.virtual ? T(d.label) : (d.label || `${T('Uscita audio')} ${i + 1}`);
+            if (d.deviceId === (this.selectedSpeaker || '')) opt.selected = true;
             speakerSel.appendChild(opt);
           });
           speakerWrap.style.display = '';
           if (speakerNote) speakerNote.style.display = 'none';
-          // Default se nulla scelto
-          if (!this.selectedSpeaker) {
-            const def = speakers.find(d => d.deviceId === 'default') || speakers[0];
-            if (def) { this.selectedSpeaker = def.deviceId; speakerSel.value = def.deviceId; }
-          }
-          window._tdmeetSpeakerId = this.selectedSpeaker;
+          window._tdmeetSpeakerId = this.selectedSpeaker || null;
         } else {
           // Firefox / Safari: nascondi select, mostra nota
           speakerWrap.style.display = 'none';

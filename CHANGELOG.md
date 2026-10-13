@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.5.4
+
+### Added
+- **Speakers are a separate control.** New *Speakers* button next to the
+  microphone (shortcut `A`): it silences only what you hear from the others.
+  Microphone, recording and notification sounds do not change, and muting the
+  microphone never touches the speakers. Its ▾ opens **Audio output**: choice
+  of output (with *System default*), output level, **test sound** and
+  **"Can't hear anything? Reconnect the audio"**
+- **Network & quality → Participants** shows each person's **voice bitrate**
+  (`voice N kbps`, `silence`, `muted`): if someone talks and it stays on
+  *silence*, their microphone is not capturing
+
+### Changed
+- The microphone ▾ is only about the microphone (title *Microphone*). The
+  two sections used to be called "Audio" and "Speaker", and the translation
+  turned "Speaker" into "Relatore" (presenter)
+- **No output device is picked automatically any more**: without a choice the
+  system default is used. Before, the first device of the list was chosen —
+  on Firefox (no "default" entry) that was usually *MacBook speakers* even
+  with headphones on. If the chosen output disappears, audio goes back to the
+  system default; on device changes the others' audio is re-attached
+- **Uniform control bar**: every button is filled like the
+  microphone/speakers/camera groups (half of them used to be bare icons);
+  *Leave* stays red on hover
+- Phones: the speakers button has no ▾ (the phone picks the output), and the
+  bar still fits on one line down to 360 px
+
+### Fixed
+- With **noise reduction (RNNoise)** on, Firefox stayed on "Configuring
+  media…" when entering from the home page without clicking. While the
+  browser keeps the audio engine suspended the normal microphone is sent, and
+  the filter switches in as soon as the engine starts; if the filter cannot
+  take the microphone (different sample rates on Firefox) it turns itself off
+  instead of failing
+- Tablets and narrow windows (641–820 px): button labels spilled out under
+  the buttons
+- The *Chat* label was shown as "Gatto" (clash with a face-effect name in
+  the translations)
+
 ## 1.5.3
 
 ### Fixed

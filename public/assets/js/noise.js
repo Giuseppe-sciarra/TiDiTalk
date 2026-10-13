@@ -16,6 +16,7 @@
   let ctx = null, node = null, src = null, dest = null, ready = null;
   const api = {
     enabled: false,
+    pending: false,   // 1.5.4: filtro pronto ma motore audio ancora fermo (si trasmette il mic normale)
     get outputTrack() { return dest?.stream.getAudioTracks()[0] || null; },
     wanted() { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } },
     setWanted(v) { try { localStorage.setItem(KEY, v ? '1' : '0'); } catch { } },
@@ -44,25 +45,57 @@
         ready.catch(() => { try { ctx?.close(); } catch { } ctx = null; node = null; dest = null; ready = null; });
       }
       await ready;
-      if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { } }
+      // ⭐ 1.5.4: senza un tocco sulla pagina il browser tiene SOSPESO il motore
+      // audio (ingresso diretto dalla home, rientro automatico). Prima qui si
+      // aspettava resume(): su Firefox restava appeso per sempre ("Configurazione
+      // media…") e altrove il filtro mandava SILENZIO agli altri. Ora si aspetta
+      // al massimo mezzo secondo; se il motore è ancora fermo si trasmette il
+      // microfono normale e il filtro entra da solo appena il motore parte.
+      if (ctx.state !== 'running') {
+        try { await Promise.race([ctx.resume(), new Promise(r => setTimeout(r, 500))]); } catch { }
+      }
       this.enabled = true;
-      return this.setSource(track);
+      const out = this.setSource(track);
+      if (ctx.state !== 'running') {
+        this.pending = true;
+        if (!this._watching) {
+          this._watching = true;
+          ctx.addEventListener('statechange', () => {
+            if (ctx && ctx.state === 'running' && this.pending) {
+              this.pending = false;
+              document.dispatchEvent(new CustomEvent('tdt:rnnoise-running'));
+            }
+          });
+        }
+        return track;
+      }
+      this.pending = false;
+      return out;
     },
 
-    /** Cambia il microfono in ingresso; il track in uscita resta lo stesso. */
+    /** Cambia il microfono in ingresso; il track in uscita resta lo stesso.
+     *  Se il filtro è ancora in attesa del motore audio, o non accetta questo
+     *  microfono (es. frequenze diverse su Firefox), torna il microfono normale. */
     setSource(track) {
       if (!ctx || !node) return track;
       try { src?.disconnect(); } catch { }
       src = null;
       if (track && track.readyState === 'live') {
-        src = ctx.createMediaStreamSource(new MediaStream([track]));
-        src.connect(node);
+        try {
+          src = ctx.createMediaStreamSource(new MediaStream([track]));
+          src.connect(node);
+        } catch (e) {
+          console.warn('[rnnoise] microfono non collegabile al filtro, uso quello normale', e?.message || e);
+          this.disable(); this.setWanted(false);
+          return track;
+        }
       }
+      if (this.pending) return track;
       return this.outputTrack || track;
     },
 
     disable() {
-      this.enabled = false;
+      this.enabled = false; this.pending = false;
       try { src?.disconnect(); } catch { }
       try { node?.disconnect(); } catch { }
       try { ctx?.close(); } catch { }

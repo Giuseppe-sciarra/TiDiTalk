@@ -357,6 +357,63 @@ async function _reloadForRejoin(before) {
   setTimeout(() => location.reload(), 1200);
 }
 
+// ─── 1.5.4: casse (uscita audio) silenziabili a parte ─────────────────────────
+// Silenzia SOLO quello che arriva dagli altri (voci e audio dello schermo
+// condiviso). Microfono, registrazione e suoni di notifica non cambiano.
+let _spkMuted = false;
+window._tdIsSpkMuted = () => _spkMuted;
+function _setSpkMuted(v) {
+  _spkMuted = !!v;
+  if (window._tdmeetPeerAudios) for (const [, a] of window._tdmeetPeerAudios) { if (a) a.muted = _spkMuted; }
+  const b = document.getElementById('btnSpeaker');
+  if (b) {
+    b.classList.toggle('off', _spkMuted);
+    b.querySelector('.icon-on')?.classList.toggle('hidden', _spkMuted);
+    b.querySelector('.icon-off')?.classList.toggle('hidden', !_spkMuted);
+  }
+  _jlog('speaker', { muted: _spkMuted });
+}
+window._tdSetSpkMuted = _setSpkMuted;
+
+// Ricollega l'audio degli altri all'uscita giusta e fa ripartire chi si è
+// fermato: serve quando cambiano i dispositivi (cuffie Bluetooth che passano
+// in modalità telefono, cuffie staccate/ricollegate, uscita sparita).
+async function _reapplyRemoteAudio() {
+  if (!window._tdmeetPeerAudios) return;
+  for (const [, a] of window._tdmeetPeerAudios) {
+    if (!a || !a.srcObject) continue;
+    try { await window._tdmeetApplySink?.(a); } catch (_) { }
+    a.muted = _spkMuted;
+    if (a.paused) a.play().catch(() => { });
+  }
+}
+window._tdReapplyRemoteAudio = _reapplyRemoteAudio;
+
+// Ricollegamento "forte": nuovi elementi <audio> sugli stessi flussi. È il
+// pulsante "Non senti niente? Ricollega l'audio" del popup uscita: serve quando
+// il browser ha perso la sua uscita (es. cuffie Bluetooth passate in modalità
+// telefono mentre suonava altro) e l'audio arriva ma non esce dalle casse.
+function _reattachRemoteAudio() {
+  if (!window._tdmeetPeerAudios) return 0;
+  let n = 0;
+  for (const [key, old] of [...window._tdmeetPeerAudios]) {
+    const st = old?.srcObject; if (!st) continue;
+    const a = new Audio();
+    a.srcObject = st; a.autoplay = true; a.playsInline = true;
+    a.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+    a.dataset.peerId = key; a.dataset.tdmeetRemote = '1'; a.muted = _spkMuted;
+    document.body.appendChild(a);
+    window._tdmeetPeerAudios.set(key, a);
+    try { old.pause(); old.srcObject = null; old.remove(); } catch (_) { }
+    Promise.resolve(window._tdmeetApplySink?.(a)).finally(() => a.play().catch(() => showAudioUnblockBanner()));
+    n++;
+  }
+  recorder?.refreshAudio?.();
+  _jlog('audio ricollegato', { n });
+  return n;
+}
+window._tdReattachRemoteAudio = _reattachRemoteAudio;
+
 // ─── Guest wait overlay ───────────────────────────────────────────────────────
 function showGuestWaitOverlay(mode = 'host') {
   if (document.getElementById('guestWaitOverlay')) { setGuestWaitMode(mode); return; }
@@ -1532,6 +1589,16 @@ async function _outgoingMicTrack() {
   catch (e) { console.warn('[rnnoise]', e); N.setWanted(false); showToast?.('Riduzione rumore avanzata non disponibile su questo browser', 3500); return localMicTrack; }
 }
 
+// ⭐ 1.5.4: la riduzione rumore aspetta che il browser sblocchi il motore audio
+// (primo tocco sulla pagina); intanto si trasmette il microfono normale. Appena
+// il motore parte, il producer passa al microfono filtrato.
+document.addEventListener('tdt:rnnoise-running', async () => {
+  const p = producers.get('audio'), N = window.TdtNoise;
+  if (!p || p.closed || !N?.enabled || !N.outputTrack) return;
+  try { await p.replaceTrack({ track: N.outputTrack }); _jlog('rnnoise attivo', {}); }
+  catch (e) { console.warn('[rnnoise] passaggio al microfono filtrato fallito', e); }
+});
+
 let _audioProducing = null; // lock: più entry-point (bottone, Riprova, recovery) non devono creare due producer
 async function produceAudio() {
   if (_audioProducing) return _audioProducing;
@@ -2019,16 +2086,16 @@ async function consume(producerId, peerId, kind, appData) {
     audio.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
     audio.dataset.peerId = audioKey;
     audio.dataset.tdmeetRemote = '1';
+    audio.muted = _spkMuted; // 1.5.4: casse silenziate a parte (il microfono non c'entra)
     document.body.appendChild(audio);
 
     if (!window._tdmeetPeerAudios) window._tdmeetPeerAudios = new Map();
     window._tdmeetPeerAudios.set(audioKey, audio);
 
     // ⭐ FIX Safari: applica speakerId se supportato (Chrome/Edge; Safari ignora)
-    const spkId = window._tdmeetSpeakerId;
-    if (spkId && typeof audio.setSinkId === 'function') {
-      audio.setSinkId(spkId).catch((e) => { console.warn('[consume] setSinkId fallito', e?.name); _mediaDiag('sink-error', { from: _fromName(), err: e?.name }); });
-    }
+    // 1.5.4: uscita scelta (o quella di sistema); se il dispositivo non c'è più
+    // si torna a quella di sistema invece di restare muti
+    window._tdmeetApplySink?.(audio).then((ok) => { if (!ok) _mediaDiag('sink-error', { from: _fromName(), err: 'fallback-sistema' }); });
 
     // ⭐ FIX Safari "non sento": Safari spesso NON emette 'loadedmetadata' per i
     // MediaStream remoti → se ci affidiamo solo a quell'evento, play() non parte mai.
@@ -2338,6 +2405,11 @@ function bindControls() {
   // ⭐ FIX BUG 15: previeni doppi click rapidi che creano producer duplicati
   // (gestito dal lock dentro _setMicMutedImpl + coda).
   document.getElementById('btnMic').addEventListener('click', () => { if (!_micToggling) setMicMuted(!micMuted); });
+  // 1.5.4: casse (uscita audio) con il loro pulsante, indipendenti dal microfono
+  document.getElementById('btnSpeaker')?.addEventListener('click', () => {
+    _setSpkMuted(!_spkMuted);
+    showToast(_spkMuted ? '🔇 Casse silenziate: non senti gli altri. Il microfono resta com\'è' : '🔊 Casse riattivate', 2600);
+  });
 
   let _camToggling = false;
   document.getElementById('btnCamera').addEventListener('click', async () => {
@@ -4241,6 +4313,17 @@ function setupDeviceChangeWatcher() {
       if (currentCamId && !camStillPresent) {
         showToast?.('⚠ Camera scollegata', 4500);
       }
+
+      // 1.5.4: uscita audio scelta sparita → torna a quella di sistema; e in
+      // ogni caso si riallinea l'audio degli altri (le cuffie Bluetooth, quando
+      // il loro microfono si apre, cambiano modalità e l'uscita può fermarsi)
+      const outs = devices.filter(d => d.kind === 'audiooutput');
+      const selOut = window._tdmeetSpeakerId;
+      if (selOut && selOut !== 'default' && outs.length && !outs.some(d => d.deviceId === selOut)) {
+        window._tdmeetSpeakerId = null;
+        showToast?.('⚠ Uscita audio scollegata: passo a quella di sistema', 4500);
+      }
+      setTimeout(() => _reapplyRemoteAudio(), 600);
 
       // Se è stato collegato un nuovo dispositivo, notifica (l'utente può cambiarlo dal popup chevron)
       const knownAudioCount = window._lastKnownAudioInputCount;

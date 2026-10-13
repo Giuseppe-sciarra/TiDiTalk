@@ -299,6 +299,10 @@ body.tdt-room .ctrl-btn {
   color: var(--paper);
   transition: background .2s var(--ease), color .2s, transform .15s var(--ease);
 }
+/* 1.5.4: barra omogenea — tutti i tasti della barra centrale sono "pieni" come
+   i gruppi microfono/casse/camera (prima metà erano pillole piene e metà icone
+   nude). Presenta resta evidenziato, Esci resta rosso. */
+body.tdt-room .controls-center > .ctrl-btn { background: var(--hair); }
 body.tdt-room .ctrl-btn:hover { background: var(--hair-2); }
 body.tdt-room .ctrl-btn:active { transform: scale(.94); }
 body.tdt-room .ctrl-btn.active { background: var(--accent-soft); color: var(--accent-text); }
@@ -357,7 +361,7 @@ body.tdt-room .room-footer { color: var(--paper-3); font-size: 11px; }
 body.tdt-room .room-footer a:hover { color: var(--paper); }
 
 @media (hover: hover) and (pointer: fine) and (min-width: 1024px) {
-  body.tdt-room .controls-center > .ctrl-btn,
+  body.tdt-room .controls-center > .ctrl-btn { width: 46px; height: 46px; background: var(--hair); }
   body.tdt-room .controls-right > .ctrl-btn--small { width: 46px; height: 46px; background: transparent; }
   body.tdt-room .controls-center > .ctrl-btn:hover,
   body.tdt-room .controls-right > .ctrl-btn--small:hover { background: var(--hair-2); }
@@ -365,6 +369,8 @@ body.tdt-room .room-footer a:hover { color: var(--paper); }
   body.tdt-room .controls-center > .ctrl-btn.active { background: var(--accent-soft); }
   body.tdt-room .controls-center > #btnAnnotate.active { background: var(--accent); }
   body.tdt-room .controls-center > .ctrl-btn--danger { width: 62px; background: var(--danger); }
+  /* passandoci sopra Esci diventava grigio: resta rosso, solo più chiaro */
+  body.tdt-room .controls-center > .ctrl-btn--danger:hover { background: color-mix(in srgb, var(--danger) 85%, white); }
   body.tdt-room .controls-center > #btnScreen { height: 46px; }
 }
 @media (max-width: 640px) {
@@ -372,11 +378,24 @@ body.tdt-room .room-footer a:hover { color: var(--paper); }
   body.tdt-room .controls-center { padding: 5px; gap: 4px; max-width: calc(100vw - 12px); }
   body.tdt-room .controls-center > #btnScreen { padding: 0 11px !important; height: 42px; }
   body.tdt-room .controls-center > #btnScreen .ctrl-label { display: none !important; }
+  /* 1.5.4: sul telefono l'uscita la sceglie il sistema: resta il pulsante Casse
+     (silenzia/riattiva), senza la freccina, così la barra entra nello schermo */
+  body.tdt-room .ctrl-btn-group #btnSpkChevron { display: none !important; }
+  body.tdt-room .ctrl-btn-group #btnSpeaker { border-radius: 999px !important; }
+  body.tdt-room .ctrl-btn-group:has(#btnSpeaker) { border-radius: 999px; }
+  body.tdt-room .controls-bar .controls-center { gap: 3px !important; padding-left: 5px !important; padding-right: 5px !important; }
   body.tdt-room .brand-name { font-size: 20px; }
   body.tdt-room .clock, body.tdt-room .header-center { display: none; }
   .ann-toolbar { flex-direction: row; left: 50% !important; top: auto !important; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100vw - 16px); overflow-x: auto; }
   .ann-toolbar .ann-group { flex-direction: row; }
   .ann-toolbar .ann-sep { width: 1px; height: 22px; margin: 0 3px; }
+}
+
+/* 1.5.4 — telefoni stretti (≤400px): con il pulsante Casse in più la barra deve
+   ancora stare in una riga senza tagliare il microfono a sinistra */
+@media (max-width: 400px) {
+  body.tdt-room .controls-center > #btnLeave { width: 44px !important; min-width: 44px !important; }
+  body.tdt-room .ctrl-btn-group .ctrl-btn-chevron { padding: 0 5px !important; }
 }
 
 /* ── Pannelli laterali (chat, persone): schede fluttuanti ───────────────── */
@@ -603,6 +622,12 @@ body.tdt-room .header-left { min-width: 0; gap: 10px; }
   body.tdt-room .controls-center .ctrl-btn-group .ctrl-btn-chevron { width: 20px !important; min-width: 20px !important; height: 36px; }
   body.tdt-room .controls-right { gap: 6px; padding-top: 2px; }
   body.tdt-room .controls-right > .ctrl-btn--small { width: 36px !important; height: 36px !important; }
+  /* 1.5.4: pulsanti da 36px = solo icona. Fra 641 e 820px (tablet, finestre
+     strette) le etichette restavano accese e uscivano sotto ai pulsanti
+     ("Microfono", "Casse", "Camera" tagliate a metà fuori dal tasto rosso) */
+  body.tdt-room .controls-center .ctrl-label,
+  body.tdt-room .controls-right .ctrl-label,
+  body.tdt-room .controls-center > #btnScreen .ctrl-label { display: none !important; }
 }
 
 /* ── "Presenta": si decide dalle CAPACITÀ del browser, non dalla larghezza ──
@@ -716,6 +741,11 @@ body.tdt-room .dp-meter { flex: 1; height: 8px; border-radius: 999px; background
 body.tdt-room .dp-meter i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width .08s linear; }
 body.tdt-room .dp-hint { font-size: 11.5px; line-height: 1.4; color: var(--paper-3); padding: 2px 8px 4px 94px; }
 body.tdt-room .dp-note { padding-left: 8px; opacity: .8; }
+/* 1.5.4 — popup uscita audio: suono di prova */
+body.tdt-room .dp-test-btn { display: inline-flex; align-items: center; gap: 8px; margin: 6px 8px 4px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--hair-2); background: var(--ink-3); color: var(--paper); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+body.tdt-room .dp-test-btn:hover { background: var(--hair-2); }
+body.tdt-room .dp-link-btn { display: block; margin: 2px 8px 6px; padding: 4px 0; border: none; background: none; color: var(--paper-2); font: inherit; font-size: 12px; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+body.tdt-room .dp-link-btn:hover { color: var(--paper); }
 body.tdt-room .dp-switch { display: flex; align-items: center; gap: 10px; padding: 10px 8px 2px; cursor: pointer; font-size: 13px; color: var(--paper); }
 body.tdt-room .dp-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 body.tdt-room .dp-track { width: 36px; height: 21px; border-radius: 999px; background: var(--hair-2); position: relative; flex-shrink: 0; transition: background .2s; }

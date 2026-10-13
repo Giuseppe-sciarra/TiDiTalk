@@ -57,8 +57,45 @@ window._tdmeetBuildVideoConstraints = function(deviceId, extra = {}) {
 };
 
 /**
+ * ⭐ 1.5.4 — Uscita audio (casse/cuffie).
+ * _tdmeetSpeakerId: null o '' = USCITA DI SISTEMA (nessun setSinkId),
+ * 'default' = la stessa cosa su Chrome/Edge, altrimenti un dispositivo scelto
+ * dall'utente. Prima, se non c'era una scelta, si prendeva il PRIMO dispositivo
+ * della lista: su Firefox (che non ha la voce "default") era quasi sempre
+ * "Altoparlanti MacBook" → l'audio della riunione usciva dal Mac mentre la
+ * persona aveva le cuffie in testa.
+ */
+window._tdmeetOutputOptions = function (outputs) {
+  const list = (outputs || []).slice();
+  if (!list.some(d => d.deviceId === 'default')) list.unshift({ deviceId: '', label: 'Predefinita del sistema', virtual: true });
+  return list;
+};
+window._tdmeetCurrentOutput = function (outputs) {
+  const id = window._tdmeetSpeakerId || '';
+  const list = outputs || [];
+  if (id && list.some(d => d.deviceId === id)) return id;
+  return list.some(d => d.deviceId === 'default') ? 'default' : '';
+};
+window._tdmeetCanPickOutput = function () {
+  return typeof document.createElement('audio').setSinkId === 'function';
+};
+/** Applica l'uscita scelta a un elemento audio/video; se fallisce torna a quella di sistema. */
+window._tdmeetApplySink = async function (el, id) {
+  if (!el || typeof el.setSinkId !== 'function') return true;
+  const want0 = id === undefined ? window._tdmeetSpeakerId : id;
+  const want = want0 && want0 !== 'default' ? want0 : '';
+  if ((el.sinkId || '') === want) return true;
+  try { await el.setSinkId(want); return true; }
+  catch (e) {
+    console.warn('[sink] setSinkId fallito', e?.name, e?.message);
+    if (want) { try { await el.setSinkId(''); } catch (_) { } }
+    return false;
+  }
+};
+
+/**
  * DeviceSelector
- * Popup contestuale che appare sui chevron di mic/cam.
+ * Popup contestuale che appare sui chevron di microfono, uscita audio e camera.
  * Mostra dispositivi disponibili filtrati per tipo.
  */
 class DeviceSelector {
@@ -97,6 +134,7 @@ class DeviceSelector {
     };
 
     _bindChevron('btnMicChevron', 'audioinput');
+    _bindChevron('btnSpkChevron', 'audiooutput');   // 1.5.4: uscita audio separata dal microfono
     _bindChevron('btnCamChevron', 'videoinput');
   }
 
@@ -172,22 +210,41 @@ class DeviceSelector {
   _renderAudioExtras(type) {
     const popup = document.getElementById('devicePopup');
     let box = document.getElementById('devicePopupExtra');
-    if (type !== 'audioinput') { box?.remove(); this._stopMeters(); return; }
+    if (type !== 'audioinput' && type !== 'audiooutput') { box?.remove(); this._stopMeters(); return; }
     if (!box) {
       box = document.createElement('div');
       box.id = 'devicePopupExtra';
       box.className = 'device-popup-extra';
       popup.appendChild(box);
     }
+    const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
+    // ── 1.5.4: popup dell'USCITA AUDIO (casse/cuffie), separato dal microfono ──
+    if (type === 'audiooutput') {
+      const muted = !!window._tdIsSpkMuted?.();
+      box.innerHTML = `
+        <div class="device-popup-sep">Livello</div>
+        <div class="dp-row"><span class="dp-lbl">Casse</span><div class="dp-meter"><i id="dpSpkBar"></i></div></div>
+        <div class="dp-hint" id="dpSpkHint"></div>
+        <button type="button" class="dp-test-btn" id="dpSpkTest">🔊 <span>Fai un suono di prova</span></button>
+        <button type="button" class="dp-link-btn" id="dpSpkFix">Non senti niente? Ricollega l'audio</button>
+        ${window._tdmeetCanPickOutput() ? '' : '<div class="dp-hint dp-note"><span>Questo browser usa l\'uscita audio scelta nel sistema: per cambiarla usa le impostazioni audio del computer.</span></div>'}`;
+      const hint = box.querySelector('#dpSpkHint');
+      hint.textContent = T(muted ? 'Casse silenziate: non senti gli altri' : 'La barra si muove quando parla qualcuno');
+      box.querySelector('#dpSpkTest').addEventListener('click', (e) => { e.stopPropagation(); this.testOutput(); });
+      box.querySelector('#dpSpkFix').addEventListener('click', (e) => {
+        e.stopPropagation();
+        window._tdReattachRemoteAudio?.();
+        window.showToast?.('Audio ricollegato. Se ancora non senti nemmeno il suono di prova, chiudi e riapri il browser', 5000);
+      });
+      this._startMeters('out');
+      return;
+    }
     const agcOn = window._tdmeetAgc();
     const actual = window._localMicTrack?.getSettings?.()?.autoGainControl;
-    const spkName = (this.devices.audiooutput.find(d => d.deviceId === (window._tdmeetSpeakerId || 'default')) || this.devices.audiooutput[0])?.label || '';
     box.innerHTML = `
-      <div class="device-popup-sep">Livelli</div>
+      <div class="device-popup-sep">Livello</div>
       <div class="dp-row"><span class="dp-lbl">Microfono</span><div class="dp-meter"><i id="dpMicBar"></i></div></div>
       <div class="dp-hint" id="dpMicHint">Parla per vedere il livello</div>
-      <div class="dp-row"><span class="dp-lbl">Casse</span><div class="dp-meter"><i id="dpSpkBar"></i></div></div>
-      <div class="dp-hint" id="dpSpkHint">${spkName ? '<span>Uscita</span> · ' + spkName.replace(/[<>&"]/g, '') : '<span>Si muove quando parla qualcuno</span>'}</div>
       <label class="dp-switch">
         <input type="checkbox" id="dpAgc" ${agcOn ? 'checked' : ''}>
         <span class="dp-track"></span>
@@ -215,7 +272,34 @@ class DeviceSelector {
     const agc = box.querySelector('#dpAgc');
     agc.addEventListener('click', (e) => e.stopPropagation());
     agc.addEventListener('change', () => this.setAgc(agc.checked));
-    this._startMeters();
+    this._startMeters('mic');
+  }
+
+  // ── 1.5.4: suono di prova sull'uscita scelta (suona anche a casse silenziate:
+  // è una prova esplicita). Generato al volo, niente file da scaricare.
+  async testOutput() {
+    try {
+      const sr = 24000, dur = 0.75, n = Math.floor(sr * dur);
+      const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+      const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+      w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+      w(36, 'data'); v.setUint32(40, n * 2, true);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, f = t < 0.3 ? 660 : 880;
+        const env = Math.min(1, t / 0.02) * Math.min(1, (dur - t) / 0.08) * (t > 0.28 && t < 0.32 ? 0.2 : 1);
+        v.setInt16(44 + i * 2, Math.sin(2 * Math.PI * f * t) * 0.35 * env * 32767, true);
+      }
+      const url = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+      const a = new Audio(url);
+      await window._tdmeetApplySink(a);
+      a.addEventListener('ended', () => URL.revokeObjectURL(url), { once: true });
+      await a.play();
+    } catch (e) {
+      console.warn('[testOutput]', e);
+      window.showToast?.('Non riesco a riprodurre il suono di prova', 3000);
+    }
   }
 
   // ── Riduzione rumore RNNoise: usata dal popup e dal pannello Impostazioni ──
@@ -261,7 +345,7 @@ class DeviceSelector {
     }
   }
 
-  _startMeters() {
+  _startMeters(which = 'mic') {
     this._stopMeters();
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -272,13 +356,13 @@ class DeviceSelector {
       const micAn = mk(), spkAn = mk();
       const nodes = [];
       const micTrack = window._localMicTrack;
-      if (micTrack && micTrack.readyState === 'live') {
+      if (which === 'mic' && micTrack && micTrack.readyState === 'live') {
         const src = ctx.createMediaStreamSource(new MediaStream([micTrack]));
         src.connect(micAn); nodes.push(src);
       }
       // casse: somma dell'audio in arrivo dagli altri (non collegato all'uscita:
       // si misura soltanto, non si riproduce una seconda volta)
-      const audios = window._tdmeetPeerAudios ? [...window._tdmeetPeerAudios.values()] : [];
+      const audios = which === 'out' && window._tdmeetPeerAudios ? [...window._tdmeetPeerAudios.values()] : [];
       audios.forEach(a => {
         const st = a?.srcObject;
         if (!st || !st.getAudioTracks().length) return;
@@ -296,14 +380,14 @@ class DeviceSelector {
         const micBar = document.getElementById('dpMicBar');
         const spkBar = document.getElementById('dpSpkBar');
         const hint = document.getElementById('dpMicHint');
-        if (!micBar || document.getElementById('devicePopup')?.classList.contains('hidden')) { this._stopMeters(); return; }
-        const m = nodes.length ? level(micAn) : 0;
-        const k = level(spkAn);
-        micBar.style.width = Math.round(m * 100) + '%';
-        spkBar.style.width = Math.round(k * 100) + '%';
+        if ((!micBar && !spkBar) || document.getElementById('devicePopup')?.classList.contains('hidden')) { this._stopMeters(); return; }
+        const m = which === 'mic' && nodes.length ? level(micAn) : 0;
+        const k = which === 'out' ? level(spkAn) : 0;
+        if (micBar) micBar.style.width = Math.round(m * 100) + '%';
+        if (spkBar) spkBar.style.width = Math.round(k * 100) + '%';
         micPeak = Math.max(micPeak * 0.995, m);
         const muted = typeof micMuted !== 'undefined' && micMuted;
-        if (hint) {
+        if (hint && which === 'mic') {
           let msg;
           if (muted) msg = 'Microfono spento: gli altri non ti sentono';
           else if (!micTrack || micTrack.readyState !== 'live') msg = 'Microfono non disponibile';
@@ -335,18 +419,9 @@ class DeviceSelector {
       this.devices.videoinput  = devices.filter(d => d.kind === 'videoinput');
       this.devices.audiooutput = devices.filter(d => d.kind === 'audiooutput');
 
-      // Se non c'è ancora uno speaker selezionato, scegli il "default" di sistema
-      // così il popup lo mostra attivo e i nuovi peer lo rispettano
-      if (!window._tdmeetSpeakerId && this.devices.audiooutput.length > 0) {
-        // Cerca il device con id "default" (convenzione Chrome/Edge su dispositivo di sistema),
-        // altrimenti prendi il primo della lista
-        const defaultDev = this.devices.audiooutput.find(d => d.deviceId === 'default')
-                        || this.devices.audiooutput[0];
-        if (defaultDev) {
-          window._tdmeetSpeakerId = defaultDev.deviceId;
-          console.log('[devices] speaker di default pre-selezionato:', defaultDev.label || defaultDev.deviceId);
-        }
-      }
+      // 1.5.4: nessuna scelta = uscita di sistema. Prima si prendeva il PRIMO
+      // dispositivo della lista (su Firefox: "Altoparlanti MacBook" anche con
+      // le cuffie in testa). Qui non si sceglie più niente da soli.
     } catch (e) {
       console.warn('[devices] enumerateDevices:', e);
     }
@@ -359,17 +434,28 @@ class DeviceSelector {
     const speakerSec = document.getElementById('devicePopupSpeaker');
     const speakerList= document.getElementById('devicePopupSpeakerList');
 
-    const labels = { audioinput: '🎙 Audio', videoinput: '📷 Videocamera' };
+    // 1.5.4: "Microfono" e "Uscita audio" (prima "Audio" e "Speaker", che la
+    // traduzione trasformava in "Relatore")
+    const labels = { audioinput: '🎙 Microfono', audiooutput: '🔊 Uscita audio', videoinput: '📷 Videocamera' };
     titleEl.textContent = labels[type] || 'Dispositivo';
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-    const currentId = type === 'audioinput'
-      ? (window._localMicTrack?.getSettings?.()?.deviceId || '')
-      : (window._localCamTrack?.getSettings?.()?.deviceId || '');
-
-    listEl.innerHTML = this.devices[type].map((d, i) => `
+    let items = this.devices[type] || [];
+    let currentId;
+    if (type === 'audiooutput') {
+      items = window._tdmeetOutputOptions(items);
+      if (!window._tdmeetCanPickOutput()) items = items.filter(d => d.virtual || d.deviceId === 'default').slice(0, 1);
+      currentId = window._tdmeetCurrentOutput(this.devices.audiooutput);
+    } else {
+      currentId = type === 'audioinput'
+        ? (window._localMicTrack?.getSettings?.()?.deviceId || '')
+        : (window._localCamTrack?.getSettings?.()?.deviceId || '');
+    }
+    const fallback = type === 'audiooutput' ? 'Uscita audio ' : 'Dispositivo ';
+    listEl.innerHTML = items.map((d, i) => `
       <button class="device-popup-item${d.deviceId === currentId ? ' active' : ''}"
-              data-id="${d.deviceId}" data-type="${type}">
-        <span class="device-popup-item-label">${d.label || 'Dispositivo ' + (i + 1)}</span>
+              data-id="${esc(d.deviceId)}" data-type="${type}">
+        <span class="device-popup-item-label"${d.virtual ? '' : ' translate="no"'}>${esc(d.label || fallback + (i + 1))}</span>
       </button>`).join('');
 
     listEl.querySelectorAll('.device-popup-item').forEach(btn => {
@@ -381,25 +467,9 @@ class DeviceSelector {
       });
     });
 
-    // Sezione speaker (solo nel popup audio)
-    if (type === 'audioinput' && this.devices.audiooutput.length > 0) {
-      const currentSpeakerId = window._tdmeetSpeakerId || '';
-      speakerList.innerHTML = this.devices.audiooutput.map((d, i) => `
-        <button class="device-popup-item${d.deviceId === currentSpeakerId ? ' active' : ''}"
-                data-id="${d.deviceId}" data-type="audiooutput">
-          <span class="device-popup-item-label">${d.label || 'Speaker ' + (i + 1)}</span>
-        </button>`).join('');
-      speakerList.querySelectorAll('.device-popup-item').forEach(btn => {
-        btn.addEventListener('click', () => this._switch('audiooutput', btn.dataset.id));
-        btn.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          this._switch('audiooutput', btn.dataset.id);
-        });
-      });
-      speakerSec.classList.remove('hidden');
-    } else {
-      speakerSec.classList.add('hidden');
-    }
+    // 1.5.4: l'uscita audio ha il suo pulsante e il suo popup: la vecchia
+    // sezione "Speaker" dentro il popup del microfono non si mostra più
+    speakerSec?.classList.add('hidden');
 
     // Livelli reali di microfono e casse + interruttore del volume automatico
     this._renderAudioExtras(type);
@@ -456,64 +526,38 @@ class DeviceSelector {
   async _switch(type, deviceId) {
     this._close();
 
-    // Speaker output (setSinkId)
+    // Uscita audio (setSinkId). deviceId '' = uscita di sistema.
     if (type === 'audiooutput') {
-      const testEl = document.createElement('audio');
-      if (typeof testEl.setSinkId !== 'function') {
-        window.showToast?.('Speaker non cambiabile da browser (usa impostazioni di sistema)');
+      if (!window._tdmeetCanPickOutput()) {
+        window.showToast?.('Questo browser usa l\'uscita audio scelta nel sistema');
         return;
       }
-
-      window._tdmeetSpeakerId = deviceId;
+      window._tdmeetSpeakerId = deviceId && deviceId !== 'default' ? deviceId : (deviceId || null);
       // ⭐ Persisti per riapertura stanza (NON per i guest, che hanno cleanup all'inizio)
       try {
-        if (!sessionStorage.getItem('tdmeet_guest_token')) {
-          localStorage.setItem('vc_speakerId', deviceId);
-        }
+        if (!sessionStorage.getItem('tdmeet_guest_token')) localStorage.setItem('vc_speakerId', deviceId || '');
       } catch {}
 
-      // Raccolgo TUTTI gli elementi audio da aggiornare:
-      // 1. Audio elements dei peer remoti (creati con new Audio(), NON nel DOM)
-      // 2. Video elements remoti nel DOM (non muted)
+      // Tutti gli elementi che suonano l'audio degli altri: <audio> dei
+      // partecipanti (Map globale, vedi room.js) + eventuali <video> non muti
       const targets = [];
-
-      // Peer audios tracciati via Map globale (vedi room.js)
       if (window._tdmeetPeerAudios) {
-        for (const [peerId, audio] of window._tdmeetPeerAudios) {
-          if (audio && audio.srcObject) targets.push(audio);
-        }
+        for (const [, audio] of window._tdmeetPeerAudios) if (audio && audio.srcObject) targets.push(audio);
       }
-
-      // Video DOM dei peer remoti (hanno audio multiplato)
       for (const el of document.querySelectorAll('audio, video')) {
-        if (!el.srcObject) continue;
-        if (el.muted) continue;
+        if (!el.srcObject || el.muted) continue;
         if (el.id === 'video-local' || el.id === 'pjVideo') continue;
-        if (el.readyState < 1) continue;
-        if (targets.includes(el)) continue;
-        targets.push(el);
+        if (!targets.includes(el)) targets.push(el);
       }
-
-      console.log('[setSinkId] target elements:', targets.length);
-
-      let okCount = 0, failCount = 0;
+      let ok = 0, fail = 0;
       for (const el of targets) {
-        try {
-          await el.setSinkId(deviceId);
-          okCount++;
-        } catch (e) {
-          if (e.name !== 'AbortError' && e.name !== 'NotFoundError') {
-            failCount++;
-            console.warn('[setSinkId]', e.name, e.message);
-          }
-        }
+        if (await window._tdmeetApplySink(el, deviceId)) ok++; else fail++;
+        if (el.paused) el.play?.().catch(() => { });   // dopo il cambio alcuni browser si fermano
       }
-
-      if (failCount > 0 && okCount === 0) {
-        window.showToast?.('Speaker non cambiabile');
-      } else {
-        window.showToast?.('Speaker cambiato ✓');
-      }
+      const name = window._tdmeetOutputOptions(this.devices.audiooutput).find(d => d.deviceId === deviceId)?.label || '';
+      if (fail && !ok) window.showToast?.('Uscita audio non cambiabile: resto su quella di sistema', 3500);
+      else window.showToast?.((window.I18n?.t ? window.I18n.t('Uscita audio') : 'Uscita audio') + (name ? ': ' + name : ' cambiata ✓'), 2500);
+      document.dispatchEvent(new CustomEvent('tdt:devices'));
       return;
     }
 

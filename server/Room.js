@@ -252,6 +252,9 @@ class Room {
         if (s.jitterMs != null && p.kind === 'audio') row.jit = s.jitterMs;
         if (s.fracLost != null) { lossSum += Number(s.fracLost) * 100; lossN++; }
         if (typeof s.score === 'number') row.score = row.score == null ? s.score : Math.min(row.score, s.score);
+        // 1.5.4: la VOCE a parte. Con Opus DTX chi tace manda ~1 kbps: se uno
+        // parla e qui resta "silenzio", il suo microfono non sta catturando
+        if (p.kind === 'audio' && p.appData?.mediaType === 'audio') { row.voiceKbps = s.kbps; row.voiceMuted = !!p.paused; }
       }
       if (lossN) row.loss = Math.round(lossSum / lossN * 10) / 10;
       if (row.level == null && row.score != null) row.level = row.score >= 7 ? 3 : row.score >= 4 ? 2 : 1;

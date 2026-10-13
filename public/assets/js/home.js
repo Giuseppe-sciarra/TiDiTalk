@@ -145,6 +145,13 @@
     const spk = fill($('#selSpk'), 'audiooutput', pref.speakerId, 'Altoparlanti');
     const canSink = typeof document.createElement('audio').setSinkId === 'function';
     if (!canSink) { $('#selSpk').disabled = true; $('#selSpk').innerHTML = `<option value="">${T('Scelta dal sistema')}</option>`; }
+    else if (spk.length && !spk.some(d => d.deviceId === 'default')) {
+      // 1.5.4: Firefox non ha la voce "default": la aggiungiamo, e senza una
+      // scelta salvata si usa quella invece del primo dispositivo della lista
+      const sel = $('#selSpk');
+      sel.insertAdjacentHTML('afterbegin', `<option value="">${T('Predefinita del sistema')}</option>`);
+      sel.value = pref.speakerId && spk.some(d => d.deviceId === pref.speakerId) ? pref.speakerId : '';
+    }
     pref.audioId = $('#selMic').value || null; pref.videoId = $('#selCam').value || null; pref.speakerId = canSink ? ($('#selSpk').value || null) : null;
     if (!spk.length) $('#btnTestSpk').disabled = false;
   }

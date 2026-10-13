@@ -74,6 +74,10 @@ tuo marchio.
 **Nella stanza**
 - Chat, reazioni, alzata di mano, elenco partecipanti, **sondaggi** (li creano
   gli organizzatori, votano tutti, risultati in diretta, anonimi o con i nomi)
+- **Microfono e casse sono comandi separati**: ti muti senza silenziare gli
+  altri, oppure silenzi gli altri (`A`) senza toccare il microfono. La ▾ delle
+  casse sceglie l'uscita (quella di sistema, se non ne scegli un'altra), mostra
+  il livello, fa un suono di prova e può ricollegare l'audio
 - **Push-to-talk**: da muto, tieni premuto Spazio per parlare
 - **Riduzione rumore avanzata** (rete neurale RNNoise in WebAssembly, gira nel
   browser, nessun dato esce dal computer) — interruttore nel popup del microfono
@@ -278,7 +282,7 @@ ed è usato dall'aggiornamento automatico per non riavviare durante una chiamata
 
 ## Scorciatoie da tastiera
 
-`M` microfono · `V` videocamera · `S` presenta · `D` disegna · `H` alza la mano ·
+`M` microfono · `A` casse · `V` videocamera · `S` presenta · `D` disegna · `H` alza la mano ·
 `C` chat · `U` persone · `Spazio` tenuto premuto da muto per parlare (push-to-talk).
 Mentre disegni: `P` penna, `E` evidenziatore, `A` freccia, `R` riquadro,
 `O` cerchio, `T` testo, `X` gomma, `L` laser, `Ctrl+Z` annulla, `Esc` esci.
@@ -304,6 +308,12 @@ Mentre disegni: `P` penna, `E` evidenziatore, `A` freccia, `R` riquadro,
 - **Gli inviti non arrivano** — Impostazioni → Sistema mostra lo stato SMTP e ha
   il pulsante per l'email di prova.
 - **Gli aggiornamenti non partono** — `bash install-cron.sh --status`.
+- **Non senti gli altri** — ▾ delle casse → *Fai un suono di prova*. Se non
+  senti nemmeno quello, il browser ha perso l'uscita audio: *Ricollega
+  l'audio*, e se non basta chiudi e riapri il browser. Con le cuffie
+  Bluetooth scegli il microfono del computer: usare quello delle cuffie le
+  mette in "modalità telefono" (audio peggiore e, sul Mac, può lasciare il
+  browser senza suono).
 - **Qualcuno entra e non sente** — da organizzatore apri ⋮ → *Rete e
   qualità*: la sezione Partecipanti mostra la sua connessione. Sul server
   `docker logs tdt-app 2>&1 | grep CONN` registra anche cosa ha fatto il suo

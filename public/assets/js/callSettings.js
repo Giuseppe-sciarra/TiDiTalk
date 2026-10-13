@@ -76,8 +76,11 @@
     const d = ds?.devices || { audioinput: [], videoinput: [], audiooutput: [] };
     const micId = window._localMicTrack?.getSettings?.()?.deviceId || '';
     const camId = window._localCamTrack?.getSettings?.()?.deviceId || '';
-    const spkId = window._tdmeetSpeakerId || '';
-    const opts = (list, cur, fallback) => list.length ? list.map((x, i) => `<option value="${esc(x.deviceId)}" ${x.deviceId === cur ? 'selected' : ''}>${esc(x.label || fallback + ' ' + (i + 1))}</option>`).join('') : `<option value="">${T('Nessun dispositivo')}</option>`;
+    // 1.5.4: uscita con la voce "Predefinita del sistema" (prima, senza scelta, il
+    // menu mostrava il primo dispositivo come se fosse quello in uso)
+    const outs = window._tdmeetOutputOptions ? window._tdmeetOutputOptions(d.audiooutput) : d.audiooutput;
+    const spkId = window._tdmeetCurrentOutput ? window._tdmeetCurrentOutput(d.audiooutput) : (window._tdmeetSpeakerId || '');
+    const opts = (list, cur, fallback) => list.length ? list.map((x, i) => `<option value="${esc(x.deviceId)}" ${x.deviceId === cur ? 'selected' : ''}>${esc(x.virtual ? T(x.label) : (x.label || fallback + ' ' + (i + 1)))}</option>`).join('') : `<option value="">${T('Nessun dispositivo')}</option>`;
     const canSink = typeof document.createElement('audio').setSinkId === 'function';
     const agcOn = !!window._tdmeetAgc?.();
     const rnnOk = !!window.TdtNoise?.supported?.();
@@ -87,7 +90,7 @@
         <div class="cs-field"><label for="csMic">Microfono</label><select id="csMic" class="cs-select">${opts(d.audioinput, micId, T('Microfono'))}</select></div>
         <div class="cs-meter-row"><span class="dp-lbl">Livello</span><div class="dp-meter"><i id="csMicBar"></i></div></div>
         <div class="cs-field"><label for="csCam">Videocamera</label><select id="csCam" class="cs-select">${opts(d.videoinput, camId, T('Videocamera'))}</select></div>
-        <div class="cs-field"><label for="csSpk">Altoparlanti</label><select id="csSpk" class="cs-select" ${canSink ? '' : 'disabled'}>${opts(d.audiooutput, spkId, T('Altoparlanti'))}</select>${canSink ? '' : `<small class="cs-hint">${T('Questo browser non permette di scegliere l\'uscita audio: usa le impostazioni di sistema.')}</small>`}</div>
+        <div class="cs-field"><label for="csSpk">Uscita audio (casse o cuffie)</label><select id="csSpk" class="cs-select" ${canSink ? '' : 'disabled'}>${opts(canSink ? outs : outs.slice(0, 1), spkId, T('Uscita audio'))}</select>${canSink ? '' : `<small class="cs-hint">${T('Questo browser non permette di scegliere l\'uscita audio: usa le impostazioni di sistema.')}</small>`}</div>
       </div>
       <div class="cs-group">
         ${sw('csAgc', T('Volume del microfono automatico'), agcOn, T('Se il volume d\'ingresso si abbassa da solo durante le chiamate, spegnilo.'))}
@@ -95,7 +98,8 @@
         ${sw('csMirror', T('Specchia il mio video'), ls.get('tdt_mirror', '1') !== '0', T('Solo per te: gli altri ti vedono sempre nel verso giusto.'))}
       </div>`;
     const bind = (id, type) => body.querySelector(id)?.addEventListener('change', (e) => { if (e.target.value) ds?._switch(type, e.target.value); });
-    bind('#csMic', 'audioinput'); bind('#csCam', 'videoinput'); bind('#csSpk', 'audiooutput');
+    bind('#csMic', 'audioinput'); bind('#csCam', 'videoinput');
+    body.querySelector('#csSpk')?.addEventListener('change', (e) => ds?._switch('audiooutput', e.target.value)); // '' = uscita di sistema
     body.querySelector('#csAgc').addEventListener('change', (e) => ds?.setAgc(e.target.checked));
     body.querySelector('#csRnn')?.addEventListener('change', async (e) => { e.target.disabled = true; try { await ds?.setRnn(e.target.checked); } catch (_) { e.target.checked = false; } finally { e.target.disabled = false; } });
     body.querySelector('#csMirror').addEventListener('change', (e) => {
@@ -230,7 +234,7 @@
 
   // ── Scorciatoie ──────────────────────────────────────────────────────────
   function renderKeys(body) {
-    const K = [['M', 'Microfono on/off'], ['V', 'Videocamera on/off'], ['S', 'Condividi lo schermo'], ['D', 'Disegna sullo schermo condiviso'], ['H', 'Alza / abbassa la mano'], ['C', 'Apri / chiudi la chat'], ['U', 'Apri / chiudi Persone'], ['Spazio (tieni premuto)', 'Parla mentre sei muto (push-to-talk)'], ['Esc', 'Chiudi pannelli e finestre']];
+    const K = [['M', 'Microfono on/off'], ['A', 'Casse on/off (senti o silenzia gli altri)'], ['V', 'Videocamera on/off'], ['S', 'Condividi lo schermo'], ['D', 'Disegna sullo schermo condiviso'], ['H', 'Alza / abbassa la mano'], ['C', 'Apri / chiudi la chat'], ['U', 'Apri / chiudi Persone'], ['Spazio (tieni premuto)', 'Parla mentre sei muto (push-to-talk)'], ['Esc', 'Chiudi pannelli e finestre']];
     body.innerHTML = `<div class="cs-group"><table class="cs-keys">${K.map(([k, d]) => `<tr><td><kbd>${k}</kbd></td><td>${T(d)}</td></tr>`).join('')}</table><small class="cs-hint">${T('Le scorciatoie non scattano mentre scrivi in chat o in un campo di testo.')}</small></div>`;
   }
 

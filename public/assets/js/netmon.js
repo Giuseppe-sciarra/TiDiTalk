@@ -241,6 +241,9 @@
       const net = p.net && (p.net.type || p.net.down) ? `${p.net.type || ''}${p.net.down ? ` ~${p.net.down} Mbps` : ''}${p.net.save ? ' · ' + T('risparmio dati') : ''}` : '';
       const kv = [];
       kv.push(`↑ ${p.up} kbps`, `↓ ${p.down} kbps`);
+      // voce: muto / silenzio (Opus DTX ≈ 1 kbps) / kbps reali
+      if (p.voiceMuted) kv.push(T('voce: muto'));
+      else if (p.voiceKbps != null) kv.push(p.voiceKbps < 4 ? `${T('voce')} ${p.voiceKbps} kbps · ${T('silenzio')}` : `${T('voce')} ${p.voiceKbps} kbps`);
       if (p.rtt != null) kv.push(`${T('latenza')} ${p.rtt} ms`);
       if (p.jit != null) kv.push(`jitter ${p.jit} ms`);
       if (p.loss != null) kv.push(`${T('persi')} ${p.loss}%`);

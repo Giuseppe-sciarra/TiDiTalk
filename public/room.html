@@ -166,7 +166,14 @@
           <div class="ctrl-icon"><span class="icon-on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg></span><span class="icon-off hidden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M9 9v2a3 3 0 0 0 5.1 2.1M15 10.3V5.5a3 3 0 0 0-5.8-1"/><path d="M5 11a7 7 0 0 0 11.3 5.5M19 11a7 7 0 0 1-.6 2.8M12 18v3.5M8.5 21.5h7"/></svg></span></div>
           <span class="ctrl-label">Microfono</span>
         </button>
-        <button class="ctrl-btn-chevron" id="btnMicChevron" data-tip="Scegli microfono e altoparlanti"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+        <button class="ctrl-btn-chevron" id="btnMicChevron" data-tip="Scegli il microfono"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+      </div>
+      <div class="ctrl-btn-group">
+        <button class="ctrl-btn" id="btnSpeaker" data-tip="Casse: senti o silenzia gli altri. Il microfono non cambia" data-key="a">
+          <div class="ctrl-icon"><span class="icon-on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6.5 9H3v6h3.5L11 19z"/><path d="M15.5 8.8a4.5 4.5 0 0 1 0 6.4M18.4 6a8.5 8.5 0 0 1 0 12"/></svg></span><span class="icon-off hidden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6.5 9H3v6h3.5L11 19z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></span></div>
+          <span class="ctrl-label">Casse</span>
+        </button>
+        <button class="ctrl-btn-chevron" id="btnSpkChevron" data-tip="Scegli dove ascoltare: casse o cuffie"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
       </div>
       <div class="ctrl-btn-group">
         <button class="ctrl-btn" id="btnCamera" data-tip="Videocamera: accendi o spegni" data-key="v">
@@ -237,7 +244,7 @@
     <div class="device-popup-title" id="devicePopupTitle">Seleziona dispositivo</div>
     <div class="device-popup-list" id="devicePopupList"></div>
     <div class="device-popup-speaker hidden" id="devicePopupSpeaker">
-      <div class="device-popup-sep">Speaker</div>
+      <div class="device-popup-sep">Uscita audio</div>
       <div class="device-popup-list" id="devicePopupSpeakerList"></div>
     </div>
   </div>

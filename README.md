@@ -70,6 +70,10 @@ cloud, your branding.
 **In the room**
 - Chat, reactions, raise hand, participant list, **polls** (hosts create,
   everyone votes, live results, anonymous or with names)
+- **Microphone and speakers are separate controls**: mute yourself without
+  muting the others, or silence the others (`A`) without touching your
+  microphone. The speakers ▾ picks the output (system default unless you
+  choose), shows the level, plays a test sound and can reconnect the audio
 - **Push-to-talk**: while muted, hold Space to talk
 - **Advanced noise reduction** (RNNoise neural network in WebAssembly, runs
   in the browser, no data leaves the computer) — switch in the microphone popup
@@ -269,7 +273,7 @@ is used by the updater to avoid restarting during a call.
 
 ## Keyboard shortcuts
 
-`M` microphone · `V` camera · `S` present · `D` draw · `H` raise hand ·
+`M` microphone · `A` speakers · `V` camera · `S` present · `D` draw · `H` raise hand ·
 `C` chat · `U` people · hold `Space` while muted to talk (push-to-talk).
 While drawing: `P` pen, `E` highlighter, `A` arrow, `R` rectangle, `O` circle,
 `T` text, `X` eraser, `L` laser, `Ctrl+Z` undo, `Esc` exit.
@@ -294,6 +298,12 @@ While drawing: `P` pen, `E` highlighter, `A` arrow, `R` rectangle, `O` circle,
 - **Invitations not delivered** — Settings → System shows the SMTP status and
   has a test button.
 - **Updates not happening** — `bash install-cron.sh --status`.
+- **You can't hear the others** — speakers ▾ → *Play a test sound*. If you
+  can't hear even that, the browser has lost its audio output: *Reconnect the
+  audio*, and if that doesn't help close and reopen the browser. With
+  Bluetooth headphones, pick the computer's microphone: using the headphones'
+  own microphone switches them to "phone mode" (low quality, and on Mac it can
+  leave the browser without sound).
 - **Someone joins and can't hear** — open ⋮ → *Network & quality* as a host:
   the Participants section shows their connection. On the server,
   `docker logs tdt-app 2>&1 | grep CONN` also logs what their browser did with
