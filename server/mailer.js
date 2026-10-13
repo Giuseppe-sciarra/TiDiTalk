@@ -131,7 +131,7 @@ ${meeting.notes ? `<div style="background:#f1f3f5;border-radius:10px;padding:12p
 
   const html = layout({
     b, title: E(meeting.title),
-    subtitle: isHost ? tr('Hai pianificato questa riunione') : E(tr('Ti ha invitato {0}').replace('{0}',hostName || '')),
+    subtitle: isHost ? tr('Hai pianificato questa riunione') : E(tr('Ti ha invitato {0}').replace('{0}', () => hostName || '')),
     bodyHtml, footerHtml, language,
   });
   const text = `${meeting.title}\n${dateStr}, ${timeStr} (${meeting.duration_min} min)\n\n${isHost ? tr('Apri') : tr('Partecipa')}: ${guestUrl}\n${meeting.notes ? '\n' + meeting.notes + '\n' : ''}`;
@@ -139,7 +139,7 @@ ${meeting.notes ? `<div style="background:#f1f3f5;border-radius:10px;padding:12p
   await transporter.sendMail({
     from: { name: b.platformName, address: getSmtpConfig().from },
     to,
-    subject: tr(isHost ? 'Confermata: {0}' : 'Invito: {0}').replace('{0}', meeting.title),
+    subject: tr(isHost ? 'Confermata: {0}' : 'Invito: {0}').replace('{0}', () => meeting.title),
     html, text,
     attachments: [{ filename: 'meeting.ics', content: generateICS(meeting, guestUrl, language), contentType: 'text/calendar; method=REQUEST; charset=UTF-8' }],
   });

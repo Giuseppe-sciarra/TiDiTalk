@@ -403,12 +403,15 @@ app.post('/api/room/:roomId/invite', authMiddleware, (req, res) => {
   // diverso da quello mandato in email → confusione e durate incoerenti.
   // Per stanze ad-hoc senza meeting, comportamento invariato (genera token nuovo 48h).
   const meeting = db.getMeetingByRoomId(roomId);
-  if (meeting && meeting.guest_token) {
+  // ⭐ 1.5.2: il token salvato va verificato — se la riunione è passata da
+  // giorni (riaperta da "Recenti") era SCADUTO e "Copia link" dava un link morto
+  if (meeting && meeting.guest_token && verifyGuestToken(meeting.guest_token)) {
     return res.json({ url: `${baseUrl}/join/${meeting.guest_token}`, token: meeting.guest_token, persisted: true });
   }
 
   const token = generateGuestToken(roomId, 48);
-  res.json({ url: `${baseUrl}/join/${token}`, token, persisted: false });
+  if (meeting) { try { db.setMeetingGuestToken(meeting.id, token); } catch (_) { } }
+  res.json({ url: `${baseUrl}/join/${token}`, token, persisted: !!meeting });
 });
 
 // Verifica token guest (usato da guest.html)
@@ -453,7 +456,7 @@ function _cleanInvitees(list) {
 app.get('/api/rooms/recent', authMiddleware, (req, res) => {
   const list = db.recentRooms(req.user.username, parseInt(req.query.limit) || 12).map(r => {
     const m = db.getMeetingByRoomId(r.roomId);
-    return { ...r, title: m ? m.title : '', live: rooms.has(r.roomId), liveCount: rooms.get(r.roomId)?.peers.size || 0 };
+    return { ...r, title: m ? m.title : '', live: rooms.has(r.roomId) && !r.endedAt, liveCount: rooms.get(r.roomId)?.peers.size || 0 };
   });
   res.json(list);
 });
@@ -494,6 +497,7 @@ app.post('/api/meetings', authMiddleware, async (req, res) => {
     const { title, scheduled_at, notes = '' } = req.body || {};
     if (!title || !scheduled_at) return res.status(400).json({ error: 'title e scheduled_at obbligatori' });
     if (isNaN(new Date(scheduled_at).getTime())) return res.status(400).json({ error: 'scheduled_at non valido' });
+    if (new Date(scheduled_at).getTime() < Date.now() - 5 * 60000) return res.status(400).json({ error: 'La data della riunione è nel passato' });
     // ⭐ FIX R11: invitati validati (prima qualsiasi stringa finiva a nodemailer)
     const invitees = _cleanInvitees(req.body.invitees);
     const duration_min = Math.max(5, Math.min(1440, parseInt(req.body.duration_min, 10) || 60));
@@ -527,21 +531,19 @@ app.post('/api/meetings', authMiddleware, async (req, res) => {
     // invitati riceve SEMPRE il link guest /join/<token> (con countdown).
     // L'UNICA email host (link /room/ diretto) è quella di conferma inviata
     // a HOST_NOTIFY_EMAIL (se impostata) qui sotto.
-    const emailResults = [];
-    for (const email of invitees) {
-      const inviteUrl = `${baseUrl}/join/${sharedGuestToken}`;
+    // ⭐ 1.5.2: invii in parallelo (prima uno alla volta: con molti invitati la
+    // richiesta durava minuti e il proxy rispondeva 504 a riunione già creata)
+    const inviteUrl = `${baseUrl}/join/${sharedGuestToken}`;
+    const emailResults = await Promise.all(invitees.map(async (email) => {
       try {
-        await sendInvite({
-          to: email, meeting, guestUrl: inviteUrl, hostName: displayName,
-          isHost: false, language: uiLanguage,
-        });
-        emailResults.push({ email, sent: true });
+        await sendInvite({ to: email, meeting, guestUrl: inviteUrl, hostName: displayName, isHost: false, language: uiLanguage });
         console.log(`[meetings] invito guest → ${email}`);
+        return { email, sent: true };
       } catch (err) {
         console.error('[mailer]', email, err.message);
-        emailResults.push({ email, sent: false, error: err.message });
+        return { email, sent: false, error: err.message };
       }
-    }
+    }));
 
     const hostUrl = `${baseUrl}/room/${roomId}`;
     // ⭐ L'email host arriva SOLO a questo indirizzo, sempre.
@@ -574,12 +576,14 @@ app.delete('/api/meetings/:id', authMiddleware, (req, res) => {
 });
 
 app.put('/api/meetings/:id', authMiddleware, async (req, res) => {
-  const payload = { username: req.user.username };
-  const { title, scheduled_at, notes } = req.body || {};
+  const { title, scheduled_at, notes = '' } = req.body || {};
   const ts = new Date(scheduled_at).getTime();
   if (!title || isNaN(ts)) return res.status(400).json({ error: 'title e scheduled_at validi obbligatori' });
+  // come la DELETE: l'utente loggato può modificare qualsiasi riunione
+  let createdBy = req.user.username;
+  try { const m = db.getMeeting(req.params.id); if (m && m.created_by) createdBy = m.created_by; } catch (_) { }
   const updated = db.updateMeeting({
-    id: req.params.id, created_by: payload.username,
+    id: req.params.id, created_by: createdBy,
     title, scheduled_at: Math.floor(ts / 1000),
     duration_min: Math.max(5, Math.min(1440, parseInt(req.body.duration_min, 10) || 60)),
     invitees: _cleanInvitees(req.body.invitees), notes,
@@ -871,7 +875,7 @@ function _destroyRoom(room) {
   if (room.tickets && room.tickets.size) _ticketGrace.set(room.id, { tickets: room.tickets, ts: Date.now() });
   try { db.endRoomLog(room.logId, room.peakPeers, room.seenNames); } catch (_) { }
   try { room.close(); } catch (_) { }
-  rooms.delete(room.id);
+  if (rooms.get(room.id) === room) rooms.delete(room.id); // mai togliere una stanza NUOVA con lo stesso codice
 }
 // Avvisa gli organizzatori di chi aspetta in sala d'attesa
 function _lobbyNotifyHosts(room) {
@@ -1071,6 +1075,17 @@ io.on('connection', (socket) => {
       }
 
       const room = await getOrCreateRoom(roomId);
+      // 1.5.2: stesso socket che entra in un'ALTRA stanza → esce dalla prima
+      // (prima restava un peer fantasma e quella stanza non si chiudeva mai)
+      if (currentRoom && currentRoom !== room) {
+        const old = currentRoom;
+        if (old.hasInLobby(socket.id)) old.removeFromLobby(socket.id);
+        const p = old.removePeer(socket.id);
+        if (p) { socket.leave(old.id); socket.to(old.id).emit('peerLeft', { peerId: socket.id, displayName: p.displayName }); }
+        _lobbyNotifyHosts(old);
+        if (old.isFullyEmpty()) _destroyRoom(old);
+        currentRoom = null; currentPeer = null;
+      }
       // Il client può essersi disconnesso mentre la stanza veniva creata: senza
       // questo controllo si registrava un peer fantasma (stanza mai vuota →
       // router mediasoup mai chiuso, e un host fantasma faceva saltare la lobby)
@@ -1127,6 +1142,9 @@ io.on('connection', (socket) => {
       // Senza questo, alla disconnessione l'handler 'disconnect' vedeva
       // hasInLobby()===true e faceva return anticipato SENZA removePeer →
       // tile fantasma per tutti, producer orfani, stanza mai eliminata.
+      // 1.5.2: stanza piena → errore PRIMA di toglierlo dalla lobby (altrimenti
+      // restava "in attesa" nella scheda degli organizzatori senza poter entrare)
+      if (!room.peers.has(socket.id) && room.peers.size >= room.maxPeers) throw new Error('Stanza piena (max 20)');
       const _wasInLobby = room.hasInLobby(socket.id);
       room.removeFromLobby(socket.id);
 
@@ -1389,7 +1407,7 @@ io.on('connection', (socket) => {
     } catch (err) { callback?.({ error: err.message }); }
   });
 
-  socket.on('closeProducer', ({ producerId }, callback) => {
+  socket.on('closeProducer', ({ producerId } = {}, callback) => {
     try {
       // Salva mediaType prima di chiudere (serve ai client per distinguere screen da camera)
       const _mediaType = currentPeer?.producers.get(producerId)?.appData?.mediaType;

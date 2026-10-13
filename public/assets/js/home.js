@@ -88,6 +88,9 @@
     return Tdt.roomCode(v) || v.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 32);
   }
   $('#btnJoinRoom').addEventListener('click', () => {
+    // 1.5.2: incollato un link d'invito /join/<token> → si segue quello
+    const jl = String(idIn.value || '').match(/\/join\/([A-Za-z0-9_.-]+)/);
+    if (jl) { window.location.href = '/join/' + jl[1]; return; }
     const code = codeFromInput(idIn.value);
     if (!code) { idIn.focus(); return; }
     go(`/room/${code}`);
@@ -186,25 +189,30 @@
       meter = () => { clearInterval(t); try { src.disconnect(); ctx.close(); } catch (_) { } };
     } catch (_) { }
   }
+  let _pvGen = 0; // 1.5.2: due avvii concorrenti (scheda tornata visibile + cambio dispositivo) perdevano uno stream acceso
   async function startPreview() {
     const note = $('#homeTileNote');
     stopPreview();
+    const gen = ++_pvGen;
     if (!navigator.mediaDevices?.getUserMedia) { note.textContent = T('Anteprima non disponibile su questo browser'); note.classList.remove('hidden'); setStatus('bad', 'Browser non supportato'); syncToggles(); return; }
     setStatus('wait', 'Controllo in corso…');
     const vid = pref.videoId, aud = pref.audioId;
     const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, ...(aud ? { deviceId: { ideal: aud } } : {}) };
     const video = { width: { ideal: 1280 }, height: { ideal: 720 }, ...(vid ? { deviceId: { ideal: vid } } : {}) };
     let err = null;
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio, video }); }
+    let got = null;
+    try { got = await navigator.mediaDevices.getUserMedia({ audio, video }); }
     catch (e1) {
       err = e1;
-      try { stream = await navigator.mediaDevices.getUserMedia({ audio }); } catch (e2) { try { stream = await navigator.mediaDevices.getUserMedia({ video }); } catch (e3) { stream = null; } }
+      try { got = await navigator.mediaDevices.getUserMedia({ audio }); } catch (e2) { try { got = await navigator.mediaDevices.getUserMedia({ video }); } catch (e3) { got = null; } }
     }
+    if (gen !== _pvGen) { try { got?.getTracks().forEach(t => t.stop()); } catch (_) { } return; } // superato da un avvio più recente
+    stream = got;
     const v = $('#homeVideo');
     note.classList.add('hidden');
     if (stream) {
       v.srcObject = stream; v.play?.().catch(() => { });
-      stream.getTracks().forEach(t => t.addEventListener('ended', () => { if (stream) { stream = null; syncToggles(); setStatus('bad', 'Dispositivo scollegato'); } }));
+      stream.getTracks().forEach(t => t.addEventListener('ended', () => { if (stream) { stopPreview(); syncToggles(); setStatus('bad', 'Dispositivo scollegato'); } }));
       const hasV = !!stream.getVideoTracks().length, hasA = !!stream.getAudioTracks().length;
       if (hasV && hasA) setStatus('ok', 'Tutto pronto');
       else if (hasA) { setStatus('warn', 'Videocamera non disponibile'); note.textContent = T('Nessuna videocamera: entrerai in solo audio'); note.classList.remove('hidden'); }

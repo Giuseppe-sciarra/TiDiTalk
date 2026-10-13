@@ -68,7 +68,8 @@
     function nextUrl() {
       try {
         const n = sessionStorage.getItem('tdmeet_next');
-        if (n && n.startsWith('/')) { sessionStorage.removeItem('tdmeet_next'); return n; }
+        // solo percorsi interni: "//evil.com" o "/\\evil.com" sarebbero un open redirect
+        if (n && /^\/(?![\/\\])/.test(n)) { sessionStorage.removeItem('tdmeet_next'); return n; }
       } catch (e) { }
       return '/home';
     }
@@ -107,6 +108,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Accesso non riuscito');
         localStorage.setItem('tdmeet_token', data.token);
+        try { sessionStorage.removeItem('tdmeet_guest_token'); } catch (e) { } // un vecchio link ospite non deve vincere sul login
         localStorage.setItem('tdmeet_user', data.displayName);
         localStorage.setItem('vc_displayName', data.displayName);
         window.location.href = nextUrl();

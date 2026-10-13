@@ -181,7 +181,7 @@
   <script src="/assets/js/shapes.js"></script>
   <script src="/assets/js/app.js"></script>
   <script>
-    const TOKEN = window.location.pathname.split('/').pop();
+    const TOKEN = window.location.pathname.replace(/\/+$/, '').split('/').pop();
     let roomId = null;
     const errEl = document.getElementById('errorMsg');
     const nameEl = document.getElementById('guestName');

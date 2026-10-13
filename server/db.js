@@ -138,6 +138,10 @@ function deleteMeeting(id, createdBy) {
   return result.changes > 0;
 }
 
+// 1.5.2: nuovo link ospite per una riunione il cui token era scaduto
+const _setMeetingToken = db.prepare(`UPDATE meetings SET guest_token = ? WHERE id = ?`);
+function setMeetingGuestToken(id, token) { _setMeetingToken.run(token, id); }
+
 function updateMeeting(data) {
   const result = stmt.update.run({
     ...data,
@@ -403,7 +407,7 @@ function hideRecentRoom(logId, username) {
 module.exports = {
   startRoomLog, setRoomLogHost, addRoomLogUser, touchRoomLog, endRoomLog, recentRooms, hideRecentRoom,
   addFeedback, listFeedback, deleteFeedback,
-  createMeeting, getMeeting, getMeetingByRoomId, getMeetings, getAllMeetings, deleteMeeting, updateMeeting,
+  createMeeting, getMeeting, getMeetingByRoomId, getMeetings, getAllMeetings, deleteMeeting, updateMeeting, setMeetingGuestToken,
   getSetting, setSetting, getAllSettings,
   getUser, createUser, updateUser, upsertUser, updateUserPassword, deleteUser, listUsers, countAdmins,
   recordLoginAttempt, countRecentFailedLogins,

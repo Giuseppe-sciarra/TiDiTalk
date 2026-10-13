@@ -100,7 +100,7 @@
     body.querySelector('#csRnn')?.addEventListener('change', async (e) => { e.target.disabled = true; try { await ds?.setRnn(e.target.checked); } catch (_) { e.target.checked = false; } finally { e.target.disabled = false; } });
     body.querySelector('#csMirror').addEventListener('change', (e) => {
       ls.set('tdt_mirror', e.target.checked ? '1' : '0');
-      const v = document.querySelector('#video-local video, .video-tile.local video'); if (v) v.style.transform = e.target.checked ? 'scaleX(-1)' : 'none';
+      const v = document.getElementById('video-local'); if (v) v.style.transform = e.target.checked ? 'scaleX(-1)' : 'none'; // 1.5.2: prima prendeva lo schermo condiviso
     });
     startMicMeter(body);
   }
@@ -239,7 +239,7 @@
     const B = window.__BRAND || {};
     const name = B.branding?.platformName || document.title.split('·').pop().trim();
     const link = `${location.origin}/room/${ROOM_ID}`;
-    const n = (document.querySelectorAll('.video-tile:not(.screen-tile)').length) || 1;
+    const n = (document.querySelectorAll('.video-tile:not(.screenshare)').length) || 1;
     body.innerHTML = `
       <div class="cs-group cs-info">
         <div class="cs-info-row"><span>Riunione</span><b translate="no">${esc(ROOM_ID)}</b></div>

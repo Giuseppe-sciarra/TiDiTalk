@@ -131,7 +131,15 @@ let pinnedPeerId = null;  // null = auto-layout
 window.addEventListener('DOMContentLoaded', async () => {
   // Verifica auth — redirect al login se token mancante, SALVO guest token valido
   const _token = localStorage.getItem('tdmeet_token');
-  const _guestToken = sessionStorage.getItem('tdmeet_guest_token');
+  let _guestToken = sessionStorage.getItem('tdmeet_guest_token');
+  // ⭐ 1.5.2: un vecchio link ospite aperto in questa scheda non deve vincere sul
+  // login dell'organizzatore (prima: entrava come ospite, o veniva sloggato se
+  // il token ospite era di un'altra stanza)
+  if (_token && _guestToken) {
+    let gRoom = null;
+    try { gRoom = JSON.parse(atob(_guestToken.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))).roomId; } catch (_) { }
+    if (gRoom !== ROOM_ID) { sessionStorage.removeItem('tdmeet_guest_token'); _guestToken = null; }
+  }
 
   if (!_token && !_guestToken) {
     // Conserva la destinazione (es. /room/ABCD123) per il post-login
@@ -335,6 +343,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     setLoading('Errore: ' + err.message);
   }
 });
+
+// ⭐ 1.5.2: ricarica "di servizio" (riconnessione, organizzatore uscito). Se si
+// sta registrando, prima SALVA il file: prima il reload faceva scattare la
+// conferma del browser e la registrazione andava persa in ogni caso.
+async function _reloadForRejoin(before) {
+  if (isRecording) {
+    try { await stopRecording(); } catch (_) { }
+    await new Promise(r => setTimeout(r, 800));
+  }
+  _leaving = true; // niente conferma "stai registrando", niente banner "riprovo"
+  try { before?.(); } catch (_) { }
+  setTimeout(() => location.reload(), 1200);
+}
 
 // ─── Guest wait overlay ───────────────────────────────────────────────────────
 function showGuestWaitOverlay(mode = 'host') {
@@ -1068,7 +1089,7 @@ async function initSocket() {
       if (_wasDisconnected) {
         showToast?.('🔄 Riconnessione completata, ricarico la stanza…', 2000);
         _saveRejoin('reconnect'); // ⭐ 1.5.1: si rientra senza prejoin né sala d'attesa
-        setTimeout(() => location.reload(), 1500);
+        _reloadForRejoin();
       }
     });
 
@@ -1164,14 +1185,12 @@ async function initSocket() {
         return;
       }
       _saveRejoin('host-left'); // ⭐ 1.5.1: dopo il reload si aspetta senza rifare il prejoin
-      try { rawCamStream?.getTracks().forEach(t => t.stop()); } catch { }
-      try { socket?.disconnect(); } catch { }
       // Notifica visiva prima del reload
       const msg = document.createElement('div');
       msg.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--bg,#121318);display:flex;align-items:center;justify-content:center;color:#fff;font-family:inherit;font-size:16px;text-align:center;padding:24px;';
       msg.textContent = 'L\'host ha lasciato la riunione. Verrai rimesso in attesa…';
       document.body.appendChild(msg);
-      setTimeout(() => location.reload(), 1500);
+      _reloadForRejoin(() => { try { rawCamStream?.getTracks().forEach(t => t.stop()); } catch { } try { socket?.disconnect(); } catch { } });
     });
 
     // ── Sala d'attesa / moderazione ──────────────────────────────────────────
@@ -1180,6 +1199,7 @@ async function initSocket() {
       const prev = window._tdRoomRules || {};
       window._tdRoomRules = rules;
       window.TdtCallSettings?.onRules(rules);
+      _applyPolicyUi();
       if (prev.locked !== rules.locked) showToast(rules.locked ? `🔒 ${by} ha bloccato la stanza` : `🔓 ${by} ha sbloccato la stanza`);
       if (prev.waitingRoom !== rules.waitingRoom && window.__isHostRole) showToast(rules.waitingRoom ? `🚪 Sala d'attesa attivata da ${by}` : `🚪 Sala d'attesa disattivata da ${by}`);
     });
@@ -1536,11 +1556,13 @@ async function _produceAudioInner() {
       if (!track) throw new Error('Nessun audio track ottenuto dal fallback');
       localMicTrack = track;
       window._localMicTrack = track;
+      track.enabled = !micMuted;
       // Aggiungi al rawCamStream così speaking detection e device switch funzionano
-      if (rawCamStream) {
-        rawCamStream.getAudioTracks().forEach(t => { try { t.stop(); rawCamStream.removeTrack(t); } catch { } });
-        rawCamStream.addTrack(track);
-      }
+      // (1.5.2: se al prejoin non c'era nessuno stream lo creiamo qui, altrimenti
+      // registrazione e indicatore "sta parlando" non vedevano il microfono)
+      if (!rawCamStream) { rawCamStream = new MediaStream(); if (deviceSelector) deviceSelector.rawStream = rawCamStream; }
+      rawCamStream.getAudioTracks().forEach(t => { try { t.stop(); rawCamStream.removeTrack(t); } catch { } });
+      rawCamStream.addTrack(track);
       window._reinitSpeakingDetection?.();
       recorder?.refreshAudio?.();
       showToast?.('Microfono attivato');
@@ -1575,8 +1597,13 @@ async function _produceAudioInner() {
     return;
   }
   producers.set('audio', p);
+  // ⭐ 1.5.2: se nel frattempo l'utente è muto (permesso concesso dopo, "Riprova"
+  // dal banner) il producer nasce in pausa: prima gli altri lo sentivano mentre
+  // tutti, lui compreso, vedevano l'icona del muto
+  if (micMuted) { try { p.pause(); socket?.emit('pauseProducer', { producerId: p.id }); } catch (_) { } }
+  if (localMicTrack) localMicTrack.enabled = !micMuted;
   clearMicError(); // audio in trasmissione: rimuovi eventuale banner d'errore
-  _jlog('produceAudio OK', { producerId: p.id?.slice(0, 8), track: localMicTrack?.label });
+  _jlog('produceAudio OK', { producerId: p.id?.slice(0, 8), track: localMicTrack?.label, muted: micMuted });
   p.on('transportclose', () => producers.delete('audio'));
   // ⭐ Auto-recovery: se il mic muore (cuffie staccate, app rubato il device, ecc.) prova a riprenderlo
   p.on('trackended', async () => {
@@ -1594,12 +1621,13 @@ async function _produceAudioInner() {
       rawCamStream?.addTrack(newTrack);
       localMicTrack = newTrack;
       window._localMicTrack = newTrack;
+      newTrack.enabled = !micMuted; // 1.5.2: da muti, il nuovo track resta muto (registrazione, "sta parlando")
       // Riproduci e ri-inizializza speaking detection
       window._reinitSpeakingDetection?.();
       recorder?.refreshAudio?.();
+      if (micMuted) startMuteWarningDetection();
       // Se non eravamo in mute, ricrea il producer
-      const btnMicEl = document.getElementById('btnMic');
-      const wasMuted = btnMicEl?.classList.contains('off');
+      const wasMuted = micMuted;
       if (!wasMuted && device?.loaded && sendTransport) {
         await produceAudio();
         showToast('✅ Microfono riconnesso', 2500);
@@ -1638,8 +1666,31 @@ function _restoreLocalVideo() {
 window._tdRestoreLocalVideo = _restoreLocalVideo;
 
 async function produceVideo() {
-  const track = _currentOutgoingVideoTrack();
-  if (!track) { setCamError('Nessuna videocamera rilevata.'); return; }
+  let track = _currentOutgoingVideoTrack();
+  // ⭐ 1.5.2: nessun track vivo (camera negata al prejoin, poi consentita;
+  // camera staccata e ricollegata): prima "Riprova" falliva per sempre, ora
+  // si riapre la camera come fa già il microfono
+  if (!track) {
+    try {
+      const vid = window._tdmeetSelectedVideo || (prejoin && prejoin.selectedVideo) || null;
+      const cons = (typeof window._tdmeetBuildVideoConstraints === 'function')
+        ? { video: window._tdmeetBuildVideoConstraints(vid) }
+        : { video: vid ? { deviceId: { ideal: vid }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } } };
+      const ns = await navigator.mediaDevices.getUserMedia(cons);
+      const nt = ns.getVideoTracks()[0];
+      if (!nt) throw new Error('no track');
+      if (!rawCamStream) { rawCamStream = new MediaStream(); if (deviceSelector) deviceSelector.rawStream = rawCamStream; }
+      rawCamStream.getVideoTracks().forEach(t => { try { t.stop(); rawCamStream.removeTrack(t); } catch (_) { } });
+      rawCamStream.addTrack(nt);
+      try { nt.contentHint = 'motion'; } catch (_) { }
+      localCamTrack = nt; track = nt;
+    } catch (e) {
+      console.warn('[produceVideo] camera non disponibile', e?.name || e);
+      setCamError('Nessuna videocamera rilevata.');
+      window.PermBanner?.fromError?.(e, { onRetry: async () => { await produceVideo(); return !!producers.get('video'); } });
+      return;
+    }
+  }
   let p;
   try {
     p = await sendTransport.produce({
@@ -1673,7 +1724,19 @@ async function produceVideo() {
   clearCamError();
   _jlog('produceVideo OK', { producerId: p.id?.slice(0, 8) });
   p.on('transportclose', () => producers.delete('video'));
-  p.on('trackended', () => { closeProducer('video'); showToast('Camera disconnessa'); });
+  p.on('trackended', () => {
+    closeProducer('video'); showToast('Camera disconnessa');
+    // 1.5.2: UI e altri allineati (prima il bottone restava "acceso" a camera morta)
+    if (!camOff) {
+      camOff = true;
+      socket?.emit('mediaState', { type: 'video', status: true });
+      const b = document.getElementById('btnCamera'); b?.classList.add('off');
+      document.querySelector('#btnCamera .icon-on')?.classList.add('hidden');
+      document.querySelector('#btnCamera .icon-off')?.classList.remove('hidden');
+      setTileVideo('local', rawCamStream, false);
+      refreshParticipants();
+    }
+  });
 }
 
 async function produceScreen() {
@@ -1690,6 +1753,7 @@ async function _produceScreenInner() {
     showToast('Questo dispositivo non permette di condividere lo schermo dal browser. Usa un computer.', 4500);
     return;
   }
+  if (!socket?.connected || !device?.loaded) return; // 1.5.2: non ancora in stanza
   let screenStream;
   try {
     // Safari: con vincoli di risoluzione cattura a bassa qualità (schermo
@@ -2055,11 +2119,14 @@ async function initRemoteSpeaking(peerId, stream, audioElement = null, consumer 
 // ─── Recording ────────────────────────────────────────────────────────────────
 function getRecorderVideoElements() {
   const elements = [];
+  // 1.5.2: camera spenta (propria o altrui) → avatar, non un riquadro nero o
+  // l'ultimo fotogramma congelato (il <video> nascosto tiene ancora lo stream)
+  const vis = (v) => v && v.srcObject && v.style.display !== 'none' ? v : null;
   const lv = document.getElementById('video-local');
-  if (lv) elements.push({ videoEl: lv, label: DISPLAY_NAME + ' (Tu)' });
+  if (lv) elements.push({ videoEl: camOff ? null : vis(lv), label: DISPLAY_NAME + ' (Tu)' });
   peers.forEach((peer, peerId) => {
     const v = document.getElementById(`video-${peerId}`);
-    if (v && v.srcObject) elements.push({ videoEl: v, label: peer.displayName });
+    if (v) elements.push({ videoEl: peer.videoOff ? null : vis(v), label: peer.displayName });
   });
   // ⭐ Schermi condivisi: passo anche il "sid" della superficie, così il
   // registratore ci disegna sopra annotazioni e puntatore laser. Niente
@@ -2339,6 +2406,8 @@ function bindControls() {
   let handRaised = false;
   let _handAutoLowerTimer = null;
   window._setHandRaised = (v) => { handRaised = !!v; if (!v) clearTimeout(_handAutoLowerTimer); };
+  // 1.5.2: stato locale per la lista partecipanti (prima mostrava sempre mic e camera accesi)
+  window._tdLocalState = () => ({ audioMuted: micMuted, videoOff: camOff, handRaised });
   document.getElementById('btnHand').addEventListener('click', () => {
     handRaised = !handRaised;
     socket?.emit('handRaise', { raised: handRaised });
@@ -2610,6 +2679,7 @@ function closeEffectsPicker() {
   _effectsPickerOpen = false;
 }
 
+window.closeMoreMenu = closeMoreMenu;
 function closeMoreMenu() {
   document.getElementById('moreMenu')?.classList.add('hidden');
   document.getElementById('btnMore')?.classList.remove('active');
@@ -3554,11 +3624,11 @@ document.addEventListener('mouseout', (e) => {
 });
 document.addEventListener('click', (e) => {
   const nq = e.target.closest?.('.tile-netq');
-  if (nq) { const pid = nq.closest('.video-tile')?.dataset.peerId;
+  if (nq) { e.stopPropagation(); const pid = nq.closest('.video-tile')?.dataset.peerId; // 1.5.2: non fissare il riquadro
     if (pid) { if (_nqPeer === pid) _nqClose(); else _nqOpen(pid, nq); }
     return; }
   if (_nqPop && !_nqPop.contains(e.target)) _nqClose();
-});
+}, true); // capture: il click sulle barrette non deve arrivare al riquadro (che lo fissa)
 
 
 // ─── Diagnostica connessione → server (vedi server/connlog.js) ─────────────
@@ -4053,6 +4123,10 @@ async function _recoverMic(reason) {
     _micHealth.trackId = null;
     _micHealth.mutedSince = _micHealth.zeroSince = _micHealth.flatSince = 0;
     _micHealth.lastBytes = -1;
+    // 1.5.2: il microfono è muto a livello di sistema/cuffie (il nuovo track nasce
+    // già muto): non c'è niente da "ripristinare" — niente toast e si riprova
+    // tra 2 minuti invece che ogni 30 s (prima: toast in loop)
+    if (nt.muted) { _micHealth.lastRecover = Date.now() + 90000; _micDiag('mic-still-os-muted'); return false; }
     showToast('Il microfono si era bloccato: ripristinato', 3500);
     _micDiag('mic-ok');
     return true;
@@ -4226,14 +4300,18 @@ window.applyVideoRotation = applyVideoRotation;
 // ════════════════════════════════════════════════════════════════════════════
 function _applyPolicyUi() {
   const pol = window.__policy || {};
+  const rules = window._tdRoomRules || {};
   const btn = document.getElementById('btnScreen');
   if (!btn) return;
   const canCapture = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
-  const guestBlocked = !window.__isHostRole && pol.guestScreenShare === false;
+  // 1.5.2: conta la regola della STANZA (modificabile in chiamata), non solo il
+  // default del pannello; e si riapplica quando l'organizzatore la cambia
+  const allowed = typeof rules.guestScreenShare === 'boolean' ? rules.guestScreenShare : pol.guestScreenShare !== false;
+  const guestBlocked = !window.__isHostRole && !allowed;
   // Telefoni e tablet non hanno getDisplayMedia: il pulsante sparisce (lo nasconde
   // il CSS su .unsupported) invece di restare lì a non fare niente.
   if (!canCapture) btn.classList.add('unsupported');
-  if (guestBlocked) btn.classList.add('hidden');
+  btn.classList.toggle('hidden', guestBlocked);
 }
 
 function startTour(force) {

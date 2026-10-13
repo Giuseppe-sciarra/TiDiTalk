@@ -52,9 +52,9 @@ function install(app, { generateGuestToken, config, db }) {
                 3650
             );
 
-            if (!/^[a-zA-Z0-9_-]{3,64}$/.test(roomId)) {
+            if (!/^[a-zA-Z0-9-]{3,64}$/.test(roomId)) {   // 1.5.2: come joinRoom, niente underscore
                 return res.status(400).json({
-                    error: 'roomId non valido (3-64 caratteri alfanumerici, trattini e underscore)'
+                    error: 'roomId non valido (3-64 caratteri alfanumerici e trattini)'
                 });
             }
 
@@ -96,7 +96,7 @@ function install(app, { generateGuestToken, config, db }) {
 
             let roomId = (b.roomId || '').toString().trim();
             if (roomId) {
-                if (!/^[a-zA-Z0-9_-]{3,64}$/.test(roomId)) {
+                if (!/^[a-zA-Z0-9-]{3,64}$/.test(roomId)) {   // come joinRoom: niente underscore
                     return res.status(400).json({ error: 'roomId non valido' });
                 }
                 roomId = roomId.toUpperCase();
@@ -111,6 +111,9 @@ function install(app, { generateGuestToken, config, db }) {
             const meetId = crypto.randomUUID ? crypto.randomUUID() :
                 crypto.randomBytes(16).toString('hex').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
 
+            // 1.5.2: il token va salvato nella riunione, così "Copia link" nel
+            // pannello e nella stanza danno LO STESSO link mandato dal CRM
+            const guestToken = generateGuestToken(roomId, expDays * 24);
             const meeting = db.createMeeting({
                 id: meetId,
                 title,
@@ -120,9 +123,8 @@ function install(app, { generateGuestToken, config, db }) {
                 duration_min: durationMin,
                 invitees,
                 notes,
+                guest_token: guestToken,
             });
-
-            const guestToken = generateGuestToken(roomId, expDays * 24);
             const publicBase = PUBLIC_URL.replace(/\/+$/, '');
             const guestUrl = `${publicBase}/join/${guestToken}`;
             const hostUrl = `${publicBase}/room/${roomId}`;

@@ -252,7 +252,7 @@ html,body{margin:0;height:100%;background:#121318;color:#ece7dc;font:500 13px/1.
     b.className = 'more-menu-item';
     b.id = 'btnPip';
     b.innerHTML = `<span class="more-menu-ico">${ICON.back.replace('M11 14l-3-3 3-3M8 11h8', 'M13 8h5v5M18 8l-6 6')}</span><span>Finestra mobile</span>`;
-    b.addEventListener('click', () => { menu.classList.add('hidden'); open(); });
+    b.addEventListener('click', () => { if (typeof window.closeMoreMenu === 'function') window.closeMoreMenu(); else menu.classList.add('hidden'); open(); });
     menu.appendChild(b);
   }
 

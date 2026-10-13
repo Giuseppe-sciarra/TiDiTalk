@@ -109,6 +109,10 @@
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
     if (document.querySelector('.tdt-tour.on')) return;
+    // 1.5.2: niente scorciatoie prima di essere in stanza (prejoin, caricamento,
+    // sala d'attesa): "M" o "S" lì agivano su controlli non ancora pronti
+    const _pj = document.getElementById('prejoinScreen'), _ld = document.getElementById('loadingScreen');
+    if ((_pj && !_pj.classList.contains('hidden')) || (_ld && !_ld.classList.contains('hidden')) || document.getElementById('guestWaitOverlay')) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : '';
     if (!k) return;
     const btn = [...document.querySelectorAll(`[data-key="${CSS.escape(k)}"]`)]

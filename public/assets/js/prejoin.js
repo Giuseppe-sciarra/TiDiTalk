@@ -812,9 +812,11 @@ class ParticipantList {
 
     const existing = new Set();
 
+    const ls = (typeof window._tdLocalState === 'function') ? window._tdLocalState() : {};
     this._upsertItem(list, localId, localName + ' (Tu)', {
-      audioMuted: false,
-      videoOff: false,
+      audioMuted: !!ls.audioMuted,
+      videoOff: !!ls.videoOff,
+      handRaised: !!ls.handRaised,
       speaking: speakingStates?.get('local') || false,
     }, true);
     existing.add(localId);
@@ -865,7 +867,7 @@ class ParticipantList {
     if (kick) kick.addEventListener('click', (ev) => {
       ev.stopPropagation();
       const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
-      if (!confirm(T('Rimuovere {0} dalla riunione?').replace('{0}', displayName))) return;
+      if (!confirm(T('Rimuovere {0} dalla riunione?').replace('{0}', () => displayName))) return;
       window._tdSocket?.emit('kickPeer', { peerId }, (r) => { if (r?.error) window.showToast?.(r.error, 2500); });
     });
   }

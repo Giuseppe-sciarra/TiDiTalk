@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.5.2
+
+Bug-fix release after a full review of the project (server, room page, home,
+login, guest, schedule, settings).
+
+### Fixed — meetings and invitations
+- "Copy invite link" on a room of a past scheduled meeting (reopened from
+  Recent) returned the meeting's **expired** guest token → guests saw
+  "link not valid". A valid token is now generated and saved
+- Meetings created through the external API did not save their guest token,
+  so the CRM link and the panel's "Copy link" differed; room ids with `_`
+  were accepted by the API but refused at join
+- Scheduling a meeting in the past is now refused (client and server)
+  instead of sending invites for a meeting that never shows up
+- Invitation e-mails are sent in parallel (with many invitees the request
+  could exceed the proxy timeout although the meeting was created)
+- Recent: with a reused room code, every past row of that code showed
+  "live" while the room was open
+- `PUT /api/meetings/:id` returned 404 for meetings created by other users
+  or by the API (now behaves like DELETE)
+
+### Fixed — room page
+- Microphone: when the permission is granted later (or "Retry" from the
+  banner) while you are muted, the new audio stream was **live for the
+  others** although everyone saw you muted. It now starts paused
+- A new microphone track after unplug/replug stayed enabled while muted
+  (recordings and "speaking" indicator); microphone acquired after a failed
+  pre-join was invisible to recordings and the speaking indicator
+- Camera: denied at pre-join then allowed, or unplugged and replugged,
+  could not be turned on again ("Retry" failed forever). Camera is now
+  reopened like the microphone; a dead camera also turns the button off
+- Automatic reload after a reconnection (or after the host left) now saves
+  a running **recording** first instead of losing it behind the browser's
+  "leave page?" prompt
+- "Present" for guests follows the room rule changed live by the host, not
+  only the default of the admin panel
+- Clicking the connection-quality bars no longer pins/unpins the tile
+- Microphone watchdog: with the input muted at OS/headset level it showed
+  "microphone restored" every 30 s in a loop
+- Recording: a participant with the camera off was drawn as a black box or
+  as a frozen last frame instead of the avatar
+- Participants list: your own mute / camera-off / raised-hand state was
+  never shown
+- Keyboard shortcuts (M, V, S…) were active on the pre-join screen
+- Call settings: "mirror my video" flipped the shared screen while
+  presenting; the Info participants count included screen tiles
+- "Mobile window" left the ⋮ button highlighted
+- Poll votes are tied to the person, not to the connection: after a
+  network drop the vote is kept and cannot be cast twice
+
+### Fixed — other pages and server
+- A stale guest link opened earlier in the same tab made a logged-in host
+  join as a guest (or logged them out); hosts now always join as hosts and
+  the login clears the guest token
+- Login `?next=` accepted `//evil.com` (open redirect)
+- Home → "Join with code": pasting an invitation link (`/join/…`) created
+  a junk room instead of following the link
+- Home device check: two concurrent starts (tab back in foreground + device
+  change) could leave a camera/microphone running
+- `/join/<token>/` with a trailing slash failed
+- Brand texts containing `$$`, `$'` or `$&` broke every page
+  (`String.replace` special patterns)
+- Room lifecycle: a destroyed room could remove a newer room with the same
+  code from the registry; joining a second room on the same connection left
+  a ghost peer in the first; "room full" was reported only after removing
+  the guest from the waiting list
+
 ## 1.5.1
 
 ### Added

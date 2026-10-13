@@ -614,12 +614,21 @@ class Room {
     return poll;
   }
   getPoll(id) { return this.polls.find(p => p.id === id) || null; }
+  // 1.5.2: il voto è legato alla PERSONA, non al socket: dopo una caduta di
+  // rete il socket cambia e prima il voto spariva (o si poteva votare due volte)
+  voterKey(socketId) {
+    const peer = this.peers.get(socketId);
+    if (peer?.username) return 'u:' + peer.username;
+    if (peer?.admitTicket) return 't:' + peer.admitTicket;
+    return 's:' + socketId;
+  }
   votePoll(id, peerId, optionId, name) {
     const p = this.getPoll(id);
     if (!p || !p.open) return null;
     if (!p.options.some(o => o.id === optionId)) return null;
-    p.votes.set(peerId, optionId);
-    p.voterNames.set(peerId, name);
+    const k = this.voterKey(peerId);
+    p.votes.set(k, optionId);
+    p.voterNames.set(k, name);
     return p;
   }
   closePoll(id) { const p = this.getPoll(id); if (!p) return null; p.open = false; p.closedAt = Date.now(); return p; }
@@ -637,7 +646,7 @@ class Room {
       id: p.id, question: p.question, options: p.options, anonymous: p.anonymous, open: p.open,
       counts, total: p.votes.size, voters: p.anonymous ? null : voters,
       createdBy: p.createdBy, createdByName: p.createdByName, createdAt: p.createdAt, closedAt: p.closedAt,
-      myVote: forPeerId ? (p.votes.get(forPeerId) ?? null) : null,
+      myVote: forPeerId ? (p.votes.get(this.voterKey(forPeerId)) ?? null) : null,
     };
   }
   pollsSnapshot(forPeerId) { return this.polls.map(p => this.pollView(p, forPeerId)); }

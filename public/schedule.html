@@ -204,6 +204,7 @@
       out.className = 'alert hidden';
       if (!title) return fail('Manca il titolo');
       if (!dateVal) return fail('Manca data e ora');
+      if (new Date(dateVal).getTime() < Date.now() - 5 * 60000) return fail('La data è nel passato');
 
       btn.disabled = true; btn.textContent = 'Creo la riunione…';
       try {

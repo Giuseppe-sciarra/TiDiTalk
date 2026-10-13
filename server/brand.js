@@ -295,12 +295,14 @@ function sendPage(res, file, db, config, extraHead = '') {
 (function(){try{var t=localStorage.getItem('tdt_theme')||${JSON.stringify(b.theme)};
 if(t==='auto')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
 document.documentElement.dataset.theme=(t==='light'?'light':'dark');}catch(e){document.documentElement.dataset.theme='dark';}})();</script>${extraHead}`;
+  // 1.5.2: sostituzioni con funzione — con una stringa, un "$$" o "$'" nei
+  // testi del pannello veniva interpretato da String.replace e rompeva la pagina
   const out = html
-    .replace(/%%BRAND_HEAD%%/g, head)
-    .replace(/%%APP_NAME%%/g, esc(b.platformName))
-    .replace(/%%TAGLINE%%/g, esc(b.tagline))
-    .replace(/%%LOGO%%/g, esc(b.logoUrl))
-    .replace(/%%FAVICON%%/g, esc(b.faviconUrl || b.logoUrl));
+    .replace(/%%BRAND_HEAD%%/g, () => head)
+    .replace(/%%APP_NAME%%/g, () => esc(b.platformName))
+    .replace(/%%TAGLINE%%/g, () => esc(b.tagline))
+    .replace(/%%LOGO%%/g, () => esc(b.logoUrl))
+    .replace(/%%FAVICON%%/g, () => esc(b.faviconUrl || b.logoUrl));
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
