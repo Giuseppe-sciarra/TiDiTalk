@@ -278,6 +278,10 @@ While drawing: `P` pen, `E` highlighter, `A` arrow, `R` rectangle, `O` circle,
 
 ## Troubleshooting
 
+- **Build fails with `gyp ERR! … FetchError … headers.tar.gz`** — from 1.5.3
+  the Dockerfile uses the Node headers already inside the image
+  (`npm_config_nodedir=/usr/local`) instead of downloading them from
+  unofficial-builds.nodejs.org. Update the Dockerfile and rebuild.
 - **Video/audio doesn't connect for some users** — the RTC port range must be
   forwarded as **UDP and TCP** and `ANNOUNCED_IP` must be the public IP. Behind
   strict firewalls TURN is what saves the day: check `TURN_*`.

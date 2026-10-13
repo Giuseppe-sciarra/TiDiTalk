@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.3
+
+### Fixed
+- **Docker build failing** with `gyp ERR! configure error … FetchError …
+  node-v22…-headers.tar.gz`. On the alpine image `node-gyp` downloads the
+  Node headers from unofficial-builds.nodejs.org, even when there is nothing
+  to compile (better-sqlite3 13.0.0/13.0.1 run `node-gyp rebuild` on
+  install); if that site does not answer, the whole build stops. The
+  builder now uses the headers already in the image
+  (`ENV npm_config_nodedir=/usr/local`), so no download is needed. Every
+  release bumps `server/package.json`, so the `npm install` layer is rebuilt
+  on each update and the problem showed up right after updating
+
 ## 1.5.2
 
 Bug-fix release after a full review of the project (server, room page, home,

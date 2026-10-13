@@ -287,6 +287,10 @@ Mentre disegni: `P` penna, `E` evidenziatore, `A` freccia, `R` riquadro,
 
 ## Problemi frequenti
 
+- **La build fallisce con `gyp ERR! … FetchError … headers.tar.gz`** — dalla
+  1.5.3 il Dockerfile usa gli header di Node già presenti nell'immagine
+  (`npm_config_nodedir=/usr/local`) invece di scaricarli da
+  unofficial-builds.nodejs.org. Aggiorna il Dockerfile e ricostruisci.
 - **Audio/video non si collega per alcuni** — l'intervallo delle porte RTC va
   inoltrato in **UDP e TCP** e `ANNOUNCED_IP` deve essere l'IP pubblico. Dietro
   firewall rigidi è il TURN che salva la situazione: controlla `TURN_*`.

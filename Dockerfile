@@ -5,6 +5,12 @@ RUN apk add --no-cache \
     python3 py3-pip make g++ gcc linux-headers udev
 
 WORKDIR /app/server
+# Header di Node per i moduli nativi: sono GIÀ nell'immagine (/usr/local/include/node).
+# Senza questa riga node-gyp li scarica da unofficial-builds.nodejs.org (l'immagine
+# alpine punta lì) e, se quel sito non risponde, la build fallisce anche quando non
+# c'è niente da compilare (es. better-sqlite3 13.0.0/13.0.1: "gyp ERR! configure
+# error … FetchError … headers.tar.gz").
+ENV npm_config_nodedir=/usr/local
 COPY server/package*.json ./
 RUN npm install --omit=dev --no-audit --no-fund --loglevel=error
 
