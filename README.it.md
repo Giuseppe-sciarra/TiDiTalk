@@ -51,8 +51,10 @@ tuo marchio.
   esce. Gli organizzatori possono anche **bloccare la stanza** e rimuovere
   un ospite
 - Home con il **controllo completo dei dispositivi** (anteprima videocamera,
-  livello del microfono, prova delle casse) — gli utenti registrati entrano
-  poi direttamente in riunione — più le **riunioni recenti** (data, durata,
+  livello del microfono, prova delle casse sull'uscita scelta) — cambiando
+  scheda videocamera e microfono non si chiudono e riaprono (si rilasciano
+  solo dopo 2 minuti fuori) e gli utenti registrati entrano poi direttamente
+  in riunione — più le **riunioni recenti** (data, durata,
   chi c'era, badge "in corso", un tocco per rientrare) e le prossime in
   calendario
 - **Riunioni pianificate** con inviti via email ed evento `.ics` per il calendario

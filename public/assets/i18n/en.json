@@ -1789,5 +1789,6 @@
   "silenzio": "silence",
   "Non senti niente? Ricollega l'audio": "Can't hear anything? Reconnect the audio",
   "Audio ricollegato. Se ancora non senti nemmeno il suono di prova, chiudi e riapri il browser": "Audio reconnected. If you still can't hear even the test sound, close and reopen the browser",
-  "Chat": "Chat"
+  "Chat": "Chat",
+  "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Can't use the selected output: the sound plays on the system one"
 }

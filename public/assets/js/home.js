@@ -158,20 +158,45 @@
   $('#selMic').addEventListener('change', () => { pref.audioId = $('#selMic').value || null; ls.set('vc_audioId', pref.audioId || ''); startPreview(); });
   $('#selCam').addEventListener('change', () => { pref.videoId = $('#selCam').value || null; ls.set('vc_videoId', pref.videoId || ''); startPreview(); });
   $('#selSpk').addEventListener('change', () => { pref.speakerId = $('#selSpk').value || null; ls.set('vc_speakerId', pref.speakerId || ''); });
+  // ⭐ 1.5.5: il suono di prova usciva sempre dall'uscita di sistema su Firefox.
+  // Prima si suonava con AudioContext.setSinkId, che Firefox non ha (c'è solo
+  // su Chrome/Edge): la scelta veniva ignorata in silenzio. Ora si suona con un
+  // elemento <audio> + setSinkId, lo stesso meccanismo usato in riunione (che
+  // infatti cambiava uscita correttamente). Stesso arpeggio di prima (do-mi-sol).
+  function testToneWav() {
+    const sr = 24000, dur = 0.95, n = Math.floor(sr * dur);
+    const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, 'data'); v.setUint32(40, n * 2, true);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, f = t < .18 ? 523 : t < .36 ? 659 : 784;
+      ph += 2 * Math.PI * f / sr;
+      const env = t < .04 ? t / .04 : t < .5 ? 1 : Math.max(0, Math.pow(.0004, (t - .5) / .4));
+      v.setInt16(44 + i * 2, Math.sin(ph) * .25 * env * 32767, true);
+    }
+    return buf;
+  }
   $('#btnTestSpk').addEventListener('click', async () => {
     const b = $('#btnTestSpk'); b.disabled = true;
+    let url = null;
+    const done = () => { b.disabled = false; if (url) { URL.revokeObjectURL(url); url = null; } };
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      if (ctx.state === 'suspended') await ctx.resume();
-      if (pref.speakerId && typeof ctx.setSinkId === 'function') { try { await ctx.setSinkId(pref.speakerId === 'default' ? '' : pref.speakerId); } catch (_) { } }
-      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine';
-      const t0 = ctx.currentTime;
-      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.25, t0 + .04);
-      o.frequency.setValueAtTime(523, t0); o.frequency.setValueAtTime(659, t0 + .18); o.frequency.setValueAtTime(784, t0 + .36);
-      g.gain.setValueAtTime(.25, t0 + .5); g.gain.exponentialRampToValueAtTime(.0001, t0 + .9);
-      o.connect(g).connect(ctx.destination); o.start(t0); o.stop(t0 + .95);
-      setTimeout(() => { ctx.close().catch(() => { }); b.disabled = false; }, 1100);
-    } catch (e) { b.disabled = false; Tdt.toast(T('Non riesco a riprodurre il suono di prova')); }
+      url = URL.createObjectURL(new Blob([testToneWav()], { type: 'audio/wav' }));
+      const a = new Audio(url);
+      const want = pref.speakerId && pref.speakerId !== 'default' ? pref.speakerId : '';
+      if (typeof a.setSinkId === 'function') {
+        try { await a.setSinkId(want); }
+        catch (e) { console.warn('[home] setSinkId', e?.name, e?.message); if (want) Tdt.toast(T('Non riesco a usare l\'uscita scelta: il suono esce da quella di sistema')); }
+      }
+      a.addEventListener('ended', done, { once: true });
+      a.addEventListener('error', done, { once: true });
+      setTimeout(done, 2500);                       // rete di sicurezza: il pulsante torna sempre attivo
+      await a.play();
+    } catch (e) { done(); Tdt.toast(T('Non riesco a riprodurre il suono di prova')); }
   });
   navigator.mediaDevices?.addEventListener?.('devicechange', () => fillDevices());
 
@@ -234,9 +259,33 @@
     await fillDevices();
     syncToggles();
   }
-  function stopPreview() { stopMeter(); try { stream?.getTracks().forEach(t => t.stop()); } catch (_) { } stream = null; }
+  function stopPreview() { clearTimeout(_hiddenTimer); _hiddenTimer = null; stopMeter(); try { stream?.getTracks().forEach(t => t.stop()); } catch (_) { } stream = null; }
   window.addEventListener('pagehide', stopPreview);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { stopPreview(); syncToggles(); } else if (!stream) startPreview(); });
+
+  // ⭐ 1.5.5: cambiando scheda prima si chiudevano SUBITO videocamera e
+  // microfono e al ritorno si riaprivano. Con cuffie USB (microfono e uscita
+  // sono lo stesso dispositivo) ogni chiusura/riapertura riconfigura anche le
+  // cuffie: audio che salta, "stock", musica che si abbassa. Ora restano aperti
+  // e si chiudono solo se la scheda resta nascosta più di 2 minuti; al ritorno
+  // dopo i 2 minuti si riapre tutto come prima.
+  let _hiddenTimer = null;
+  const HIDDEN_RELEASE_MS = 120000;
+  document.addEventListener('visibilitychange', () => {
+    clearTimeout(_hiddenTimer); _hiddenTimer = null;
+    if (document.hidden) {
+      if (stream) _hiddenTimer = setTimeout(() => { _hiddenTimer = null; if (document.hidden) { stopPreview(); syncToggles(); } }, HIDDEN_RELEASE_MS);
+      return;
+    }
+    if (!stream) { startPreview(); return; }
+    const v = $('#homeVideo'); if (v.paused) v.play?.().catch(() => { });
+    // se il browser ha sospeso la cattura in background e non la riprende da
+    // solo (alcuni Safari), ricontrollo completo come faceva prima
+    const s0 = stream;
+    setTimeout(() => {
+      if (document.hidden || stream !== s0) return;
+      if (s0.getTracks().some(t => t.readyState !== 'live' || t.muted)) startPreview();
+    }, 1500);
+  });
 
   // ── formattazione date ────────────────────────────────────────────────────
   const sameDay = (a, b) => a.toDateString() === b.toDateString();

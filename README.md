@@ -49,7 +49,9 @@ cloud, your branding.
   registered users get straight in; guests go back to waiting if the last
   host leaves. Hosts can also **lock the room** and remove a guest
 - Home page with a full **device check** (camera preview, microphone level,
-  speakers test) — registered users then go straight into the meeting — plus
+  speakers test on the chosen output) — switching tab does not close and
+  reopen camera and microphone (they are released only after 2 minutes away),
+  and registered users then go straight into the meeting — plus
   **recent meetings** (date, duration, who took part, live badge, one tap to
   rejoin) and the next scheduled ones
 - **Scheduled meetings** with email invitations and `.ics` calendar event

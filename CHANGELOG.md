@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.5
+
+### Fixed
+- **Home: the speakers test always played on the system output** on Firefox,
+  whatever was chosen in *Speakers*. The test used `AudioContext.setSinkId`,
+  which Firefox does not have, so the choice was silently ignored. It now
+  plays through an audio element with `setSinkId`, the same way the meeting
+  does (where switching output already worked). If the chosen output cannot
+  be used a message says so and the sound plays on the system output
+- **Home: switching tab during the device check closed camera and
+  microphone and reopened them on return.** With USB headsets (microphone and
+  output are the same device) every close/reopen reconfigures the headset:
+  music skipping, a click, sound ducking. They now stay open and are released
+  only if the tab stays hidden for more than 2 minutes (then everything
+  reopens on return, as before). If the browser suspended capture in the
+  background and does not resume it, the full check runs again on return
+
 ## 1.5.4
 
 ### Added
