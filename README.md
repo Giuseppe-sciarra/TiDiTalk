@@ -50,10 +50,10 @@ cloud, your branding.
   host leaves. Hosts can also **lock the room** and remove a guest
 - Home page with a full **device check** (camera preview, microphone level,
   speakers test on the chosen output) — switching tab does not close and
-  reopen camera and microphone (they are released only after 2 minutes away),
+  reopen camera and microphone (they are released only after 10 minutes away),
   and registered users then go straight into the meeting — plus
   **recent meetings** (date, duration, who took part, live badge, one tap to
-  rejoin) and the next scheduled ones
+  rejoin; the last 5, the others with *Show more*) and the next scheduled ones
 - **Scheduled meetings** with email invitations and `.ics` calendar event
 - Guest links that expire, no sign-up — works in the browser on desktop and phone
 - Grid view that **sizes every tile to the available space** (all participants

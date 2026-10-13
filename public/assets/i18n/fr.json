@@ -1790,5 +1790,7 @@
   "Non senti niente? Ricollega l'audio": "Vous n’entendez rien ? Reconnecter l’audio",
   "Audio ricollegato. Se ancora non senti nemmeno il suono di prova, chiudi e riapri il browser": "Audio reconnecté. Si vous n’entendez toujours pas le son de test, fermez et rouvrez le navigateur",
   "Chat": "Chat",
-  "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Impossible d’utiliser la sortie choisie : le son sort par celle du système"
+  "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Impossible d’utiliser la sortie choisie : le son sort par celle du système",
+  "Mostra altre ({0})": "Afficher plus ({0})",
+  "Mostra meno": "Afficher moins"
 }

@@ -1790,5 +1790,7 @@
   "Non senti niente? Ricollega l'audio": "Du hörst nichts? Audio neu verbinden",
   "Audio ricollegato. Se ancora non senti nemmeno il suono di prova, chiudi e riapri il browser": "Audio neu verbunden. Wenn du nicht einmal den Testton hörst, schließe den Browser und öffne ihn neu",
   "Chat": "Chat",
-  "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Die gewählte Ausgabe kann nicht verwendet werden: Der Ton kommt aus der Systemausgabe"
+  "Non riesco a usare l'uscita scelta: il suono esce da quella di sistema": "Die gewählte Ausgabe kann nicht verwendet werden: Der Ton kommt aus der Systemausgabe",
+  "Mostra altre ({0})": "Mehr anzeigen ({0})",
+  "Mostra meno": "Weniger anzeigen"
 }

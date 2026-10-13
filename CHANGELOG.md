@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.5.6
+
+### Changed
+- **Home → Recent** shows the last 5 meetings; the others open with
+  *Show more (N)* (and close again with *Show less*). Removing one from the
+  list brings the next one up
+- **Home**: camera and microphone stay open for **10 minutes** with the tab in
+  the background (were 2), then they are released as before
+
+### Fixed
+- **Ghost buttons on hover** (e.g. *Test* next to *Speakers* on the home
+  page): the generic button hover gave them the full accent background with
+  text of the same colour, so the label disappeared. They now get a light
+  tint with accent text and border, readable in dark and light theme
+
 ## 1.5.5
 
 ### Fixed

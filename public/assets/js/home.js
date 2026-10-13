@@ -266,10 +266,10 @@
   // microfono e al ritorno si riaprivano. Con cuffie USB (microfono e uscita
   // sono lo stesso dispositivo) ogni chiusura/riapertura riconfigura anche le
   // cuffie: audio che salta, "stock", musica che si abbassa. Ora restano aperti
-  // e si chiudono solo se la scheda resta nascosta più di 2 minuti; al ritorno
-  // dopo i 2 minuti si riapre tutto come prima.
+  // e si chiudono solo se la scheda resta nascosta più di 10 minuti (1.5.6,
+  // erano 2); al ritorno dopo i 10 minuti si riapre tutto come prima.
   let _hiddenTimer = null;
-  const HIDDEN_RELEASE_MS = 120000;
+  const HIDDEN_RELEASE_MS = 10 * 60 * 1000;
   document.addEventListener('visibilitychange', () => {
     clearTimeout(_hiddenTimer); _hiddenTimer = null;
     if (document.hidden) {
@@ -304,6 +304,20 @@
 
   // ── recenti ───────────────────────────────────────────────────────────────
   let recentLoaded = false, recentBusy = false;
+  // ⭐ 1.5.6: si vedono solo le ultime 5, le altre con "Mostra altre"
+  const RECENT_SHOWN = 5;
+  let recentOpen = false;
+  function applyRecentMore() {
+    const box = $('#recentList');
+    const cards = [...box.querySelectorAll('.rc')];
+    cards.forEach((c, i) => c.classList.toggle('hidden', !recentOpen && i >= RECENT_SHOWN));
+    let btn = box.querySelector('.recent-more');
+    const extra = cards.length - RECENT_SHOWN;
+    if (extra <= 0) { btn?.remove(); return; }
+    if (!btn) { btn = document.createElement('button'); btn.type = 'button'; btn.className = 'recent-more'; box.appendChild(btn); }
+    btn.textContent = recentOpen ? T('Mostra meno') : T('Mostra altre ({0})').replace('{0}', extra);
+    btn.setAttribute('aria-expanded', recentOpen ? 'true' : 'false');
+  }
   async function loadRecent(force) {
     const box = $('#recentList');
     if ((recentLoaded && !force) || recentBusy) return;
@@ -329,17 +343,19 @@
           <button type="button" class="btn btn-sm rc-go" data-act="go">${r.live ? T('Rientra') : T('Riapri')}</button>
         </div>`;
       }).join('');
+      applyRecentMore();
       slideIn(box);
     } catch (e) {
       box.innerHTML = `<div class="recent-empty">${esc(e.message)}</div>`;
     } finally { recentBusy = false; }
   }
   $('#recentList').addEventListener('click', async (e) => {
+    if (e.target.closest('.recent-more')) { recentOpen = !recentOpen; applyRecentMore(); return; }
     const card = e.target.closest('.rc'); if (!card) return;
     const act = e.target.closest('[data-act]')?.dataset.act || 'go';
     if (act === 'hide') {
       card.style.opacity = '.3';
-      try { await Tdt.api(`/api/rooms/recent/${card.dataset.id}`, { method: 'DELETE' }); card.remove(); if (!$('#recentList').children.length) loadRecent(true); }
+      try { await Tdt.api(`/api/rooms/recent/${card.dataset.id}`, { method: 'DELETE' }); card.remove(); applyRecentMore(); if (!$('#recentList').querySelector('.rc')) loadRecent(true); }
       catch (err) { card.style.opacity = ''; Tdt.toast(err.message); }
       return;
     }

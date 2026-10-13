@@ -53,10 +53,10 @@ tuo marchio.
 - Home con il **controllo completo dei dispositivi** (anteprima videocamera,
   livello del microfono, prova delle casse sull'uscita scelta) — cambiando
   scheda videocamera e microfono non si chiudono e riaprono (si rilasciano
-  solo dopo 2 minuti fuori) e gli utenti registrati entrano poi direttamente
+  solo dopo 10 minuti fuori) e gli utenti registrati entrano poi direttamente
   in riunione — più le **riunioni recenti** (data, durata,
-  chi c'era, badge "in corso", un tocco per rientrare) e le prossime in
-  calendario
+  chi c'era, badge "in corso", un tocco per rientrare; le ultime 5, le altre
+  con *Mostra altre*) e le prossime in calendario
 - **Riunioni pianificate** con inviti via email ed evento `.ics` per il calendario
 - Link ospite con scadenza, senza registrazione — funziona nel browser, da
   computer e da telefono
