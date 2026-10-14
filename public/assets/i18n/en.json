@@ -1800,5 +1800,7 @@
   "Ora è attiva": "It's on now",
   "Ora è spenta": "It's off now",
   "Cancellazione dell'eco attivata": "Echo cancellation on",
-  "Cancellazione dell'eco spenta": "Echo cancellation off"
+  "Cancellazione dell'eco spenta": "Echo cancellation off",
+  "La videocamera è ancora usata da un'altra app (FaceTime, Zoom…). Chiudila e premi \"Riprova\".": "The camera is still being used by another app (FaceTime, Zoom…). Close it and press \"Retry\".",
+  "Se non riprende da sola, spegni e riaccendi la videocamera dalla barra.": "If it doesn't come back by itself, turn the camera off and on again from the bar."
 }

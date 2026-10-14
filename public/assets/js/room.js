@@ -89,6 +89,9 @@ const peers = new Map();
 let micMuted = false;
 let camOff = false;
 const peerTiles = new Map();
+// 1.5.8: partecipanti usciti mentre si entrava (vedi joinRoom): non vanno
+// ricreati dall'elenco "chi c'è già" arrivato prima della loro uscita
+const _gonePeers = new Set();
 const peerStreams = new Map();
 
 let audioContext;
@@ -600,6 +603,10 @@ function _watchAspect(videoEl, tile) {
 }
 
 function createTile(peerId, displayName, isLocal = false) {
+  // ⭐ 1.5.8: un partecipante annunciato due volte (arrivo + elenco del join)
+  // creava due riquadri; il primo restava orfano per sempre (doppione)
+  const _existing = peerTiles.get(peerId);
+  if (_existing && _existing.isConnected) return _existing;
   // ⭐ FIX R11 (XSS): il nome arriva da QUALSIASI partecipante (anche guest) e
   // finiva crudo in innerHTML → un nome tipo <img onerror=...> eseguiva JS nel
   // browser dell'host (con accesso al token in localStorage).
@@ -1185,6 +1192,7 @@ async function initSocket() {
     });
 
     socket.on('peerLeft', ({ peerId, displayName }) => {
+      _gonePeers.add(peerId);
       // FIX: rimuovi anche l'<audio> remoto dal DOM, non solo dalla Map
       const remoteAudio = window._tdmeetPeerAudios?.get(peerId);
       if (remoteAudio) {
@@ -1445,6 +1453,11 @@ async function joinRoom(micMuted = false, camOff = false) {
 
   // Crea tile locale con stato corretto da pre-join
   initLocalMedia(micMuted, camOff);
+
+  // ⭐ 1.5.8: fra la risposta del server e questo punto passano i caricamenti
+  // qui sopra (anche secondi su rete lenta): chi è uscito nel frattempo non va
+  // ricreato, e la propria connessione vecchia non è mai un altro partecipante
+  res.peers = (res.peers || []).filter(p => p && p.id !== socket.id && !_gonePeers.has(p.id));
 
   // Aggiungi peer esistenti
   res.peers.forEach((peer) => {
@@ -1714,7 +1727,77 @@ function _currentOutgoingVideoTrack() {
   const live = t => t && t.readyState === 'live' ? t : null;
   return live(faceEffects?.outputStream?.getVideoTracks()[0])
       || live(backgroundEffect?.outputStream?.getVideoTracks()[0])
-      || localCamTrack;
+      || live(localCamTrack);      // 1.5.8: un track terminato non si trasmette (prima sì → errore e "Riprova" a vuoto)
+}
+
+// ⭐ 1.5.8 — videocamera presa da un'altra app (FaceTime, Zoom, Teams…) e poi
+// rilasciata. Il browser chiude o ammutolisce il flusso della camera; prima,
+// riaccendendo dalla barra, si riprovava a trasmettere il flusso morto: errore,
+// e "Riprova" falliva sempre finché non si ricaricava la pagina.
+// La camera "vera". Con sfondo o effetto viso attivo NON è localCamTrack: quando
+// il producer passa al canvas dell'effetto, mediasoup chiude il track sostituito
+// (localCamTrack risulta 'ended' per progetto) e l'effetto lavora su una sua copia.
+function _camSourceTrack() {
+  if (_hasVideoEffect()) {
+    const c = (backgroundEffect && _bgCurrentType && _bgCurrentType !== 'none') ? backgroundEffect._sourceTrackClone : faceEffects?._sourceTrackClone;
+    if (c) return c;
+  }
+  return localCamTrack;
+}
+function _camLive() { const t = _camSourceTrack(); return !!(t && t.readyState === 'live' && !t.muted); }
+async function _reopenRawCamera() {
+  const vid = _camSourceTrack()?.getSettings?.()?.deviceId || localCamTrack?.getSettings?.()?.deviceId || window._tdmeetSelectedVideo || (prejoin && prejoin.selectedVideo) || null;
+  const cons = (typeof window._tdmeetBuildVideoConstraints === 'function')
+    ? { video: window._tdmeetBuildVideoConstraints(vid) }
+    : { video: vid ? { deviceId: { ideal: vid }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } } };
+  const ns = await navigator.mediaDevices.getUserMedia(cons);
+  const nt = ns.getVideoTracks()[0];
+  if (!nt) throw new Error('no track');
+  if (!rawCamStream) { rawCamStream = new MediaStream(); if (deviceSelector) deviceSelector.rawStream = rawCamStream; }
+  rawCamStream.getVideoTracks().forEach(t => { try { t.stop(); rawCamStream.removeTrack(t); } catch (_) { } });
+  rawCamStream.addTrack(nt);
+  try { nt.contentHint = 'motion'; } catch (_) { }
+  localCamTrack = nt;
+  _watchCamEnd(nt);
+  return nt;
+}
+// Sfondo / effetti viso lavorano su una COPIA del flusso della camera: morta la
+// camera, la copia è morta e il canvas resta fermo sull'ultima immagine. Si
+// ricostruiscono dalla camera riaperta (così non esce mai il video senza sfondo).
+async function _rebuildEffectsFromRaw() {
+  try {
+    if (backgroundEffect && _bgCurrentType && _bgCurrentType !== 'none') {
+      const t = _bgCurrentType, u = _bgCurrentUrl;
+      try { backgroundEffect.stop(); } catch (_) { }
+      backgroundEffect = null;
+      await _applyBackgroundImpl(t, u);
+    } else if (faceEffects && (_currentFaceEffectId || _currentStyle)) {
+      const fx = _currentFaceEffectId, st = _currentStyle;
+      try { faceEffects.stop(); } catch (_) { }
+      faceEffects = null;
+      if (st) await _applyStyleImpl(st);
+      if (fx) await _applyFaceEffectImpl(fx);
+    }
+  } catch (e) { console.warn('[camera] effetto non ricostruito', e?.message || e); }
+}
+function _hasVideoEffect() {
+  return !!((backgroundEffect && _bgCurrentType && _bgCurrentType !== 'none') || (faceEffects && (_currentFaceEffectId || _currentStyle)));
+}
+// Riaccensione dalla barra con il producer ancora in piedi (in pausa).
+async function _reviveCamera(p) {
+  if (_camLive()) return true;
+  try {
+    const nt = await _reopenRawCamera();
+    if (_hasVideoEffect()) await _rebuildEffectsFromRaw();     // rimette lui il canvas nel producer
+    else if (p && !p.closed) await p.replaceTrack({ track: nt });
+    _camHealth.mutedSince = 0; window.PermBanner?.notice('camMuted', false);
+    console.log('[camera] riaperta dopo blocco:', nt.getSettings?.());
+    return true;
+  } catch (e) {
+    console.warn('[camera] riapertura fallita', e?.name || e);
+    setCamError('La videocamera è ancora usata da un\'altra app (FaceTime, Zoom…). Chiudila e premi "Riprova".');
+    return false;
+  }
 }
 
 // Anteprima locale coerente con quello che si trasmette (effetto / sfondo / raw).
@@ -1736,21 +1819,14 @@ async function produceVideo() {
   let track = _currentOutgoingVideoTrack();
   // ⭐ 1.5.2: nessun track vivo (camera negata al prejoin, poi consentita;
   // camera staccata e ricollegata): prima "Riprova" falliva per sempre, ora
-  // si riapre la camera come fa già il microfono
-  if (!track) {
+  // si riapre la camera come fa già il microfono.
+  // ⭐ 1.5.8: anche quando c'è ma è morto o muto (camera presa da FaceTime e
+  // poi rilasciata), e con sfondo/effetto attivo si ricostruisce dalla camera nuova
+  if (!track || !_camLive()) {
     try {
-      const vid = window._tdmeetSelectedVideo || (prejoin && prejoin.selectedVideo) || null;
-      const cons = (typeof window._tdmeetBuildVideoConstraints === 'function')
-        ? { video: window._tdmeetBuildVideoConstraints(vid) }
-        : { video: vid ? { deviceId: { ideal: vid }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } } };
-      const ns = await navigator.mediaDevices.getUserMedia(cons);
-      const nt = ns.getVideoTracks()[0];
-      if (!nt) throw new Error('no track');
-      if (!rawCamStream) { rawCamStream = new MediaStream(); if (deviceSelector) deviceSelector.rawStream = rawCamStream; }
-      rawCamStream.getVideoTracks().forEach(t => { try { t.stop(); rawCamStream.removeTrack(t); } catch (_) { } });
-      rawCamStream.addTrack(nt);
-      try { nt.contentHint = 'motion'; } catch (_) { }
-      localCamTrack = nt; track = nt;
+      const nt = await _reopenRawCamera();
+      if (_hasVideoEffect()) await _rebuildEffectsFromRaw();
+      track = _currentOutgoingVideoTrack() || nt;
     } catch (e) {
       console.warn('[produceVideo] camera non disponibile', e?.name || e);
       setCamError('Nessuna videocamera rilevata.');
@@ -1791,8 +1867,16 @@ async function produceVideo() {
   clearCamError();
   _jlog('produceVideo OK', { producerId: p.id?.slice(0, 8) });
   p.on('transportclose', () => producers.delete('video'));
-  p.on('trackended', () => {
+  p.on('trackended', () => _onCamEnded());
+}
+
+// Camera terminata (staccata, o presa da un'altra app): producer chiuso e
+// pulsante spento; riaccendendo si riapre la camera (vedi produceVideo).
+function _onCamEnded() {
+  if (!producers.get('video') && camOff) return;   // già gestita
+  {
     closeProducer('video'); showToast('Camera disconnessa');
+    window.PermBanner?.notice('camMuted', false);
     // 1.5.2: UI e altri allineati (prima il bottone restava "acceso" a camera morta)
     if (!camOff) {
       camOff = true;
@@ -1803,7 +1887,7 @@ async function produceVideo() {
       setTileVideo('local', rawCamStream, false);
       refreshParticipants();
     }
-  });
+  }
 }
 
 async function produceScreen() {
@@ -2427,9 +2511,13 @@ function bindControls() {
       const p = producers.get('video');
       let voluntaryOff = false;
       if (p) {
-        if (camOff) { p.pause();  socket?.emit('pauseProducer',  { producerId: p.id }); }
-        else        { p.resume(); socket?.emit('resumeProducer', { producerId: p.id }); }
-        voluntaryOff = camOff;
+        if (camOff) { p.pause();  socket?.emit('pauseProducer',  { producerId: p.id }); voluntaryOff = true; }
+        // 1.5.8: camera presa da un'altra app nel frattempo → si riapre prima di riprendere
+        else if (!_camLive() && !(await _reviveCamera(p))) {
+          camOff = true;
+          try { faceEffects?.setPaused?.(true); backgroundEffect?.setPaused?.(true); } catch (_) { }
+        }
+        else { if (localCamTrack) localCamTrack.enabled = true; p.resume(); socket?.emit('resumeProducer', { producerId: p.id }); clearCamError(); }
       } else if (!camOff && device?.loaded && sendTransport) {
         try {
           await produceVideo();
@@ -4024,8 +4112,13 @@ function setCamError(sub) {
       btn.disabled = true; btn.textContent = '…';
       try {
         camOff = false;
-        await produceVideo();
-        if (producers.get('video')) {
+        const pv = producers.get('video');
+        if (pv && !pv.closed) {
+          // 1.5.8: producer in pausa con la camera morta: si riapre la camera
+          if (await _reviveCamera(pv)) { if (localCamTrack) localCamTrack.enabled = true; pv.resume(); socket?.emit('resumeProducer', { producerId: pv.id }); clearCamError(); }
+          else camOff = true;
+        } else await produceVideo();
+        if (producers.get('video') && !camOff) {
           const cam = document.getElementById('btnCamera');
           cam?.classList.remove('off');
           document.querySelector('#btnCamera .icon-on')?.classList.remove('hidden');
@@ -4272,7 +4365,40 @@ async function _micTick() {
   }
 }
 
+// ⭐ 1.5.8 — sorveglianza della videocamera durante la chiamata
+const _camHealth = { timer: null, mutedSince: 0, watched: null };
+// Camera persa: si ascolta l'evento 'ended' della camera "vera". Il browser lo
+// manda solo per cause esterne (staccata, presa da FaceTime/Zoom…), mai per i
+// nostri stop() (cambio camera, sfondo tolto…): niente falsi allarmi. Serve
+// con sfondo/effetto (il producer trasmette il canvas e non se ne accorge) e su
+// Firefox, dove il producer non sempre segnala 'trackended'.
+function _watchCamEnd(t) {
+  if (!t || _camHealth.watched === t) return;
+  _camHealth.watched = t;
+  t.addEventListener('ended', () => {
+    const p = producers.get('video');
+    if (_camSourceTrack() !== t || !p || p.closed || camOff) return;
+    _onCamEnded();
+  });
+}
+function _camTick() {
+  _watchCamEnd(_camSourceTrack());
+  const p = producers.get('video'), t = _camSourceTrack();
+  // (durante la riaccensione il producer è ancora in pausa: si salta)
+  if (camOff || !p || p.closed || p.paused || !t || document.visibilityState !== 'visible') {
+    _camHealth.mutedSince = 0; window.PermBanner?.notice('camMuted', false); return;
+  }
+  if (t.readyState === 'ended') return;     // ci pensa l'evento 'ended' (vedi _watchCamEnd)
+  // camera muta (usata da un'altra app, coperta, tasto fisico): avviso, che
+  // sparisce da solo quando la camera riprende
+  if (t.muted) {
+    if (!_camHealth.mutedSince) _camHealth.mutedSince = Date.now();
+    if (Date.now() - _camHealth.mutedSince > 4000) window.PermBanner?.notice('camMuted', true);
+  } else { _camHealth.mutedSince = 0; window.PermBanner?.notice('camMuted', false); }
+}
+
 function startMicHealthWatchdog() {
+  if (!_camHealth.timer) { _camHealth.timer = setInterval(() => { try { _camTick(); } catch (_) { } }, 2000); try { _camTick(); } catch (_) { } }
   if (_micHealth.timer) return;
   _micHealth.timer = setInterval(() => { _micTick().catch(() => { }); }, 1000);
   window.tdMicInfo = () => {

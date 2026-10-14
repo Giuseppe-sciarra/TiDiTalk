@@ -587,7 +587,7 @@
     if (!kind) { if (_noticeEl) { _noticeEl.classList.remove('visible'); const e = _noticeEl; _noticeEl = null; setTimeout(() => e.remove(), 250); } return; }
     const txt = NOTICE_TEXT[kind];
     const hints = kind === 'camMuted'
-      ? ['Scopri l\'obiettivo o accendi la videocamera con il suo tasto.', 'Chiudi le altre applicazioni che la usano.']
+      ? ['Scopri l\'obiettivo o accendi la videocamera con il suo tasto.', 'Chiudi le altre applicazioni che la usano.', 'Se non riprende da sola, spegni e riaccendi la videocamera dalla barra.']
       : mutedHints(detectOS());
     if (!_noticeEl) {
       _noticeEl = document.createElement('div');

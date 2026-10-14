@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.5.8
+
+### Fixed
+- **Someone saw themselves twice after a dropped connection.** When the same
+  browser tab came back, the server sent the list of participants before the
+  old connection had been removed (its removal waits for the connection
+  statistics); the browser then built the tiles a moment later, after the
+  "left" notice had already passed, and the old self stayed as a ghost tile
+  with a muted microphone. The list no longer contains the replaced
+  connection, participants who leave while someone is joining are not
+  recreated, and a participant announced twice gets a single tile
+- **The camera did not come back after another app took it (FaceTime, Zoom,
+  Teams…).** The browser ends the camera and the button turns off; turning it
+  back on retried the dead camera, failed, and *Retry* failed every time until
+  the page was reloaded (for a host, reloading also sends guests to the waiting
+  room). Turning the camera on from the bar, or *Retry*, now reopens the webcam
+  without leaving the meeting. If the other app still holds it, a message
+  says so
+- With a **virtual background or face effect** active, a camera taken by
+  another app was not noticed (the others saw a frozen image). It is now
+  detected like any other camera loss, and when the camera is turned back on
+  the effect is rebuilt on it: the video without the effect is never sent
+- **"The camera is not sending images"** notice when the browser keeps the
+  camera but receives nothing (another app, lens cover, hardware switch): it
+  disappears by itself when the camera resumes, and says to turn the camera
+  off and on from the bar if it doesn't
+
 ## 1.5.7
 
 ### Added

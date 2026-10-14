@@ -319,6 +319,10 @@ Mentre disegni: `P` penna, `E` evidenziatore, `A` freccia, `R` riquadro,
   Bluetooth scegli il microfono del computer: usare quello delle cuffie le
   mette in "modalità telefono" (audio peggiore e, sul Mac, può lasciare il
   browser senza suono).
+- **La videocamera non torna dopo una chiamata FaceTime / Zoom** — quando
+  un'altra app prende la webcam il pulsante della videocamera si spegne da
+  solo (oppure un avviso dice che non invia immagini): chiusa l'altra app,
+  riaccendila dalla barra, senza ricaricare la pagina.
 - **Qualcuno entra e non sente** — da organizzatore apri ⋮ → *Rete e
   qualità*: la sezione Partecipanti mostra la sua connessione. Sul server
   `docker logs tdt-app 2>&1 | grep CONN` registra anche cosa ha fatto il suo

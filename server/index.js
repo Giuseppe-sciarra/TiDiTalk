@@ -1024,7 +1024,7 @@ io.on('connection', (socket) => {
   // nuovo (peer o lobby): così la stanza non risulta mai vuota e non viene
   // distrutta dal disconnect del vecchio. Il tabId non esce mai dal server.
   const _dropStaleTab = (room, tabId, isGuest, username) => {
-    if (!tabId) return 0;
+    if (!tabId) return [];
     const stale = [];
     for (const [id, e] of room.lobby) if (id !== socket.id && isGuest && e.tabId === tabId) stale.push(id);
     for (const [id, p] of room.peers) {
@@ -1038,7 +1038,11 @@ io.on('connection', (socket) => {
       io.to(id).emit('sessionReplaced');
       io.in(id).disconnectSockets(true);
     }
-    return stale.length;
+    // 1.5.8: ritorna gli id chiusi. Il loro 'disconnect' toglie il peer dalla
+    // stanza solo dopo un await (statistiche per il log): nel frattempo
+    // l'elenco "chi c'è già" mandato a chi rientra li conteneva ancora e il
+    // suo browser mostrava se stesso due volte (il riquadro vecchio restava).
+    return stale;
   };
 
   socket.on('joinRoom', async ({ roomId, displayName, token, guestToken, audioMuted, videoOff, admitTicket, tabId } = {}, callback) => {
@@ -1161,7 +1165,8 @@ io.on('connection', (socket) => {
       if (isGuest) peer.admitTicket = ticketOk ? admitTicket : room.issueTicket(displayName);
       socket.join(roomId);
       socket.to(roomId).emit('peerJoined', peer.toJSON());
-      const _replaced = _dropStaleTab(room, tabId, isGuest, username);
+      const _staleIds = _dropStaleTab(room, tabId, isGuest, username);
+      const _replaced = _staleIds.length;
       if (_replaced || ticketOk) connlog.log(roomId, displayName, 'rejoin', { replacedOld: _replaced || undefined, ticket: ticketOk || undefined });
       if (!isGuest) {
         if (!room.seenUsers.size) db.setRoomLogHost(room.logId, username, displayName);
@@ -1195,7 +1200,7 @@ io.on('connection', (socket) => {
       callback({
         roomId, peerId: socket.id, isGuest,
         routerRtpCapabilities: room.router.rtpCapabilities,
-        peers: room.getPeersData(socket.id),
+        peers: room.getPeersData(socket.id).filter(p => !_staleIds.includes(p.id)),
         chatHistory: room.chatHistory,
         polls: room.pollsSnapshot(socket.id),
         annotations: room.annotationsSnapshot(),
