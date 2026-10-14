@@ -1333,6 +1333,7 @@ async function initSocket() {
     });
 
     socket.on('producerClosed', ({ producerId, peerId, mediaType }) => {
+      _closedProducers.add(producerId);
       _consumedProducers.delete(producerId); // libera per un eventuale ri-consume futuro
       // ⭐ FIX screen-audio: rimuovi l'<audio> dello schermo quando la condivisione finisce
       if (mediaType === 'screen-audio') {
@@ -1745,8 +1746,8 @@ function _camSourceTrack() {
   return localCamTrack;
 }
 function _camLive() { const t = _camSourceTrack(); return !!(t && t.readyState === 'live' && !t.muted); }
-async function _reopenRawCamera() {
-  const vid = _camSourceTrack()?.getSettings?.()?.deviceId || localCamTrack?.getSettings?.()?.deviceId || window._tdmeetSelectedVideo || (prejoin && prejoin.selectedVideo) || null;
+async function _reopenRawCamera(deviceId) {
+  const vid = deviceId || _camSourceTrack()?.getSettings?.()?.deviceId || localCamTrack?.getSettings?.()?.deviceId || _camHealth.deviceId || window._tdmeetSelectedVideo || (prejoin && prejoin.selectedVideo) || null;
   const cons = (typeof window._tdmeetBuildVideoConstraints === 'function')
     ? { video: window._tdmeetBuildVideoConstraints(vid) }
     : { video: vid ? { deviceId: { ideal: vid }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } } };
@@ -1783,11 +1784,20 @@ async function _rebuildEffectsFromRaw() {
 function _hasVideoEffect() {
   return !!((backgroundEffect && _bgCurrentType && _bgCurrentType !== 'none') || (faceEffects && (_currentFaceEffectId || _currentStyle)));
 }
+// Chiude i flussi della camera rimasti appesi (muti/bloccati): se restano aperti
+// il browser riusa la stessa sorgente bloccata per la richiesta nuova.
+function _stopCamSources() {
+  try { rawCamStream?.getVideoTracks().forEach(t => { try { t.stop(); } catch (_) { } }); } catch (_) { }
+  try { backgroundEffect?._sourceTrackClone?.stop(); } catch (_) { }
+  try { faceEffects?._sourceTrackClone?.stop(); } catch (_) { }
+}
 // Riaccensione dalla barra con il producer ancora in piedi (in pausa).
 async function _reviveCamera(p) {
   if (_camLive()) return true;
+  const did = _camHealth.deviceId;
   try {
-    const nt = await _reopenRawCamera();
+    _stopCamSources();
+    const nt = await _reopenRawCamera(did);
     if (_hasVideoEffect()) await _rebuildEffectsFromRaw();     // rimette lui il canvas nel producer
     else if (p && !p.closed) await p.replaceTrack({ track: nt });
     _camHealth.mutedSince = 0; window.PermBanner?.notice('camMuted', false);
@@ -1795,9 +1805,81 @@ async function _reviveCamera(p) {
     return true;
   } catch (e) {
     console.warn('[camera] riapertura fallita', e?.name || e);
-    setCamError('La videocamera è ancora usata da un\'altra app (FaceTime, Zoom…). Chiudila e premi "Riprova".');
+    setCamError('La videocamera è ancora usata da un\'altra app (FaceTime, Zoom…). Torna da sola appena è libera, oppure premi "Riprova".');
+    _camAutoStart(did);
     return false;
   }
+}
+
+// ⭐ 1.5.8 — RITORNO AUTOMATICO della videocamera. Persa per una causa esterna
+// (FaceTime/Zoom l'hanno presa, cavo staccato) mentre era accesa: si riprova da
+// soli ogni 3 s (dopo 2 minuti ogni 10 s), solo a pagina visibile, sempre sulla
+// STESSA camera (mai un'altra al suo posto). Appena è libera torna in onda, con
+// sfondo/effetto se c'era. Pulsante e "Riprova" restano utilizzabili; spegnendo
+// la camera di proposito i tentativi si fermano.
+const _camAuto = { on: false, busy: false, timer: null, since: 0, deviceId: null, bound: false };
+function _camAutoStart(deviceId) {
+  _camAuto.deviceId = deviceId || _camAuto.deviceId || _camHealth.deviceId || null;
+  if (!_camAuto.on) { _camAuto.on = true; _camAuto.since = Date.now(); }
+  if (!_camAuto.bound) {
+    _camAuto.bound = true;
+    document.addEventListener('visibilitychange', () => { if (_camAuto.on && document.visibilityState === 'visible') _autoCamTry(); });
+    navigator.mediaDevices?.addEventListener?.('devicechange', () => { if (_camAuto.on) setTimeout(_autoCamTry, 800); });
+  }
+  _camAutoSchedule();
+}
+function _camAutoStop() { _camAuto.on = false; clearTimeout(_camAuto.timer); _camAuto.timer = null; }
+function _camAutoSchedule() {
+  clearTimeout(_camAuto.timer);
+  if (!_camAuto.on) return;
+  const wait = Date.now() - _camAuto.since < 120000 ? 3000 : 10000;
+  _camAuto.timer = setTimeout(async () => { await _autoCamTry(); _camAutoSchedule(); }, wait);
+}
+function _camUiOn() {
+  document.getElementById('btnCamera')?.classList.remove('off');
+  document.querySelector('#btnCamera .icon-on')?.classList.remove('hidden');
+  document.querySelector('#btnCamera .icon-off')?.classList.add('hidden');
+  setTileVideo('local', rawCamStream, true);
+  _restoreLocalVideo();
+  socket?.emit('mediaState', { type: 'video', status: false });
+  try { refreshParticipants(); } catch (_) { }
+  clearCamError();
+}
+async function _autoCamTry() {
+  if (!_camAuto.on || _camAuto.busy) return;
+  if (!camOff) { _camAutoStop(); return; }                       // già tornata (pulsante o "Riprova")
+  if (_leaving || document.visibilityState !== 'visible' || !socket?.connected || !device?.loaded || !sendTransport) return;
+  if (document.getElementById('btnCamera')?.disabled) return;    // l'utente sta già usando il pulsante
+  _camAuto.busy = true;
+  try {
+    let nt;
+    try { nt = await _reopenRawCamera(_camAuto.deviceId); }
+    catch (_) { return; }                                         // ancora occupata: si riprova dopo
+    await new Promise(r => setTimeout(r, 600));
+    if (nt.readyState !== 'live' || nt.muted) {
+      // aperta ma non manda immagini: si chiude tutto, così il prossimo tentativo riparte pulito
+      _stopCamSources(); try { rawCamStream?.removeTrack(nt); } catch (_) { }
+      return;
+    }
+    if (!_camAuto.on || !camOff) return;                          // nel frattempo l'utente ha fatto da sé
+    if (_hasVideoEffect()) await _rebuildEffectsFromRaw();
+    const p = producers.get('video');
+    camOff = false;
+    if (p && !p.closed) {
+      if (!_hasVideoEffect()) await p.replaceTrack({ track: nt });
+      p.resume(); socket?.emit('resumeProducer', { producerId: p.id });
+    } else {
+      await produceVideo({ quiet: true });
+      if (!producers.get('video')) { camOff = true; return; }
+    }
+    try { faceEffects?.setPaused?.(false); backgroundEffect?.setPaused?.(false); } catch (_) { }
+    _camUiOn();
+    _camAutoStop();
+    showToast('Videocamera di nuovo attiva');
+    console.log('[camera] tornata da sola:', nt.getSettings?.());
+  } catch (e) {
+    console.warn('[camera] ritorno automatico', e?.message || e);
+  } finally { _camAuto.busy = false; }
 }
 
 // Anteprima locale coerente con quello che si trasmette (effetto / sfondo / raw).
@@ -1815,7 +1897,7 @@ function _restoreLocalVideo() {
 }
 window._tdRestoreLocalVideo = _restoreLocalVideo;
 
-async function produceVideo() {
+async function produceVideo(opts = {}) {
   let track = _currentOutgoingVideoTrack();
   // ⭐ 1.5.2: nessun track vivo (camera negata al prejoin, poi consentita;
   // camera staccata e ricollegata): prima "Riprova" falliva per sempre, ora
@@ -1829,6 +1911,7 @@ async function produceVideo() {
       track = _currentOutgoingVideoTrack() || nt;
     } catch (e) {
       console.warn('[produceVideo] camera non disponibile', e?.name || e);
+      if (opts.quiet) return;                                     // tentativo automatico: niente pannelli
       setCamError('Nessuna videocamera rilevata.');
       window.PermBanner?.fromError?.(e, { onRetry: async () => { await produceVideo(); return !!producers.get('video'); } });
       return;
@@ -1874,8 +1957,11 @@ async function produceVideo() {
 // pulsante spento; riaccendendo si riapre la camera (vedi produceVideo).
 function _onCamEnded() {
   if (!producers.get('video') && camOff) return;   // già gestita
+  const _did = _camHealth.deviceId;
   {
     closeProducer('video'); showToast('Camera disconnessa');
+    setCamError('La videocamera si è fermata: forse la sta usando un\'altra app (FaceTime, Zoom…) o è stata staccata. Torna da sola appena è libera, oppure premi "Riprova".');
+    _camAutoStart(_did);
     window.PermBanner?.notice('camMuted', false);
     // 1.5.2: UI e altri allineati (prima il bottone restava "acceso" a camera morta)
     if (!camOff) {
@@ -2080,6 +2166,10 @@ function closeProducer(label) {
 // join sia via 'newProducer' → senza guard si creano due consumer sullo stesso
 // producer. Il Set agisce da lock sincrono (add PRIMA di qualsiasi await).
 const _consumedProducers = new Set();
+// ⭐ 1.5.8: producer chiusi. Se la chiusura arriva MENTRE lo si sta ricevendo
+// (consume in corso), prima il consumer nasceva dopo e restava orfano: video
+// fermo/nero nel riquadro e un flusso morto in più (camera che va e torna).
+const _closedProducers = new Set();
 // ⭐ FIX race al join: il server ci mette nella stanza PRIMA che il client abbia
 // caricato il device e creato il recv transport. Un 'newProducer' arrivato in
 // quella finestra veniva scartato per sempre (peer senza audio/video finché non
@@ -2108,6 +2198,7 @@ async function consume(producerId, peerId, kind, appData) {
     _mediaDiag('consume-error', { from: _fromName(), kind, err: String(error) });
     return;
   }
+  if (_closedProducers.has(producerId)) { _consumedProducers.delete(producerId); return; } // chiuso nel frattempo
 
   let consumer;
   try {
@@ -2121,6 +2212,12 @@ async function consume(producerId, peerId, kind, appData) {
   consumer.appData = { ...(consumer.appData || {}), producerId, producerPeerId: peerId, kind, mediaType: appData?.mediaType };
   consumers.set(consumer.id, consumer);
   await socketEmit('resumeConsumer', { consumerId: consumer.id });
+  // chiuso mentre si collegava: niente consumer orfano né riquadro con un video morto
+  if (_closedProducers.has(producerId)) {
+    try { consumer.close(); } catch (_) { }
+    consumers.delete(consumer.id); _consumedProducers.delete(producerId);
+    return;
+  }
 
   const stream = new MediaStream([consumer.track]);
 
@@ -2498,7 +2595,7 @@ function bindControls() {
   let _camToggling = false;
   document.getElementById('btnCamera').addEventListener('click', async () => {
     // ⭐ FIX BUG 15: stessa protezione per la camera (anche se più rara la double-click qui)
-    if (_camToggling) return;
+    if (_camToggling || _camAuto.busy) return;    // 1.5.8: un tentativo automatico è in corso
     _camToggling = true;
     const btn = document.getElementById('btnCamera');
     btn.disabled = true;
@@ -2511,7 +2608,7 @@ function bindControls() {
       const p = producers.get('video');
       let voluntaryOff = false;
       if (p) {
-        if (camOff) { p.pause();  socket?.emit('pauseProducer',  { producerId: p.id }); voluntaryOff = true; }
+        if (camOff) { p.pause();  socket?.emit('pauseProducer',  { producerId: p.id }); voluntaryOff = true; _camAutoStop(); }
         // 1.5.8: camera presa da un'altra app nel frattempo → si riapre prima di riprendere
         else if (!_camLive() && !(await _reviveCamera(p))) {
           camOff = true;
@@ -4366,7 +4463,7 @@ async function _micTick() {
 }
 
 // ⭐ 1.5.8 — sorveglianza della videocamera durante la chiamata
-const _camHealth = { timer: null, mutedSince: 0, watched: null };
+const _camHealth = { timer: null, mutedSince: 0, watched: null, deviceId: null };
 // Camera persa: si ascolta l'evento 'ended' della camera "vera". Il browser lo
 // manda solo per cause esterne (staccata, presa da FaceTime/Zoom…), mai per i
 // nostri stop() (cambio camera, sfondo tolto…): niente falsi allarmi. Serve
@@ -4384,6 +4481,7 @@ function _watchCamEnd(t) {
 function _camTick() {
   _watchCamEnd(_camSourceTrack());
   const p = producers.get('video'), t = _camSourceTrack();
+  if (t && t.readyState === 'live') { const d = t.getSettings?.()?.deviceId; if (d) _camHealth.deviceId = d; }
   // (durante la riaccensione il producer è ancora in pausa: si salta)
   if (camOff || !p || p.closed || p.paused || !t || document.visibilityState !== 'visible') {
     _camHealth.mutedSince = 0; window.PermBanner?.notice('camMuted', false); return;

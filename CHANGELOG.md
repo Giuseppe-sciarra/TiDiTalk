@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.9
+
+### Added
+- **The camera comes back by itself** after another app (FaceTime, Zoom,
+  Teams…) took it or after it was unplugged and plugged back: while it is
+  lost, Tiditalk retries every 3 seconds (every 10 after 2 minutes), only
+  while the page is visible and always on the same camera — never another one
+  in its place. A camera that opens but sends no images is not put on air.
+  With a virtual background or face effect it comes back with the effect.
+  *Retry* and the camera button keep working; turning the camera off on
+  purpose stops the retries
+
+### Fixed
+- **Orphan video on the receiving side.** If someone's video was closed while
+  another participant was still connecting to it, the "closed" notice arrived
+  first and found nothing to close; the connection then completed anyway and
+  stayed open: a dead stream, and sometimes a frozen or black tile. It is now
+  discarded as soon as it is ready. Likely with a camera going off and on, and
+  with screen sharing started and stopped quickly
+
 ## 1.5.8
 
 ### Fixed

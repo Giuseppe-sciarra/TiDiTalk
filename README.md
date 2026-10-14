@@ -310,9 +310,10 @@ While drawing: `P` pen, `E` highlighter, `A` arrow, `R` rectangle, `O` circle,
   own microphone switches them to "phone mode" (low quality, and on Mac it can
   leave the browser without sound).
 - **The camera does not come back after a FaceTime / Zoom call** — when
-  another app takes the webcam the camera button turns off by itself (or a
-  notice says the camera is not sending images): once the other app is closed,
-  turn the camera on again from the bar, no need to reload the page.
+  another app takes the webcam the camera turns off and a message appears; it
+  comes back by itself as soon as the other app frees it (it retries every few
+  seconds, always on the same camera). You can also press *Retry* or turn the
+  camera on from the bar: no need to reload the page.
 - **Someone joins and can't hear** — open ⋮ → *Network & quality* as a host:
   the Participants section shows their connection. On the server,
   `docker logs tdt-app 2>&1 | grep CONN` also logs what their browser did with

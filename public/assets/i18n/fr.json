@@ -1801,6 +1801,8 @@
   "Ora è spenta": "Elle est désactivée",
   "Cancellazione dell'eco attivata": "Annulation de l’écho activée",
   "Cancellazione dell'eco spenta": "Annulation de l’écho désactivée",
-  "La videocamera è ancora usata da un'altra app (FaceTime, Zoom…). Chiudila e premi \"Riprova\".": "La caméra est encore utilisée par une autre app (FaceTime, Zoom…). Fermez-la et appuyez sur « Réessayer ».",
-  "Se non riprende da sola, spegni e riaccendi la videocamera dalla barra.": "Si elle ne reprend pas toute seule, éteignez et rallumez la caméra depuis la barre."
+  "Se non riprende da sola, spegni e riaccendi la videocamera dalla barra.": "Si elle ne reprend pas toute seule, éteignez et rallumez la caméra depuis la barre.",
+  "La videocamera si è fermata: forse la sta usando un'altra app (FaceTime, Zoom…) o è stata staccata. Torna da sola appena è libera, oppure premi \"Riprova\".": "La caméra s’est arrêtée : une autre app l’utilise peut-être (FaceTime, Zoom…) ou elle a été débranchée. Elle revient toute seule dès qu’elle est libre, ou appuyez sur « Réessayer ».",
+  "La videocamera è ancora usata da un'altra app (FaceTime, Zoom…). Torna da sola appena è libera, oppure premi \"Riprova\".": "La caméra est encore utilisée par une autre app (FaceTime, Zoom…). Elle revient toute seule dès qu’elle est libre, ou appuyez sur « Réessayer ».",
+  "Videocamera di nuovo attiva": "Caméra de nouveau active"
 }
