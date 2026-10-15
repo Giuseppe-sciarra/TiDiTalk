@@ -99,6 +99,9 @@ const speakingStates = new Map();
 const speakingTimers = new Map();
 // Esponi speakingStates globalmente per ParticipantList
 window._speakingStates = speakingStates;
+// ⭐ 1.6.0: quanto resta acceso il bordo di chi parla dopo l'ultima parola
+const SPEAK_HOLD_MS = 1200;
+const _lastSpeakAt = new Map();
 
 let callStartTime = Date.now();
 let timerInterval;
@@ -629,11 +632,13 @@ function createTile(peerId, displayName, isLocal = false) {
         <line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
       </svg>
     </div>
+    ${isLocal ? `<button type="button" class="tile-fx-btn" data-tip="Sfondi ed effetti" aria-label="Sfondi ed effetti"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.7 4.6L18 9l-4.3 1.4L12 15l-1.7-4.6L6 9l4.3-1.4z"/><path d="M18 14l.9 2.3L21 17l-2.1.7L18 20l-.9-2.3L15 17l2.1-.7z"/></svg></button>` : ''}
     <div class="tile-hand-badge" id="handBadge-${peerId}">✋</div>
     <div class="tile-netq" id="netq-${peerId}" ${isLocal ? 'data-level="3"' : ''} title="Qualità connessione — passa sopra per le statistiche"><i></i><i></i><i></i></div>
     <div class="speaking-eq" id="speakEq-${peerId}"><div class="eq-up"></div><div class="eq-down"></div></div>
     ${isLocal ? '' : `<button class="tile-rotate-btn" id="rotBtn-${peerId}" title="Ruota video (utile se il guest mobile è capovolto)">↻</button>`}`;
   peerTiles.set(peerId, tile);
+  tile.querySelector('.tile-fx-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleFxPanel('bg'); });
   document.getElementById('videoGrid').appendChild(tile);
   _watchAspect(tile.querySelector('video'), tile);
 
@@ -711,9 +716,62 @@ function _clearGridFit(g) {
   delete g.dataset.fitted;
 }
 
+// ⭐ 1.6.0 — fila delle persone sopra la presentazione. Riquadri 16:9 larghi
+// quanto basta a starci tutti; con poche persone non superano ~1/4 dell'altezza,
+// con tante si rimpiccioliscono fino a una misura minima e poi la fila scorre.
+function _fitScreenStrip(g) {
+  const col = g.querySelector('.spotlight-col');
+  if (!col) return;
+  const tiles = [...col.querySelectorAll(':scope > .video-tile')];
+  if (!tiles.length) return;
+  const phone = window.innerWidth <= 640;
+  const gap = phone ? 6 : 8;
+  const W = col.clientWidth || g.clientWidth;
+  const H = g.clientHeight;
+  const maxH = Math.max(phone ? 64 : 84, Math.min(H * (phone ? .18 : .26), phone ? 110 : 230));
+  const minW = phone ? 104 : 120;
+  let w = Math.floor((W - gap * (tiles.length - 1)) / tiles.length);
+  let h = Math.floor(w * 9 / 16);
+  if (h > maxH) { h = Math.floor(maxH); w = Math.floor(h * 16 / 9); }
+  if (w < minW) { w = minW; h = Math.floor(w * 9 / 16); }
+  tiles.forEach(t => {
+    t.style.setProperty('width', w + 'px', 'important');
+    t.style.setProperty('height', h + 'px', 'important');
+    t.style.setProperty('flex', `0 0 ${w}px`, 'important');
+    t.dataset.stripFit = '1';
+  });
+  // altezza dal contenuto: se la fila scorre, la barra di scorrimento si
+  // aggiunge sotto invece di tagliare i riquadri
+  col.style.setProperty('height', 'auto', 'important');
+  col.style.setProperty('gap', gap + 'px', 'important');
+  // l'iniziale (chi ha la camera spenta) in proporzione al riquadro
+  // fila bassa: nome più piccolo e iniziale più in alto, così non si coprono
+  const xs = h < 90;
+  col.dataset.size = xs ? 'xs' : '';
+  col.style.setProperty('--strip-av', Math.round(Math.min(h * (xs ? .42 : .5), 64)) + 'px');
+  // rotellina del mouse: la fila scorre di lato
+  if (!col._stripWheel) {
+    col._stripWheel = true;
+    col.addEventListener('wheel', (e) => {
+      if (col.scrollWidth <= col.clientWidth + 1 || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+      col.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
+  }
+}
+function _clearStripFit(g) {
+  g.querySelectorAll('.video-tile[data-strip-fit]').forEach(t => {
+    t.style.removeProperty('width'); t.style.removeProperty('height'); t.style.removeProperty('flex');
+    delete t.dataset.stripFit;
+  });
+  const col = g.querySelector('.spotlight-col');
+  if (col) { col.style.removeProperty('height'); col.style.removeProperty('gap'); col.style.removeProperty('--strip-av'); delete col.dataset.size; }
+}
+
 function fitGridToViewport() {
   const g = document.getElementById('videoGrid');
   if (!g) return;
+  if (g.dataset.spotlight === 'true' && g.dataset.screen === 'true') _fitScreenStrip(g); else _clearStripFit(g);
   const isGrid = g.dataset.spotlight !== 'true' && g.dataset.pinned !== 'true';
   // telefono: si usa sempre la vista relatore, ha già il suo layout
   if (!isGrid || window.innerWidth <= 820) { _clearGridFit(g); return; }
@@ -897,6 +955,7 @@ function applySpotlight() {
     t.onclick = null;
   });
   grid.removeAttribute('data-spotlight');
+  grid.removeAttribute('data-screen');
 
   const hasScreen = tiles.some(t => t.classList.contains('screenshare'));
   const peopleTiles = tiles.filter(t => !t.classList.contains('screenshare'));
@@ -912,6 +971,9 @@ function applySpotlight() {
   if (!shouldSpotlight) return;
 
   grid.dataset.spotlight = 'true';
+  // ⭐ 1.6.0: con una presentazione le persone vanno in fila SOPRA lo schermo
+  // condiviso (come Meet), riquadri sempre più piccoli quante più persone ci sono
+  if (hasScreen) grid.dataset.screen = 'true';
 
   // Main: se l'utente ha scelto un peer (anche local) usalo,
   // altrimenti auto: screenshare > remote > primo disponibile
@@ -1065,6 +1127,12 @@ async function initSpeakingDetection() {
 
     const data = new Uint8Array(a.frequencyBinCount);
     let _logCount = 0;
+    // ⭐ 1.6.0: niente sfarfallio. Prima il bordo seguiva il livello fotogramma
+    // per fotogramma e si spegneva in ogni pausa fra le sillabe. Ora si accende
+    // dopo ~80 ms di voce (un clic non basta; misurati in tempo, non in
+    // fotogrammi, così funziona anche su un PC lento), poi ogni suono lo tiene
+    // acceso e si spegne dopo SPEAK_HOLD_MS di silenzio, come su Meet.
+    let _loudMs = 0, _lastLoud = 0, _lastFrame = 0;
     const check = () => {
       a.getByteFrequencyData(data);
       const avg = data.slice(0, 64).reduce((s, b) => s + b, 0) / 64;
@@ -1073,7 +1141,14 @@ async function initSpeakingDetection() {
       if (_logCount % 60 === 0 && _logCount < 600) {
         console.log('[speaking local] avg =', avg.toFixed(1), '(threshold 20)');
       }
-      setSpeaking('local', avg > 20);
+      const now = performance.now();
+      const dt = _lastFrame ? Math.min(now - _lastFrame, 250) : 16;
+      _lastFrame = now;
+      const loud = avg > 20;
+      _loudMs = loud ? Math.min(_loudMs + dt, 300) : Math.max(_loudMs - dt, 0);
+      const on = _lastLoud > 0 && now - _lastLoud < SPEAK_HOLD_MS;
+      if (loud && (on || _loudMs >= 80)) _lastLoud = now;
+      setSpeaking('local', _lastLoud > 0 && now - _lastLoud < SPEAK_HOLD_MS);
       _speakingRafId = requestAnimationFrame(check);
     };
     check();
@@ -1381,21 +1456,23 @@ async function initSocket() {
     // ~ogni 200ms che dice chi sta parlando.
     socket.on('activeSpeaker', ({ peerId, volume }) => {
       // volume è in dBov: -127..0 (ma con threshold -65 lato server, qui arriva sempre voce)
-      // Marchiamo il peer come speaking, autospegnimento dopo 800ms se non riarrivano eventi
+      // ⭐ 1.6.0: il bordo resta acceso per SPEAK_HOLD_MS dall'ultimo segnale di
+      // voce (prima 800 ms, e ogni pausa fra le parole lo spegneva: sfarfallava)
+      _lastSpeakAt.set(peerId, Date.now());
       setSpeaking(peerId, true);
       clearTimeout(speakingTimers.get(peerId));
-      speakingTimers.set(peerId, setTimeout(() => setSpeaking(peerId, false), 800));
+      speakingTimers.set(peerId, setTimeout(() => setSpeaking(peerId, false), SPEAK_HOLD_MS));
     });
 
     socket.on('speakerSilence', () => {
-      // Spegni tutti i peer remoti dopo un breve grace period
-      // (il setSpeaking false su singolo peer è già gestito dai timer di 'activeSpeaker')
-      // Qui forziamo lo spegnimento di chi è ancora 'speaking' senza eventi recenti
+      // Il server lo manda a ogni pausa fra le parole: spegnere subito faceva
+      // sfarfallare il bordo. Si spegne solo chi tace da almeno SPEAK_HOLD_MS
+      // (rete di sicurezza: di norma ci pensano già i timer di 'activeSpeaker').
       setTimeout(() => {
         peers.forEach((_, peerId) => {
-          if (speakingStates.get(peerId)) setSpeaking(peerId, false);
+          if (speakingStates.get(peerId) && Date.now() - (_lastSpeakAt.get(peerId) || 0) >= SPEAK_HOLD_MS) setSpeaking(peerId, false);
         });
-      }, 300);
+      }, SPEAK_HOLD_MS);
     });
 
     socket.on('error', ({ message }) => showToast('Errore: ' + message));
@@ -1497,8 +1574,45 @@ async function joinRoom(micMuted = false, camOff = false) {
   }
   await _drainPendingConsumes();
   _jlog('joinComplete', { consumers: consumers.size, pendingDrained: true });
+  _mountRoomShapes();
+  _initControlsBarFit();
   let _nAudio = 0; consumers.forEach((c) => { if (c.kind === 'audio') _nAudio++; });
   _mediaDiag('join', { n: consumers.size, audio: _nAudio, ms: Date.now() - _t0 });
+}
+
+// ⭐ 1.6.0: sfondo a forme animate sotto la chiamata (dietro a tutto)
+function _mountRoomShapes() {
+  const c = document.querySelector('canvas.bg-shapes-room');
+  if (!c || c._tdShapes || !window.TdtShapes) return;
+  document.body.classList.add('room-shapes');
+  window.TdtShapes.mount(c, 'room');
+}
+
+// ⭐ 1.6.0: se i tasti della barra non ci stanno (telefono stretto con
+// "Presenta" e "Disegna" insieme) si stringono un po' (.cc-tight) invece di
+// uscire dallo schermo. Si ricontrolla quando un tasto compare o sparisce.
+function _fitControlsBar() {
+  const cc = document.querySelector('.controls-bar .controls-center');
+  if (!cc) return;
+  cc.classList.remove('cc-tight');
+  if (window.innerWidth > 820) return;
+  const kids = [...cc.children].filter(k => k.offsetParent !== null);
+  if (!kids.length) return;
+  const r = cc.getBoundingClientRect();
+  const a = kids[0].getBoundingClientRect().left, b = kids[kids.length - 1].getBoundingClientRect().right;
+  if (a < r.left + 3 || b > r.right - 3 || cc.scrollWidth > cc.clientWidth + 1) cc.classList.add('cc-tight');
+}
+let _ccFitInit = false, _ccFitRaf = 0;
+function _initControlsBarFit() {
+  if (_ccFitInit) return;
+  const cc = document.querySelector('.controls-bar .controls-center');
+  if (!cc) return;
+  _ccFitInit = true;
+  const later = () => { cancelAnimationFrame(_ccFitRaf); _ccFitRaf = requestAnimationFrame(_fitControlsBar); };
+  window.addEventListener('resize', later);
+  new MutationObserver((muts) => { if (muts.some(m => m.target !== cc)) later(); })
+    .observe(cc, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true });
+  later();
 }
 
 // ─── Transports ──────────────────────────────────────────────────────────────
@@ -2657,7 +2771,7 @@ function bindControls() {
   document.getElementById('btnRecord').addEventListener('click', () => { isRecording ? stopRecording() : startRecording(); });
 
   // Partecipanti
-  document.getElementById('btnParticipants').addEventListener('click', () => participantList.toggle());
+  document.getElementById('btnParticipants').addEventListener('click', () => { if (!participantList.open && _fxOpen) closeFxPanel(); participantList.toggle(); });
   document.getElementById('btnCloseParticipants').addEventListener('click', () => participantList.toggle());
 
   let handRaised = false;
@@ -2812,18 +2926,12 @@ function bindControls() {
 
   // ── Sfondi virtuali ──────────────────────────────────────────────────────
   document.getElementById('btnBackground')?.addEventListener('click', () => closeMoreMenu());
-  document.getElementById('btnBackground')?.addEventListener('click', openBackgroundModal);
+  document.getElementById('btnBackground')?.addEventListener('click', (e) => { e.stopPropagation(); toggleFxPanel('bg'); });
 
   // ── Condividi stanza dal menu ⋮ ───────────────────────────────────────────
   document.getElementById('btnShareMenu')?.addEventListener('click', () => { closeMoreMenu(); shareRoomLink(); });
   document.getElementById('btnNetMon')?.addEventListener('click', () => { closeMoreMenu(); window.TdtNetMon?.open(); });
   document.getElementById('btnPolls')?.addEventListener('click', () => { closeMoreMenu(); window.TdtPolls?.toggle(); });
-  document.getElementById('bgModalClose')?.addEventListener('click', () => {
-    document.getElementById('bgModal').classList.add('hidden');
-  });
-  document.getElementById('bgModal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'bgModal') document.getElementById('bgModal').classList.add('hidden');
-  });
   document.getElementById('bgUploadInput')?.addEventListener('change', handleBackgroundUpload);
 
   // ── Info modal ────────────────────────────────────────────────────────────
@@ -2839,102 +2947,106 @@ function bindControls() {
   loadPublicSettings();
 }
 
-// ─── Effetti viso ─────────────────────────────────────────────────────────────
-let _effectsPickerOpen = false;
+// ─── Sfondi ed effetti: pannello laterale come Meet (1.6.0) ───────────────────
+// Prima: una finestra per lo sfondo e un riquadro flottante per stili/effetti.
+// Ora un solo pannello a destra con l'anteprima di sé in alto e tre schede.
+// Le funzioni sono le stesse (applyBackground / applyFaceEffect / applyStyle).
+let _fxOpen = false, _fxBuilt = false, _fxSyncTimer = null, _fxTabNow = 'bg';
 
-function buildEffectsPicker() {
-  let picker = document.getElementById('effectsPicker');
-  if (picker) return picker;
-
-  picker = document.createElement('div');
-  picker.id = 'effectsPicker';
-  picker.className = 'effects-picker hidden';
-  picker.innerHTML = `
-    <div class="effects-picker-head">
-      <span class="effects-picker-head-title">Sfondi ed effetti</span>
-      <button class="effects-picker-close" id="effectsPickerClose" aria-label="Chiudi" title="Chiudi">✕</button>
-    </div>
-    <div class="effects-picker-title" style="color:rgba(120,180,255,0.95);border-left:3px solid #4a90e2;padding-left:8px;">🎨 Stili colore</div>
-    <div class="effects-picker-grid" id="stylesPickerGrid" style="flex:none;max-height:128px;"></div>
-    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent);margin:14px 2px 12px;flex-shrink:0;"></div>
-    <div class="effects-picker-title" style="color:rgba(255,180,120,0.95);border-left:3px solid #e2904a;padding-left:8px;">✨ Effetti viso</div>
-    <div class="effects-picker-grid" id="effectsPickerGrid"></div>
-    <button class="effects-picker-close-bottom" id="effectsPickerCloseBottom">Chiudi</button>
-  `;
-  document.body.appendChild(picker);
-
-  // Pulsanti chiudi (X in alto + Chiudi in basso su mobile)
-  picker.querySelector('#effectsPickerClose')?.addEventListener('click', closeEffectsPicker);
-  picker.querySelector('#effectsPickerCloseBottom')?.addEventListener('click', closeEffectsPicker);
-
-  // ── Griglia STILI colore ──
-  const styleGrid = picker.querySelector('#stylesPickerGrid');
-  (FaceEffects.STYLES || []).forEach(st => {
+function _fxBuild() {
+  if (_fxBuilt) return;
+  const panel = document.getElementById('fxPanel');
+  if (!panel) return;
+  _fxBuilt = true;
+  const mk = (cls, icon, label) => {
     const btn = document.createElement('button');
-    btn.className = 'effect-btn' + (st.id === 'none' ? ' active' : '');
+    btn.type = 'button';
+    btn.className = 'effect-btn fx-item ' + cls;
+    btn.innerHTML = `<span class="effect-icon">${icon}</span><span class="effect-label">${escapeHtml(label)}</span>`;
+    return btn;
+  };
+  const styleGrid = document.getElementById('stylesPickerGrid');
+  (window.FaceEffects?.STYLES || []).forEach(st => {
+    const btn = mk('fx-item-emo', st.icon, st.label);
     btn.dataset.styleId = st.id;
-    btn.innerHTML = `<span class="effect-icon">${st.icon}</span><span class="effect-label">${st.label}</span>`;
-    btn.addEventListener('click', async () => {
-      await applyStyle(st.id);
-      styleGrid.querySelectorAll('.effect-btn').forEach(b => b.classList.toggle('active', b.dataset.styleId === st.id));
-    });
+    btn.addEventListener('click', async () => { await applyStyle(st.id); _fxSyncActive(); });
     styleGrid.appendChild(btn);
   });
-
-  const grid = picker.querySelector('#effectsPickerGrid');
-  FaceEffects.CATALOG.forEach(eff => {
-    const btn = document.createElement('button');
-    btn.className = 'effect-btn';
+  const faceGrid = document.getElementById('effectsPickerGrid');
+  (window.FaceEffects?.CATALOG || []).forEach(eff => {
+    const btn = mk('fx-item-emo', eff.icon, eff.label);
     btn.dataset.id = eff.id;
-    btn.innerHTML = `<span class="effect-icon">${eff.icon}</span><span class="effect-label">${eff.label}</span>`;
-    btn.addEventListener('click', async () => {
-      await applyFaceEffect(eff.id);
-      grid.querySelectorAll('.effect-btn').forEach(b => b.classList.toggle('active', b.dataset.id === eff.id));
-    });
-    grid.appendChild(btn);
+    btn.addEventListener('click', async () => { await applyFaceEffect(eff.id); _fxSyncActive(); });
+    faceGrid.appendChild(btn);
   });
+  panel.querySelectorAll('.fx-tab').forEach(t => t.addEventListener('click', () => _fxTab(t.dataset.tab)));
+  document.getElementById('btnCloseFx')?.addEventListener('click', closeFxPanel);
+  document.getElementById('fxCamOn')?.addEventListener('click', () => document.getElementById('btnCamera')?.click());
+}
 
-  // Chiudi cliccando fuori
-  document.addEventListener('click', (e) => {
-    if (!_effectsPickerOpen) return;
-    if (!picker.contains(e.target) && !document.getElementById('btnEffects')?.contains(e.target)) {
-      closeEffectsPicker();
-    }
+function _fxTab(tab) {
+  _fxTabNow = tab;
+  document.querySelectorAll('#fxPanel .fx-tab').forEach(t => {
+    const on = t.dataset.tab === tab;
+    t.classList.toggle('active', on); t.setAttribute('aria-selected', on ? 'true' : 'false');
   });
-
-  return picker;
+  document.querySelectorAll('#fxPanel .fx-sec').forEach(sec => sec.classList.toggle('hidden', sec.dataset.sec !== tab));
 }
 
-function toggleEffectsPicker(e) {
-  e?.stopPropagation();
-  const picker = buildEffectsPicker();
-  if (_effectsPickerOpen) { closeEffectsPicker(); return; }
-
-  picker.classList.remove('hidden');
-
-  if (window.innerWidth <= 640) {
-    // Mobile: bottom sheet a tutta larghezza (posizione gestita dal CSS)
-    picker.style.width = '';
-    picker.style.left = '';
-    picker.style.bottom = '';
-  } else {
-    // Desktop: ancorato sopra il pulsante ⋮ (btnEffects è dentro il menu nascosto)
-    const anchor = document.getElementById('btnMore') || document.getElementById('btnEffects');
-    const rect = anchor.getBoundingClientRect();
-    const pw = Math.min(window.innerWidth - 24, 420);
-    picker.style.width = pw + 'px';
-    let left = rect.left + rect.width / 2 - pw / 2;
-    left = Math.max(12, Math.min(left, window.innerWidth - pw - 12));
-    picker.style.left = left + 'px';
-    picker.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
-  }
-  _effectsPickerOpen = true;
+function _fxSyncActive() {
+  try { markActiveBackground(); } catch (_) { }
+  document.querySelectorAll('#effectsPickerGrid .effect-btn').forEach(b => b.classList.toggle('active', b.dataset.id === (_currentFaceEffectId || 'none')));
+  document.querySelectorAll('#stylesPickerGrid .effect-btn').forEach(b => b.classList.toggle('active', b.dataset.styleId === (_currentStyle || 'none')));
 }
 
-function closeEffectsPicker() {
-  document.getElementById('effectsPicker')?.classList.add('hidden');
-  _effectsPickerOpen = false;
+// anteprima: quello che si vede nel proprio riquadro (con sfondo/effetto)
+function _fxSyncPreview() {
+  const pv = document.getElementById('fxPreview'), off = document.getElementById('fxPreviewOff');
+  const lv = document.getElementById('video-local');
+  if (!pv || !off) return;
+  const src = lv?.srcObject;
+  const on = !camOff && !!src && src.getVideoTracks().some(t => t.readyState === 'live');
+  off.classList.toggle('hidden', on);
+  pv.style.visibility = on ? '' : 'hidden';
+  if (on && pv.srcObject !== src) { pv.srcObject = src; pv.play?.().catch(() => { }); }
+  if (!on && pv.srcObject) pv.srcObject = null;
+  if (lv) pv.style.transform = getComputedStyle(lv).transform || 'none';
 }
+
+function openFxPanel(tab) {
+  _fxBuild();
+  const panel = document.getElementById('fxPanel');
+  if (!panel) return;
+  // un pannello alla volta, come Meet
+  if (chatOpen) toggleChat();
+  if (participantList?.open) participantList.toggle();
+  try { window.TdtPolls?.toggle?.(false); } catch (_) { }
+  closeMoreMenu();
+  panel.classList.remove('hidden');
+  _fxOpen = true;
+  _fxTab(tab || _fxTabNow);
+  loadBackgroundPresets();
+  _fxSyncActive();
+  _fxSyncPreview();
+  clearInterval(_fxSyncTimer);
+  _fxSyncTimer = setInterval(_fxSyncPreview, 500);
+}
+function closeFxPanel() {
+  document.getElementById('fxPanel')?.classList.add('hidden');
+  _fxOpen = false;
+  clearInterval(_fxSyncTimer); _fxSyncTimer = null;
+  const pv = document.getElementById('fxPreview');
+  if (pv) pv.srcObject = null;
+}
+function toggleFxPanel(tab) {
+  if (_fxOpen && (!tab || tab === _fxTabNow)) closeFxPanel(); else openFxPanel(tab);
+}
+window.openFxPanel = openFxPanel;
+window.closeFxPanel = closeFxPanel;
+
+// nomi di prima: chi li chiamava apre il pannello sulla scheda giusta
+function toggleEffectsPicker(e) { e?.stopPropagation?.(); toggleFxPanel('face'); }
+function closeEffectsPicker() { closeFxPanel(); }
 
 window.closeMoreMenu = closeMoreMenu;
 function closeMoreMenu() {
@@ -3349,6 +3461,7 @@ async function _applyStyleImpl(styleId) {
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 function toggleChat() {
   chatOpen = !chatOpen;
+  if (chatOpen && _fxOpen) closeFxPanel();
   const panel = document.getElementById('chatPanel');
   panel.classList.toggle('hidden', !chatOpen);
   // Niente style.height/style.top: il CSS gestisce height:100dvh e inset:0
@@ -3503,12 +3616,7 @@ function applyBranding() {
   if (b.accentColor) document.documentElement.style.setProperty('--accent-raw', b.accentColor);
 }
 
-function openBackgroundModal() {
-  const modal = document.getElementById('bgModal');
-  modal.classList.remove('hidden');
-  loadBackgroundPresets();
-  markActiveBackground();
-}
+function openBackgroundModal() { openFxPanel('bg'); }
 
 function markActiveBackground() {
   document.querySelectorAll('.bg-item').forEach(el => {
@@ -3527,17 +3635,17 @@ async function loadBackgroundPresets() {
     const data = await r.json();
     const all = [...(data.presets || []), ...(data.uploads || [])];
     if (all.length === 0) {
-      grid.innerHTML = '<div class="bg-loading">Nessuno sfondo disponibile. Carica il tuo qui sotto.</div>';
+      grid.innerHTML = '<div class="bg-loading">Nessuno sfondo disponibile: usa «Carica» qui sopra.</div>';
       return;
     }
     grid.innerHTML = all.map(b => `
-      <button class="bg-item" data-bg-type="image" data-bg-url="${escapeHtml(b.url)}" title="${escapeHtml(b.label)}">
-        <img src="${escapeHtml(b.url)}" alt="${escapeHtml(b.label)}">
+      <button class="bg-item" data-bg-type="image" data-bg-url="${escapeHtml(b.url)}" aria-label="${escapeHtml(b.label)}">
+        <img src="${escapeHtml(b.thumb || b.url)}" alt="${escapeHtml(b.label)}" loading="lazy" decoding="async">
         <span class="bg-label">${escapeHtml(b.label)}</span>
       </button>
     `).join('');
     grid.querySelectorAll('.bg-item').forEach(btn => {
-      btn.addEventListener('click', () => applyBackground('image', btn.dataset.bgUrl));
+      btn.addEventListener('click', async () => { await applyBackground('image', btn.dataset.bgUrl); _fxSyncActive(); });
     });
   } catch (e) {
     grid.innerHTML = '<div class="bg-loading">Errore nel caricamento sfondi</div>';
@@ -3545,7 +3653,7 @@ async function loadBackgroundPresets() {
 
   // Collega anche i bottoni fissi (none/blur)
   document.querySelectorAll('.bg-item.bg-none, .bg-item.bg-blur').forEach(btn => {
-    btn.onclick = () => applyBackground(btn.dataset.bgType, null);
+    btn.onclick = async () => { await applyBackground(btn.dataset.bgType, null); _fxSyncActive(); };
   });
   markActiveBackground();
 }
@@ -3569,6 +3677,7 @@ async function handleBackgroundUpload(e) {
     if (data.url) {
       await loadBackgroundPresets();
       await applyBackground('image', data.url);
+      _fxSyncActive();
     } else {
       showToast('Upload fallito: ' + (data.error || 'errore'));
     }
@@ -3577,8 +3686,8 @@ async function handleBackgroundUpload(e) {
 }
 
 async function _applyBackgroundImpl(type, imageUrl) {
-  // Chiusura modal
-  document.getElementById('bgModal').classList.add('hidden');
+  // Chiusura modal (1.6.0: sostituita dal pannello laterale, che resta aperto)
+  document.getElementById('bgModal')?.classList.add('hidden');
 
   // ── Mutua esclusione con effetti viso ───────────────────────────────────
   if (type !== 'none' && faceEffects) {

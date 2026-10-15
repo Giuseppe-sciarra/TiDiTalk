@@ -69,6 +69,8 @@ tuo marchio.
   penna, evidenziatore, freccia, riquadro, cerchio, **testo**, **gomma** e
   **puntatore laser** col nome di chi indica; "nascondi disegni" solo per te,
   **salva un PNG** dello schermo condiviso con sopra i disegni
+- Mentre qualcuno presenta, i partecipanti stanno **in fila sopra lo schermo
+  condiviso**, più piccoli quante più persone ci sono
 - Chi presenta decide se possono disegnare tutti o solo lui e gli organizzatori
 - **Registrazione** locale che include disegni e puntatore laser; uscendo dalla
   stanza si aspetta che il file sia salvato
@@ -97,7 +99,11 @@ tuo marchio.
 - **Finestra mobile** con tutta la riunione (Chrome/Edge): tutti i partecipanti,
   chi parla evidenziato, microfono/camera/mano/esci. Si apre da sola quando
   cambi scheda
-- Sfondi virtuali (sfocatura o immagine), stili colore ed effetti viso (MediaPipe)
+- Sfondi virtuali (sfocatura, 56 foto — uffici, case, biblioteche, Italia,
+  natura, spazio, astratti, videogiochi — illustrazioni synthwave e pixel art,
+  o una tua immagine), stili colore ed effetti
+  viso (MediaPipe) in un **pannello laterale con anteprima**, da Altro o dal
+  pulsante sul proprio riquadro
 - **Finestra Impostazioni della chiamata** a sezioni: dispositivi audio e
   video, regole della stanza (organizzatori), qualità registrazione, aspetto,
   scorciatoie, info
@@ -151,9 +157,11 @@ cd TiDiTalk
 cp .env.template .env
 nano .env        # almeno: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USERS, SMTP_*
 
-# 2. Asset di terze parti (MediaPipe per sfondi/effetti, immagini emoji)
+# 2. Asset di terze parti (MediaPipe per sfondi/effetti, immagini emoji,
+#    foto degli sfondi da Unsplash)
 bash setup-mediapipe.sh
 bash setup-effects.sh
+bash setup-backgrounds.sh
 
 # 3. Avvio
 docker compose up -d --build

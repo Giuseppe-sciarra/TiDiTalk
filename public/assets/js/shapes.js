@@ -14,6 +14,8 @@
  *   bye       scendono leggere come coriandoli
  *   prejoin   come la home ma rade (schermata prima di entrare)
  *   wait      pulsano piano attorno al centro (sala d'attesa dell'ospite)
+ *   room      come la home, più rade e a 30 fotogrammi: sotto la chiamata
+ *             (1.6.0), dietro a riquadri e barre, senza pesare sulla CPU
  *
  * Uso: <canvas class="bg-shapes" data-variant="login"></canvas> + questo
  * script. Per i canvas creati dopo: TdtShapes.mount(canvas, 'wait').
@@ -33,6 +35,12 @@
       density: 2.4, max: 44, size: [14, 60], kinds: ['tri', 'sq', 'circle', 'hex', 'tri', 'sq'],
       alpha: [.07, .23], fill: .35, spin: .25, glow: [.82, .1], parallax: 26,
       spawn(s, W, H, any) { s.x = RND(0, W); s.y = any ? RND(0, H) : H + s.size * 2; s.vx = RND(-5, 5); s.vy = -RND(6, 20); },
+      move(s, t, dt) { s.y += s.vy * dt; s.x += (s.vx + Math.sin(t / 1800 + s.wob) * 6) * dt; return s.y > -s.size * 2; },
+    },
+    room: {
+      density: 1.5, max: 30, size: [14, 58], kinds: ['tri', 'sq', 'circle', 'hex', 'tri', 'sq'],
+      alpha: [.06, .2], fill: .35, spin: .22, glow: [.85, .06], fps: 30,
+      spawn(s, W, H, any) { s.x = RND(0, W); s.y = any ? RND(0, H) : H + s.size * 2; s.vx = RND(-5, 5); s.vy = -RND(5, 16); },
       move(s, t, dt) { s.y += s.vy * dt; s.x += (s.vx + Math.sin(t / 1800 + s.wob) * 6) * dt; return s.y > -s.size * 2; },
     },
     prejoin: {
@@ -130,7 +138,8 @@
       // canvas nascosto (es. prejoin chiuso): niente disegno, ricontrollo ogni tanto
       if (!canvas.getClientRects().length || canvas.closest('.hidden')) { raf = 0; idle = setTimeout(() => { last = performance.now(); raf = requestAnimationFrame(frame); }, 1000); return; }
       raf = requestAnimationFrame(frame);
-      const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+      if (cfg.fps && t - last < 1000 / cfg.fps - 2) return;
+      const dt = Math.min(.08, (t - last) / 1000 || 0); last = t;
       if (local) { const r = canvas.getBoundingClientRect(); if (Math.abs(r.width - W) > 2 || Math.abs(r.height - H) > 2) size(); }
       ctx.clearRect(0, 0, W, H);
       const light = document.documentElement.dataset.theme === 'light';

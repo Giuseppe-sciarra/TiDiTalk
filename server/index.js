@@ -748,11 +748,18 @@ app.get('/api/backgrounds', (req, res) => {
   const presets = [];
   const bgDir = path.join(__dirname, '../public/assets/backgrounds');
   if (fs.existsSync(bgDir)) {
-    for (const f of fs.readdirSync(bgDir)) {
-      if (/\.(jpg|jpeg|png|webp|svg)$/i.test(f)) {
-        const label = f.replace(/\.\w+$/, '').replace(/[-_]/g, ' ');
-        presets.push({ url: `/assets/backgrounds/${f}`, label: label.charAt(0).toUpperCase() + label.slice(1) });
-      }
+    // 1.6.0: ordine per nome ("01-…", "02-…" prima, il numero non si vede
+    // nell'etichetta) e miniatura da thumbs/<nome>.jpg se c'è: il pannello
+    // carica quella, la foto intera solo quando la si sceglie
+    const files = fs.readdirSync(bgDir)
+      .filter(f => /\.(jpg|jpeg|png|webp|svg)$/i.test(f))
+      .sort((a, b) => a.localeCompare(b, 'it', { numeric: true, sensitivity: 'base' }));
+    for (const f of files) {
+      const base = f.replace(/\.\w+$/, '');
+      const label = base.replace(/^\d+[-_ ]+/, '').replace(/[-_]/g, ' ');
+      const item = { url: `/assets/backgrounds/${f}`, label: label.charAt(0).toUpperCase() + label.slice(1) };
+      if (fs.existsSync(path.join(bgDir, 'thumbs', base + '.jpg'))) item.thumb = `/assets/backgrounds/thumbs/${base}.jpg`;
+      presets.push(item);
     }
   }
 

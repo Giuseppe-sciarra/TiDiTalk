@@ -34,6 +34,8 @@
 </head>
 
 <body class="tdt-room">
+  <!-- 1.6.0: forme animate sotto la chiamata (montate da room.js dopo l'ingresso) -->
+  <canvas class="bg-shapes-room" data-variant="room" aria-hidden="true"></canvas>
 
   <!-- ══ PRE-JOIN ═══════════════════════════════════════════════════════════ -->
   <div class="prejoin-screen hidden" id="prejoinScreen">
@@ -151,6 +153,57 @@
       <div class="chat-input-area">
         <input type="text" id="chatInput" placeholder="Scrivi a tutti…" maxlength="500" />
         <button class="btn-icon btn-send" id="btnSend" data-tip="Invia (Invio)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10 14"/><path d="M21 3l-6.5 18-4.5-7-7-4.5z"/></svg></button>
+      </div>
+    </aside>
+
+    <!-- ══ Sfondi ed effetti (1.6.0): pannello laterale come Meet ══ -->
+    <aside class="chat-panel fx-panel hidden" id="fxPanel" aria-label="Sfondi ed effetti">
+      <div class="chat-header fx-head">
+        <span>Sfondi ed effetti</span>
+        <button class="btn-icon" id="btnCloseFx" data-tip="Chiudi"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="fx-preview">
+        <video id="fxPreview" autoplay muted playsinline></video>
+        <div class="fx-preview-off hidden" id="fxPreviewOff">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20"/><path d="M16 16v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m4 0h3a2 2 0 0 1 2 2v3.3l1 1L22 7v10"/></svg>
+          <span>La videocamera è spenta</span>
+          <button type="button" class="fx-cam-on" id="fxCamOn">Accendi la videocamera</button>
+        </div>
+        <span class="fx-preview-label">Anteprima: solo tu ti vedi</span>
+      </div>
+      <div class="fx-tabs" role="tablist">
+        <button type="button" class="fx-tab active" role="tab" data-tab="bg" aria-selected="true">Sfondi</button>
+        <button type="button" class="fx-tab" role="tab" data-tab="face" aria-selected="false">Effetti viso</button>
+        <button type="button" class="fx-tab" role="tab" data-tab="style" aria-selected="false">Stili</button>
+      </div>
+      <div class="fx-body">
+        <section class="fx-sec" data-sec="bg">
+          <h4 class="fx-h">Sfocatura e personale</h4>
+          <div class="fx-grid fx-grid-top">
+            <button type="button" class="bg-item bg-none fx-item fx-item-ico" data-bg-type="none" title="Nessuno sfondo">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/></svg>
+              <span class="bg-label">Nessuno</span>
+            </button>
+            <button type="button" class="bg-item bg-blur fx-item fx-item-ico" data-bg-type="blur" title="Sfoca lo sfondo">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="9" r="3.2"/><path d="M5.5 20c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2"/><circle cx="4" cy="6" r=".9" fill="currentColor"/><circle cx="20" cy="6" r=".9" fill="currentColor"/><circle cx="3" cy="12" r=".9" fill="currentColor"/><circle cx="21" cy="12" r=".9" fill="currentColor"/></svg>
+              <span class="bg-label">Sfocato</span>
+            </button>
+            <label class="fx-item fx-item-ico fx-upload" for="bgUploadInput" title="Usa una tua immagine">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M12 16V9M8.8 12.2L12 9l3.2 3.2"/></svg>
+              <span class="bg-label">Carica</span>
+              <input type="file" id="bgUploadInput" accept="image/jpeg,image/png,image/webp" hidden>
+            </label>
+          </div>
+          <h4 class="fx-h">Sfondi</h4>
+          <div class="fx-grid fx-grid-img" id="bgPresetsGrid"><div class="bg-loading">Caricamento...</div></div>
+          <div class="fx-hint">Le tue immagini: fino a 8 MB, meglio 1920×1080.</div>
+        </section>
+        <section class="fx-sec hidden" data-sec="face">
+          <div class="fx-grid fx-grid-fx" id="effectsPickerGrid"></div>
+        </section>
+        <section class="fx-sec hidden" data-sec="style">
+          <div class="fx-grid fx-grid-fx" id="stylesPickerGrid"></div>
+        </section>
       </div>
     </aside>
   </div>
@@ -283,41 +336,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Modal sfondi virtuali -->
-  <div class="bg-modal hidden" id="bgModal">
-    <div class="bg-modal-content">
-      <div class="bg-modal-header">
-        <h3>Sfondo virtuale</h3>
-        <button class="bg-modal-close" id="bgModalClose">×</button>
-      </div>
-      <div class="bg-modal-body">
-        <div class="bg-section">
-          <h4>Base</h4>
-          <div class="bg-grid">
-            <button class="bg-item bg-none" data-bg-type="none" title="Nessuno">
-              <span class="bg-ico">∅</span><span class="bg-label">Nessuno</span>
-            </button>
-            <button class="bg-item bg-blur" data-bg-type="blur" title="Sfocato">
-              <span class="bg-ico">◌</span><span class="bg-label">Sfocato</span>
-            </button>
-          </div>
-        </div>
-        <div class="bg-section">
-          <h4>Sfondi disponibili</h4>
-          <div class="bg-grid" id="bgPresetsGrid">
-            <div class="bg-loading">Caricamento...</div>
-          </div>
-        </div>
-        <div class="bg-section">
-          <h4>Carica il tuo</h4>
-          <label class="bg-upload-btn" for="bgUploadInput">
-            Carica un'immagine
-            <input type="file" id="bgUploadInput" accept="image/jpeg,image/png,image/webp" hidden>
-          </label>
-          <div class="bg-hint">Max 8MB — 1920x1080 consigliato</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- 1.6.0: lo sfondo virtuale è nel pannello laterale "Sfondi ed effetti" (#fxPanel) -->
 
   <!-- Modal info -->
   <div class="info-modal hidden" id="infoModal">

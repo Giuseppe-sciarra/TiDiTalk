@@ -65,6 +65,8 @@ cloud, your branding.
   highlighter, arrow, rectangle, circle, **text**, **eraser** and **laser
   pointer** with the presenter's name; hide drawings for yourself, **save a
   PNG** of the shared screen with the drawings
+- While someone presents, the participants sit **in a row above the shared
+  screen**, smaller as more people join
 - The presenter decides whether everyone can draw or only presenter and hosts
 - Local **recording** that includes annotations and laser pointer; leaving the
   room waits for the file to be saved
@@ -91,7 +93,11 @@ cloud, your branding.
   card and buttons — or a redirect to your own URL (Settings → End of call)
 - **Floating window** with the whole meeting (Chrome/Edge): all participants,
   speaker highlight, mic/camera/hand/leave. Opens by itself when you switch tab
-- Virtual backgrounds (blur or image), color styles and face effects (MediaPipe)
+- Virtual backgrounds (blur, 56 photos — offices, homes, libraries, Italy,
+  nature, space, abstract, video games — synthwave and pixel-art
+  illustrations, or your own image), color styles and face
+  effects (MediaPipe) in a **side panel with a live preview**, opened from More
+  or from the button on your own tile
 - **Call settings window** with sections: audio & video devices, room rules
   (hosts), recording quality, appearance, shortcuts, info
 - Microphone popup with **live mic and speaker levels** and a switch for
@@ -144,9 +150,11 @@ cd TiDiTalk
 cp .env.template .env
 nano .env        # at least: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USERS, SMTP_*
 
-# 2. Third-party assets (MediaPipe for backgrounds/effects, emoji images)
+# 2. Third-party assets (MediaPipe for backgrounds/effects, emoji images,
+#    background photos from Unsplash)
 bash setup-mediapipe.sh
 bash setup-effects.sh
+bash setup-backgrounds.sh
 
 # 3. Start
 docker compose up -d --build

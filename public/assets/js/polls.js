@@ -154,6 +154,7 @@
   function toggle(force) {
     if (!panel) build();
     open = typeof force === 'boolean' ? force : !open;
+    if (open) window.closeFxPanel?.();   // 1.6.0: un pannello alla volta
     panel.classList.toggle('hidden', !open);
     if (open) { unseen = 0; updateBadge(); render(); }
   }

@@ -25,6 +25,7 @@ third-party components, each under its own license.
 |-----------|---------|--------|
 | [MediaPipe Face Mesh / Selfie Segmentation](https://github.com/google-ai-edge/mediapipe) | Apache-2.0 | `setup-mediapipe.sh` |
 | [Twemoji](https://github.com/jdecked/twemoji) graphics used by face effects | CC-BY 4.0 — © Twitter, Inc and other contributors | `setup-effects.sh` |
+| Background photos (56, with thumbnails) from [Unsplash](https://unsplash.com) | [Unsplash License](https://unsplash.com/license) — free to use, no attribution required | `setup-backgrounds.sh` |
 
 ## Bundled assets
 
@@ -33,4 +34,4 @@ third-party components, each under its own license.
 | [RNNoise](https://gitlab.xiph.org/xiph/rnnoise) noise suppression, WebAssembly build from [@jitsi/rnnoise-wasm](https://github.com/jitsi/rnnoise-wasm) (`public/assets/vendor/rnnoise/rnnoise.wasm`) | RNNoise: BSD-3-Clause — © Xiph.Org, Mozilla; wasm build: Apache-2.0 — © 8x8 / Jitsi (license text alongside the file) |
 | Fonts: [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque), [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans) (`public/assets/fonts`) | SIL Open Font License 1.1 |
 | Reaction sounds (`public/assets/sounds`) | from [MiroTalk SFU](https://github.com/miroslavpejic85/mirotalksfu), AGPL-3.0 — © Miroslav Pejic |
-| Background placeholders (`public/assets/backgrounds/*.svg`) | part of Tiditalk, AGPL-3.0 |
+| Background placeholders (`public/assets/backgrounds/*.svg`) and illustrations (`public/assets/backgrounds/6*-*.png`: synthwave, pixel art) | part of Tiditalk, AGPL-3.0 |

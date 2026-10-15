@@ -2,6 +2,13 @@
 
 Metti qui le immagini di sfondo disponibili a tutti gli utenti.
 
+## Foto incluse
+`setup-backgrounds.sh` (nella cartella principale) scarica 56 foto da
+[Unsplash](https://unsplash.com/license) — uso libero, anche commerciale — con
+le miniature in `thumbs/`. Non sono nel repository: lancia lo script una volta
+(`--force` per riscaricarle). Nel repository restano i 6 SVG e 3 illustrazioni
+originali (synthwave e pixel art, disegnate per Tiditalk).
+
 ## Formati supportati
 - JPG, PNG, WebP, SVG
 
@@ -14,9 +21,10 @@ Metti qui le immagini di sfondo disponibili a tutti gli utenti.
 - Il nome del file (senza estensione) diventa l'etichetta visibile nell'app
 - Usa trattini `-` o underscore `_` per gli spazi
 - Esempio: `ufficio-moderno.jpg` → "Ufficio moderno"
-
-## File inclusi di default
-Ho incluso 6 SVG leggeri come placeholder. Sostituiscili con foto reali quando vuoi.
+- Un numero davanti decide l'ordine e non si vede: `03-sala-riunioni.jpg` →
+  "Sala riunioni", dopo `02-…`
+- Miniatura facoltativa: `thumbs/<stesso-nome>.jpg` (es. 384x216). Se c'è, il
+  pannello mostra quella e scarica la foto intera solo quando la scegli
 
 ## Come aggiungere sfondi
 1. Copia il file in questa cartella

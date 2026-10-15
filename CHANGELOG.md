@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.6.0
+
+### Added
+- **Presenting: participants in a row above the shared screen** (like Meet).
+  While someone shares, the tiles sit in one row on top and the shared screen
+  takes the rest; the tiles get smaller as more people join, down to a minimum
+  size, then the row scrolls (also with the mouse wheel). Initials of people
+  with the camera off scale with the tile. Same on the phone
+- **"Backgrounds and effects" side panel** instead of the old windows: opens on
+  the right like chat and polls (full screen on the phone), with a live
+  preview of yourself ("only you can see it"), three tabs (Backgrounds, Face
+  effects, Styles), the active choice marked with a check, and *Turn on
+  camera* when the camera is off. It stays open while you try things. Opens
+  from More → Virtual background / Face effects and from a button on your own
+  tile (on hover). One panel at a time: opening chat, people or polls closes
+  it and vice versa
+- **59 new backgrounds**: 56 photos (offices, living rooms, libraries, Cinque
+  Terre, Venice, the Colosseum, mountains, sea, space, abstract, video games)
+  that `setup-backgrounds.sh` downloads from Unsplash (free license) with small
+  thumbnails, so the panel loads quickly and the full photo is fetched only
+  when chosen; plus 3 original illustrations in the repository (synthwave and
+  two pixel-art scenes). The number in front of a file name
+  (`03-meeting-room.jpg`) sets the order and is not shown in the label
+- **Animated shapes background in the call too**, the same as the home page,
+  always under everything (tiles, bars, panels), never on top
+
+### Fixed
+- **The speaking border flickered** even with continuous speech: it followed
+  the audio level frame by frame and went off at every pause between words.
+  It now turns on after a moment of real voice and stays on until about a
+  second of silence, for you and for the others
+- **Phone control bar during a presentation**: with *Present* and *Draw*
+  both visible the buttons went off the screen edges (the microphone was cut
+  on the left). When the buttons don't fit they now get a little smaller; no
+  button is removed
+
 ## 1.5.9
 
 ### Added

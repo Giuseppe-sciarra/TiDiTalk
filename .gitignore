@@ -15,6 +15,9 @@ public/assets/vendor/*
 # RNNoise (WebAssembly, ~110 KB) sta nel repo: non viene scaricato da nessuno script
 !public/assets/vendor/rnnoise/
 public/assets/effects/*.png
+# foto degli sfondi (setup-backgrounds.sh)
+public/assets/backgrounds/*.jpg
+public/assets/backgrounds/thumbs/
 
 # Dipendenze
 # (mediasoup-client.min.js RESTA nel repo: il compose monta public/assets/js
