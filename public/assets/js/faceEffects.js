@@ -175,12 +175,17 @@ class FaceEffects {
       this._sendBusy = false;
     });
 
-    await this.faceMesh.initialize();
+    // 1.7.0: in fila con gli altri caricamenti MediaPipe (vedi tdMediapipeLock in faceAR.js)
+    if (window.tdMediapipeLock) await window.tdMediapipeLock(() => this.faceMesh.initialize());
+    else await this.faceMesh.initialize();
     this.loaded = true;
   }
 
   async apply(stream) {
-    await this._loadMediaPipe();
+    // 1.7.0: il FaceMesh vecchio serve solo agli effetti classici (emoji 2D);
+    // per quelli 3D c'è FaceAR, che si carica in setEffect. Qui lo si carica
+    // solo se un effetto classico è già selezionato, altrimenti al bisogno.
+    if (this.active && !FaceEffects.is3D(this.active)) await this._loadMediaPipe();
     this._stopPipeline();
 
     this.sourceStream = stream;
@@ -269,8 +274,31 @@ class FaceEffects {
     this.ctx.drawImage(v, 0, 0, w, h);
     this.ctx.filter = 'none';
 
-    if (this.active && this.active !== 'none') {
+    if (this.ar && this.arDef) {
+      // ── effetto 3D (FaceAR): rilevamento sincrono + render WebGL, poi composizione
       const now = performance.now();
+      if (this.ar.ready) {
+        if (this.ar.width !== w || this.ar.height !== h) this.ar.resize(w, h);
+        // rilevamento a 30 fps dove la macchina ce la fa; se un rilevamento
+        // costa più di ~25 ms (telefoni, PC vecchi) si dirada da solo
+        const iv = this._arInterval || 33;
+        if (now - this._lastSend >= iv) {
+          this._lastSend = now;
+          const t0 = performance.now(); this.ar.detect(v, now); const cost = performance.now() - t0;
+          this._arInterval = Math.max(33, Math.min(120, cost * 1.6));
+        }
+        const t1 = performance.now();
+        this.ar.render(now);
+        this.ctx.drawImage(this.ar.canvas, 0, 0, w, h);
+        this.ar.reportFrameCost(performance.now() - t1);
+      }
+      return;
+    }
+    // 1.7.0: mentre un effetto 3D si prepara (this.ar non ancora pronto) qui non si deve
+    // caricare il FaceMesh vecchio: si mostra solo il video finché il 3D non è pronto
+    if (this.active && this.active !== 'none' && !FaceEffects.is3D(this.active)) {
+      const now = performance.now();
+      if (!this.loaded) { if (!this._mpLoading) { this._mpLoading = this._loadMediaPipe().catch(e => console.warn('[FaceEffects]', e)); } return; }
       if (!this._sendBusy && now - this._lastSend >= this._sendInterval) {
         this._sendBusy = true;
         this._lastSend = now;
@@ -2222,8 +2250,39 @@ class FaceEffects {
 
   // ─── API pubblica ─────────────────────────────────────────────────────────
   setEffect(id) {
-    if (id === 'none' || !id) { this.active = null; return; }
+    if (id === 'none' || !id) { this.active = null; this._setAR(null); return; }
     this.active = id;
+    if (FaceEffects.is3D(id)) this._setAR(FaceEffects.def3D(id));
+    else this._setAR(null);
+  }
+
+  // ─── 1.7.0: effetti 3D via FaceAR ──────────────────────────────────────────
+  static is3D(id) { return !!(id && window.FaceEffects3D?.byId?.[id]); }
+  static def3D(id) { return window.FaceEffects3D?.byId?.[id] || null; }
+  /** Catalogo 3D (per il pannello): sezioni con gli effetti. Vuoto se il catalogo non è caricato. */
+  static get CATALOG3D() { return window.FaceEffects3D?.sections || []; }
+
+  async _setAR(def) {
+    this.arDef = def || null;
+    const seq = (this._arSeq = (this._arSeq || 0) + 1);
+    if (!def) { if (this.ar) { try { this.ar.clearEffect(); } catch (_) { } } return; }
+    if (!window.FaceAR) { console.warn('[FaceEffects] FaceAR non caricato'); this.arDef = null; return; }
+    try {
+      if (!this.ar) {
+        const ar = new window.FaceAR();
+        const w = this.canvas?.width || 1280, h = this.canvas?.height || 720;
+        await ar.init(w, h);
+        if (seq !== this._arSeq) { ar.destroy(); return; }   // nel frattempo è cambiato
+        this.ar = ar;
+      }
+      await this.ar.setEffect(def);
+      if (seq !== this._arSeq) return;
+      this.ar.render(performance.now());
+    } catch (e) {
+      console.error('[FaceEffects] effetto 3D', e);
+      this.arDef = null; this.active = null;
+      this.onError?.(e);
+    }
   }
 
   getCurrent() { return this.active; }
@@ -2261,6 +2320,8 @@ class FaceEffects {
 
   stop() {
     this._stopPipeline();
+    if (this.ar) { try { this.ar.destroy(); } catch (_) { } this.ar = null; }
+    this.arDef = null;
     this.active = null;
     this.style = 'none';
     this._styleFilter = 'none';

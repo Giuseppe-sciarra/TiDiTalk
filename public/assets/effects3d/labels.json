@@ -1,0 +1,1162 @@
+{
+ "Alieno": [
+  "Alien",
+  "Extraterrestre",
+  "Alien"
+ ],
+ "Astronauta": [
+  "Astronaut",
+  "Astronaute",
+  "Astronaut"
+ ],
+ "Orsetto": [
+  "Bear",
+  "Ourson",
+  "Bärchen"
+ ],
+ "Coniglietto": [
+  "Bunny",
+  "Petit lapin",
+  "Häschen"
+ ],
+ "Torta di compleanno": [
+  "Birthday cake",
+  "Gâteau d'anniversaire",
+  "Geburtstagstorte"
+ ],
+ "Gattino": [
+  "Cat",
+  "Chaton",
+  "Kätzchen"
+ ],
+ "Pulcino": [
+  "Chick",
+  "Poussin",
+  "Küken"
+ ],
+ "Mucca": [
+  "Cow",
+  "Vache",
+  "Kuh"
+ ],
+ "Dinosauro": [
+  "Dinosaur",
+  "Dinosaure",
+  "Dinosaurier"
+ ],
+ "Palombaro": [
+  "Diving helmet",
+  "Scaphandrier",
+  "Taucherhelm"
+ ],
+ "Cagnolino": [
+  "Dog",
+  "Petit chien",
+  "Hündchen"
+ ],
+ "Draghetto": [
+  "Dragon",
+  "Petit dragon",
+  "Drache"
+ ],
+ "Volpe": [
+  "Fox",
+  "Renard",
+  "Fuchs"
+ ],
+ "Quadro": [
+  "Picture frame",
+  "Tableau",
+  "Bilderrahmen"
+ ],
+ "Ranocchio": [
+  "Frog",
+  "Grenouille",
+  "Frosch"
+ ],
+ "Fantasmino": [
+  "Ghost",
+  "Petit fantôme",
+  "Gespenst"
+ ],
+ "Cavaliere": [
+  "Knight",
+  "Chevalier",
+  "Ritter"
+ ],
+ "Koala": [
+  "Koala",
+  "Koala",
+  "Koala"
+ ],
+ "Lampadina": [
+  "Light bulb",
+  "Ampoule",
+  "Glühbirne"
+ ],
+ "Leone": [
+  "Lion",
+  "Lion",
+  "Löwe"
+ ],
+ "Scimmietta": [
+  "Monkey",
+  "Petit singe",
+  "Äffchen"
+ ],
+ "Topolino": [
+  "Mouse",
+  "Souriceau",
+  "Mäuschen"
+ ],
+ "Gufo": [
+  "Owl",
+  "Hibou",
+  "Eule"
+ ],
+ "Panda": [
+  "Panda",
+  "Panda",
+  "Panda"
+ ],
+ "Pinguino": [
+  "Penguin",
+  "Pingouin",
+  "Pinguin"
+ ],
+ "Maialino": [
+  "Pig",
+  "Petit cochon",
+  "Schweinchen"
+ ],
+ "Pesce palla": [
+  "Puffer fish",
+  "Poisson-globe",
+  "Kugelfisch"
+ ],
+ "Testa di zucca": [
+  "Pumpkin head",
+  "Tête de citrouille",
+  "Kürbiskopf"
+ ],
+ "Robot": [
+  "Robot",
+  "Robot",
+  "Roboter"
+ ],
+ "Squalo": [
+  "Shark",
+  "Requin",
+  "Hai"
+ ],
+ "Bradipo": [
+  "Sloth",
+  "Paresseux",
+  "Faultier"
+ ],
+ "Faccina": [
+  "Smiley",
+  "Smiley",
+  "Smiley"
+ ],
+ "Pupazzo di neve": [
+  "Snowman",
+  "Bonhomme de neige",
+  "Schneemann"
+ ],
+ "Fragola": [
+  "Strawberry",
+  "Fraise",
+  "Erdbeere"
+ ],
+ "Sole": [
+  "Sun",
+  "Soleil",
+  "Sonne"
+ ],
+ "Girasole": [
+  "Sunflower",
+  "Tournesol",
+  "Sonnenblume"
+ ],
+ "Tartaruga": [
+  "Turtle",
+  "Tortue",
+  "Schildkröte"
+ ],
+ "Unicorno": [
+  "Unicorn",
+  "Licorne",
+  "Einhorn"
+ ],
+ "Casco da astronauta": [
+  "Astronaut helmet",
+  "Casque d'astronaute",
+  "Astronautenhelm"
+ ],
+ "Cuffia da aviatore": [
+  "Aviator cap",
+  "Bonnet d'aviateur",
+  "Fliegermütze"
+ ],
+ "Bandana": [
+  "Bandana",
+  "Bandana",
+  "Bandana"
+ ],
+ "Cappellino da baseball": [
+  "Baseball cap",
+  "Casquette de baseball",
+  "Baseballkappe"
+ ],
+ "Berretto di lana": [
+  "Beanie",
+  "Bonnet en laine",
+  "Wollmütze"
+ ],
+ "Orecchie da orso": [
+  "Bear ears",
+  "Oreilles d'ours",
+  "Bärenohren"
+ ],
+ "Basco": [
+  "Beret",
+  "Béret",
+  "Baskenmütze"
+ ],
+ "Cappello torta": [
+  "Cake hat",
+  "Chapeau gâteau",
+  "Tortenhut"
+ ],
+ "Cappello alla pescatora": [
+  "Bucket hat",
+  "Bob",
+  "Fischerhut"
+ ],
+ "Orecchie da coniglio": [
+  "Bunny ears",
+  "Oreilles de lapin",
+  "Hasenohren"
+ ],
+ "Coniglietto con occhiali": [
+  "Bunny ears & glasses",
+  "Lapin à lunettes",
+  "Häschen mit Brille"
+ ],
+ "Farfalle": [
+  "Butterflies",
+  "Papillons",
+  "Schmetterlinge"
+ ],
+ "Berretto da capitano": [
+  "Captain's cap",
+  "Casquette de capitaine",
+  "Kapitänsmütze"
+ ],
+ "Orecchie da gatto": [
+  "Cat ears",
+  "Oreilles de chat",
+  "Katzenohren"
+ ],
+ "Gattina con occhiali": [
+  "Cat ears & cat-eye glasses",
+  "Chaton à lunettes",
+  "Kätzchen mit Brille"
+ ],
+ "Cuffie gatto LED": [
+  "Cat-ear headphones",
+  "Casque oreilles de chat LED",
+  "LED-Katzenohr-Kopfhörer"
+ ],
+ "Cappello da chef": [
+  "Chef hat",
+  "Toque de chef",
+  "Kochmütze"
+ ],
+ "Pulcino nel nido": [
+  "Chick in a nest",
+  "Poussin au nid",
+  "Küken im Nest"
+ ],
+ "Naso da clown": [
+  "Clown nose",
+  "Nez de clown",
+  "Clownsnase"
+ ],
+ "Cappello da cowboy": [
+  "Cowboy hat",
+  "Chapeau de cowboy",
+  "Cowboyhut"
+ ],
+ "Corona": [
+  "Crown",
+  "Couronne",
+  "Krone"
+ ],
+ "Visore cyber": [
+  "Cyber visor",
+  "Visière cyber",
+  "Cyber-Visier"
+ ],
+ "Corna da diavolo": [
+  "Devil horns",
+  "Cornes de diable",
+  "Teufelshörner"
+ ],
+ "Orecchini": [
+  "Earrings",
+  "Boucles d'oreilles",
+  "Ohrringe"
+ ],
+ "Benda da pirata": [
+  "Eye patch",
+  "Bandeau de pirate",
+  "Augenklappe"
+ ],
+ "Coroncina di fiori": [
+  "Flower crown",
+  "Couronne de fleurs",
+  "Blumenkranz"
+ ],
+ "Fiore tra i capelli": [
+  "Flower in hair",
+  "Fleur dans les cheveux",
+  "Blume im Haar"
+ ],
+ "Orecchie da volpe": [
+  "Fox ears",
+  "Oreilles de renard",
+  "Fuchsohren"
+ ],
+ "Occhiali 3D": [
+  "3D glasses",
+  "Lunettes 3D",
+  "3D-Brille"
+ ],
+ "Tocco di laurea": [
+  "Graduation cap",
+  "Toque de diplômé",
+  "Doktorhut"
+ ],
+ "Fiocco": [
+  "Hair bow",
+  "Nœud",
+  "Haarschleife"
+ ],
+ "Mollette": [
+  "Hair clips",
+  "Barrettes",
+  "Haarspangen"
+ ],
+ "Aureola": [
+  "Halo",
+  "Auréole",
+  "Heiligenschein"
+ ],
+ "Casco da cantiere": [
+  "Hard hat",
+  "Casque de chantier",
+  "Bauhelm"
+ ],
+ "Cuffie": [
+  "Headphones",
+  "Casque audio",
+  "Kopfhörer"
+ ],
+ "Occhiali a cuore": [
+  "Heart sunglasses",
+  "Lunettes cœur",
+  "Herzbrille"
+ ],
+ "Cuori in orbita": [
+  "Orbiting hearts",
+  "Cœurs en orbite",
+  "Kreisende Herzen"
+ ],
+ "Cappello da giullare": [
+  "Jester hat",
+  "Chapeau de bouffon",
+  "Narrenkappe"
+ ],
+ "Elmo da cavaliere": [
+  "Knight helmet",
+  "Heaume de chevalier",
+  "Ritterhelm"
+ ],
+ "Corona d'alloro": [
+  "Laurel wreath",
+  "Couronne de laurier",
+  "Lorbeerkranz"
+ ],
+ "Idea luminosa": [
+  "Bright idea",
+  "Idée lumineuse",
+  "Geistesblitz"
+ ],
+ "Monocolo": [
+  "Monocle",
+  "Monocle",
+  "Monokel"
+ ],
+ "Baffi a manubrio": [
+  "Handlebar mustache",
+  "Moustache en guidon",
+  "Zwirbelbart"
+ ],
+ "Occhiali da nerd": [
+  "Nerd glasses",
+  "Lunettes de geek",
+  "Nerdbrille"
+ ],
+ "Polpo in testa": [
+  "Octopus hat",
+  "Poulpe sur la tête",
+  "Krake auf dem Kopf"
+ ],
+ "Occhiali 2027": [
+  "2027 party glasses",
+  "Lunettes 2027",
+  "Brille 2027"
+ ],
+ "Cappellino da festa": [
+  "Party hat",
+  "Chapeau de fête",
+  "Partyhut"
+ ],
+ "Pipa": [
+  "Pipe",
+  "Pipe",
+  "Pfeife"
+ ],
+ "Cappello da pirata": [
+  "Pirate hat",
+  "Chapeau de pirate",
+  "Piratenhut"
+ ],
+ "Berretto da poliziotto": [
+  "Police cap",
+  "Casquette de policier",
+  "Polizeimütze"
+ ],
+ "Cappellino con elica": [
+  "Propeller cap",
+  "Casquette à hélice",
+  "Propellermütze"
+ ],
+ "Nuvola di pioggia": [
+  "Rain cloud",
+  "Nuage de pluie",
+  "Regenwolke"
+ ],
+ "Cappello di Babbo Natale": [
+  "Santa hat",
+  "Bonnet de père Noël",
+  "Weihnachtsmütze"
+ ],
+ "Maschera da sci": [
+  "Ski goggles",
+  "Masque de ski",
+  "Skibrille"
+ ],
+ "Maschera da sub": [
+  "Snorkel mask",
+  "Masque de plongée",
+  "Schnorchelmaske"
+ ],
+ "Sombrero": [
+  "Sombrero",
+  "Sombrero",
+  "Sombrero"
+ ],
+ "Occhiali a stella": [
+  "Star glasses",
+  "Lunettes étoiles",
+  "Sternbrille"
+ ],
+ "Occhialoni steampunk": [
+  "Steampunk goggles",
+  "Lunettes steampunk",
+  "Steampunk-Brille"
+ ],
+ "Occhiali da sole": [
+  "Sunglasses",
+  "Lunettes de soleil",
+  "Sonnenbrille"
+ ],
+ "Cappello sushi": [
+  "Sushi hat",
+  "Chapeau sushi",
+  "Sushi-Hut"
+ ],
+ "Tiara": [
+  "Tiara",
+  "Diadème",
+  "Diadem"
+ ],
+ "Cilindro": [
+  "Top hat",
+  "Haut-de-forme",
+  "Zylinder"
+ ],
+ "UFO con alieno": [
+  "UFO with alien",
+  "OVNI et extraterrestre",
+  "UFO mit Alien"
+ ],
+ "Corno da unicorno": [
+  "Unicorn horn",
+  "Corne de licorne",
+  "Einhorn-Horn"
+ ],
+ "Elmo vichingo": [
+  "Viking helmet",
+  "Casque viking",
+  "Wikingerhelm"
+ ],
+ "Cappello da strega": [
+  "Witch hat",
+  "Chapeau de sorcière",
+  "Hexenhut"
+ ],
+ "Cappello da mago": [
+  "Wizard hat",
+  "Chapeau de magicien",
+  "Zaubererhut"
+ ],
+ "Maschera di Zorro": [
+  "Zorro mask",
+  "Masque de Zorro",
+  "Zorro-Maske"
+ ],
+ "Afro": [
+  "Afro",
+  "Afro",
+  "Afro"
+ ],
+ "Afro rosso con occhiali": [
+  "Red afro with round shades",
+  "Afro rouge et lunettes",
+  "Rotes Afro mit Brille"
+ ],
+ "Capelli anime": [
+  "Anime spiky hair",
+  "Cheveux manga",
+  "Anime-Haare"
+ ],
+ "Barba di Babbo Natale": [
+  "Santa beard",
+  "Barbe de père Noël",
+  "Weihnachtsmannbart"
+ ],
+ "Barba hipster con baffi": [
+  "Hipster beard and moustache",
+  "Barbe hipster et moustache",
+  "Hipsterbart mit Schnurrbart"
+ ],
+ "Barba da mago": [
+  "Wizard beard",
+  "Barbe de magicien",
+  "Zaubererbart"
+ ],
+ "Barba piena": [
+  "Full beard",
+  "Barbe fournie",
+  "Vollbart"
+ ],
+ "Barba sottogola": [
+  "Chin strap beard",
+  "Collier de barbe",
+  "Kinnbart"
+ ],
+ "Capelli lunghi lisci": [
+  "Long straight hair",
+  "Cheveux longs lisses",
+  "Lange glatte Haare"
+ ],
+ "Capelli lunghi mossi": [
+  "Long wavy hair",
+  "Cheveux longs ondulés",
+  "Lange gewellte Haare"
+ ],
+ "Caschetto con frangia": [
+  "Bob with bangs",
+  "Carré avec frange",
+  "Bob mit Pony"
+ ],
+ "Chignon": [
+  "Top-knot bun",
+  "Chignon",
+  "Dutt"
+ ],
+ "Parrucca da clown": [
+  "Clown wig",
+  "Perruque de clown",
+  "Clownsperücke"
+ ],
+ "Coda di cavallo": [
+  "Ponytail",
+  "Queue de cheval",
+  "Pferdeschwanz"
+ ],
+ "Corti spettinati": [
+  "Short spiky hair",
+  "Courts en pétard",
+  "Kurz und strubbelig"
+ ],
+ "Cresta punk": [
+  "Mohawk",
+  "Crête punk",
+  "Irokese"
+ ],
+ "Dreadlocks": [
+  "Dreadlocks",
+  "Dreadlocks",
+  "Dreadlocks"
+ ],
+ "Ciuffo rock anni 50": [
+  "Rockabilly pompadour",
+  "Banane rockabilly",
+  "Rockabilly-Tolle"
+ ],
+ "Frangia emo": [
+  "Emo side fringe",
+  "Frange emo",
+  "Emo-Pony"
+ ],
+ "Capelli grigi con basette": [
+  "Grey hair with sideburns",
+  "Cheveux gris et favoris",
+  "Graue Haare mit Koteletten"
+ ],
+ "Mullet": [
+  "Mullet",
+  "Mulet",
+  "Vokuhila"
+ ],
+ "Parrucca arcobaleno": [
+  "Rainbow wig",
+  "Perruque arc-en-ciel",
+  "Regenbogenperücke"
+ ],
+ "Pizzetto": [
+  "Goatee",
+  "Bouc",
+  "Spitzbart"
+ ],
+ "Ricci medi": [
+  "Medium curly hair",
+  "Boucles mi-longues",
+  "Mittellange Locken"
+ ],
+ "Trecce": [
+  "Twin braids",
+  "Deux tresses",
+  "Zwei Zöpfe"
+ ],
+ "Lupo": [
+  "Wolf",
+  "Loup",
+  "Wolf"
+ ],
+ "Bombetta": [
+  "Bowler hat",
+  "Chapeau melon",
+  "Melone"
+ ],
+ "Cuffie con orecchie da gatto": [
+  "Cat-ear headphones",
+  "Casque oreilles de chat",
+  "Katzenohr-Kopfhörer"
+ ],
+ "Cappello di paglia conico": [
+  "Conical straw hat",
+  "Chapeau conique en paille",
+  "Spitzer Strohhut"
+ ],
+ "Elmo crociato": [
+  "Great helm",
+  "Heaume de croisé",
+  "Topfhelm"
+ ],
+ "Ape cubica": [
+  "Cube bee",
+  "Abeille cubique",
+  "Würfelbiene"
+ ],
+ "Cerbiatto cubico": [
+  "Cube deer",
+  "Faon cubique",
+  "Würfelreh"
+ ],
+ "Giraffa cubica": [
+  "Cube giraffe",
+  "Girafe cubique",
+  "Würfelgiraffe"
+ ],
+ "Koala cubico": [
+  "Cube koala",
+  "Koala cubique",
+  "Würfelkoala"
+ ],
+ "Leone cubico": [
+  "Cube lion",
+  "Lion cubique",
+  "Würfellöwe"
+ ],
+ "Scimmietta cubica": [
+  "Cube monkey",
+  "Singe cubique",
+  "Würfeläffchen"
+ ],
+ "Baffi alla Dalí": [
+  "Dalí moustache",
+  "Moustache à la Dalí",
+  "Dalí-Schnurrbart"
+ ],
+ "Corna di cervo": [
+  "Deer antlers",
+  "Bois de cerf",
+  "Hirschgeweih"
+ ],
+ "Cappello da elfo": [
+  "Elf hat",
+  "Bonnet d'elfe",
+  "Elfenmütze"
+ ],
+ "Cappello da pescatore": [
+  "Fisherman hat",
+  "Chapeau de pêcheur",
+  "Fischerhut"
+ ],
+ "Casco da football": [
+  "Football helmet",
+  "Casque de football américain",
+  "Footballhelm"
+ ],
+ "Elmo medievale": [
+  "Medieval helm",
+  "Heaume médiéval",
+  "Mittelalterlicher Helm"
+ ],
+ "Caschetto scuro": [
+  "Dark side bob",
+  "Carré brun",
+  "Dunkler Bob"
+ ],
+ "Caschetto rosa": [
+  "Pink bob",
+  "Carré rose",
+  "Rosa Bob"
+ ],
+ "Caschetto biondo": [
+  "Blond bob",
+  "Carré blond",
+  "Blonder Bob"
+ ],
+ "Pipistrello": [
+  "Bat",
+  "Chauve-souris",
+  "Fledermaus"
+ ],
+ "Ciclope": [
+  "Cyclops",
+  "Cyclope",
+  "Zyklop"
+ ],
+ "Diavoletto": [
+  "Little devil",
+  "Petit diable",
+  "Teufelchen"
+ ],
+ "Fantasma mostro": [
+  "Monster ghost",
+  "Fantôme monstre",
+  "Monstergespenst"
+ ],
+ "Funghetto": [
+  "Mushroom",
+  "Petit champignon",
+  "Pilzchen"
+ ],
+ "Yeti": [
+  "Yeti",
+  "Yéti",
+  "Yeti"
+ ],
+ "Casco da moto": [
+  "Motorcycle helmet",
+  "Casque de moto",
+  "Motorradhelm"
+ ],
+ "Occhiali pixel": [
+  "Pixel shades",
+  "Lunettes pixel",
+  "Pixelbrille"
+ ],
+ "Cappellino a elica": [
+  "Propeller hat",
+  "Chapeau à hélice",
+  "Propellerhut"
+ ],
+ "Zucca intagliata": [
+  "Carved pumpkin",
+  "Citrouille sculptée",
+  "Geschnitzter Kürbis"
+ ],
+ "Capelli biondi": [
+  "Blond hair",
+  "Cheveux blonds",
+  "Blonde Haare"
+ ],
+ "Capelli rossi raccolti": [
+  "Red swept hair",
+  "Cheveux roux coiffés",
+  "Rote Frisur"
+ ],
+ "Capelli lunghi neri": [
+  "Long black hair",
+  "Cheveux longs noirs",
+  "Lange schwarze Haare"
+ ],
+ "Corna d'ariete": [
+  "Ram horns",
+  "Cornes de bélier",
+  "Widderhörner"
+ ],
+ "Occhiali tondi": [
+  "Round spectacles",
+  "Lunettes rondes",
+  "Runde Brille"
+ ],
+ "Panda rosso astronauta": [
+  "Astronaut red panda",
+  "Panda roux astronaute",
+  "Roter Panda als Astronaut"
+ ],
+ "Calavera": [
+  "Calavera",
+  "Calavera",
+  "Calavera"
+ ],
+ "Tigre": [
+  "Tiger",
+  "Tigre",
+  "Tiger"
+ ],
+ "Lupo mannaro": [
+  "Werewolf",
+  "Loup-garou",
+  "Werwolf"
+ ],
+ "Elmo alato": [
+  "Winged helm",
+  "Casque ailé",
+  "Flügelhelm"
+ ],
+ "Ape": [
+  "Bee",
+  "Abeille",
+  "Biene"
+ ],
+ "Farfalla": [
+  "Butterfly",
+  "Papillon",
+  "Schmetterling"
+ ],
+ "Gatto": [
+  "Cat",
+  "Chat",
+  "Katze"
+ ],
+ "Clown": [
+  "Clown",
+  "Clown",
+  "Clown"
+ ],
+ "Clown festoso": [
+  "Party clown",
+  "Clown festif",
+  "Partyclown"
+ ],
+ "Clown triste": [
+  "Sad clown",
+  "Clown triste",
+  "Trauriger Clown"
+ ],
+ "Circuiti cyborg": [
+  "Cyborg circuits",
+  "Circuits cyborg",
+  "Cyborg-Schaltkreise"
+ ],
+ "Dalmata": [
+  "Dalmatian",
+  "Dalmatien",
+  "Dalmatiner"
+ ],
+ "Cerbiatto": [
+  "Fawn",
+  "Faon",
+  "Rehkitz"
+ ],
+ "Bandiera argentina": [
+  "Argentina flag cheeks",
+  "Drapeau argentin",
+  "Argentinische Flagge"
+ ],
+ "Bandiera brasiliana": [
+  "Brazil flag cheeks",
+  "Drapeau brésilien",
+  "Brasilianische Flagge"
+ ],
+ "Bandiera tedesca": [
+  "German flag cheeks",
+  "Drapeau allemand",
+  "Deutsche Flagge"
+ ],
+ "Bandiera spagnola": [
+  "Spanish flag cheeks",
+  "Drapeau espagnol",
+  "Spanische Flagge"
+ ],
+ "Bandiera europea": [
+  "EU flag cheeks",
+  "Drapeau européen",
+  "Europaflagge"
+ ],
+ "Bandiera francese": [
+  "French flag cheeks",
+  "Drapeau français",
+  "Französische Flagge"
+ ],
+ "Bandiera britannica": [
+  "UK flag cheeks",
+  "Drapeau britannique",
+  "Britische Flagge"
+ ],
+ "Bandiera americana": [
+  "USA flag cheeks",
+  "Drapeau américain",
+  "US-Flagge"
+ ],
+ "Frankenstein": [
+  "Frankenstein",
+  "Frankenstein",
+  "Frankenstein"
+ ],
+ "Lentiggini e fard": [
+  "Freckles & blush",
+  "Taches de rousseur et blush",
+  "Sommersprossen und Rouge"
+ ],
+ "Galassia": [
+  "Galaxy",
+  "Galaxie",
+  "Galaxie"
+ ],
+ "Glitter": [
+  "Glitter & sparkle",
+  "Paillettes",
+  "Glitzer"
+ ],
+ "Lacrime glitter": [
+  "Glitter tears",
+  "Larmes pailletées",
+  "Glitzertränen"
+ ],
+ "Statua d'oro": [
+  "Gold statue",
+  "Statue dorée",
+  "Goldstatue"
+ ],
+ "Mezzo teschio": [
+  "Half skull",
+  "Demi-crâne",
+  "Halber Totenkopf"
+ ],
+ "Maschera nera": [
+  "Black hero mask",
+  "Masque noir",
+  "Schwarze Maske"
+ ],
+ "Eroe blu": [
+  "Blue hero",
+  "Héros bleu",
+  "Blauer Held"
+ ],
+ "Eroe verde": [
+  "Green hero",
+  "Héros vert",
+  "Grüner Held"
+ ],
+ "Tricolore sulle guance": [
+  "Italian flag cheeks",
+  "Drapeau italien sur les joues",
+  "Italienflagge auf den Wangen"
+ ],
+ "Joker": [
+  "Joker",
+  "Joker",
+  "Joker"
+ ],
+ "Coccinella": [
+  "Ladybug",
+  "Coccinelle",
+  "Marienkäfer"
+ ],
+ "Leopardo": [
+  "Leopard",
+  "Léopard",
+  "Leopard"
+ ],
+ "Trucco naturale": [
+  "Natural makeup",
+  "Maquillage naturel",
+  "Natürliches Make-up"
+ ],
+ "Maschera veneziana": [
+  "Masquerade mask",
+  "Masque vénitien",
+  "Venezianische Maske"
+ ],
+ "Mimo": [
+  "Mime",
+  "Mime",
+  "Pantomime"
+ ],
+ "Ninja": [
+  "Ninja bandana",
+  "Ninja",
+  "Ninja"
+ ],
+ "Vecchiaia": [
+  "Old age",
+  "Vieillesse",
+  "Alter"
+ ],
+ "Bambola di porcellana": [
+  "Cracked porcelain doll",
+  "Poupée de porcelaine",
+  "Porzellanpuppe"
+ ],
+ "Bandiera arcobaleno": [
+  "Pride flag cheeks",
+  "Drapeau arc-en-ciel",
+  "Regenbogenflagge"
+ ],
+ "Zucca di Halloween": [
+  "Jack-o'-lantern",
+  "Citrouille d'Halloween",
+  "Halloween-Kürbis"
+ ],
+ "Statua d'argento": [
+  "Silver statue",
+  "Statue argentée",
+  "Silberstatue"
+ ],
+ "Occhi smoky": [
+  "Smoky eyes",
+  "Yeux smoky",
+  "Smoky Eyes"
+ ],
+ "Ragnatela": [
+  "Spider web",
+  "Toile d'araignée",
+  "Spinnennetz"
+ ],
+ "Teschio messicano": [
+  "Sugar skull",
+  "Tête de mort mexicaine",
+  "Mexikanischer Totenkopf"
+ ],
+ "Supereroe": [
+  "Superhero mask",
+  "Super-héros",
+  "Superheld"
+ ],
+ "Tatuaggi cuoricini": [
+  "Heart tattoos",
+  "Tatouages cœurs",
+  "Herz-Tattoos"
+ ],
+ "Tatuaggi stelline": [
+  "Star tattoos",
+  "Tatouages étoiles",
+  "Stern-Tattoos"
+ ],
+ "Tribale": [
+  "Tribal",
+  "Tribal",
+  "Tribal"
+ ],
+ "Vampiro": [
+  "Vampire",
+  "Vampire",
+  "Vampir"
+ ],
+ "Guerriero": [
+  "War paint",
+  "Guerrier",
+  "Krieger"
+ ],
+ "Zebra": [
+  "Zebra",
+  "Zèbre",
+  "Zebra"
+ ],
+ "Zombie": [
+  "Zombie",
+  "Zombie",
+  "Zombie"
+ ],
+ "Novità": [
+  "New",
+  "Nouveautés",
+  "Neu"
+ ],
+ "Personaggi": [
+  "Characters",
+  "Personnages",
+  "Figuren"
+ ],
+ "Divertenti": [
+  "Fun",
+  "Amusants",
+  "Lustig"
+ ],
+ "Costumi": [
+  "Costumes",
+  "Costumes",
+  "Kostüme"
+ ],
+ "Capelli": [
+  "Hair",
+  "Cheveux",
+  "Haare"
+ ],
+ "Barba": [
+  "Beard",
+  "Barbe",
+  "Bart"
+ ],
+ "Accessori": [
+  "Accessories",
+  "Accessoires",
+  "Accessoires"
+ ],
+ "Maschere": [
+  "Face paint",
+  "Maquillages",
+  "Schminke"
+ ],
+ "Classici": [
+  "Classic",
+  "Classiques",
+  "Klassisch"
+ ],
+ "Altri": [
+  "Other",
+  "Autres",
+  "Weitere"
+ ]
+}

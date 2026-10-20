@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.7.0
+
+### Added
+- **3D face effects, like Meet**: 228 effects that follow the head in 3D and
+  copy your expressions, in a new **Effetti 3D** tab of the "Backgrounds and
+  effects" panel, grouped like Meet: *New*, *Characters* (animals, robot,
+  monsters, astronaut, strawberry… that open their mouth, blink and raise
+  their eyebrows with you, and scenes with your face in a frame: shark,
+  T-rex, diver, knight, sunflower), *Fun* (propeller cap, UFO, rain cloud
+  that rains harder when you frown, orbiting hearts…), *Costumes* (hats and
+  helmets), *Hair* (wigs: afro, long, bob, braids, mohawk…), *Beard*,
+  *Accessories* (glasses, ears, headphones, crowns, earrings) and *Face paint*
+  (zombie, old age, skulls, animals, clowns, superhero masks, gold and silver
+  statue, flags on the cheeks… painted on the skin, they stretch with the
+  mouth and the eyes). Each effect has a preview image. Hats and wigs are
+  hidden behind the head when you turn, the painted masks stay on the skin
+- The face is tracked by **MediaPipe Face Landmarker** (468 points of the face,
+  head position and 52 expressions) in a separate thread (Web Worker): the
+  call, the chat and the connection don't slow down while it works. The 3D is
+  drawn with **three.js**; the position is predicted for the moment the frame
+  is shown, so the effect does not lag behind fast head movements. On slow
+  computers the 3D is drawn at a lower resolution by itself
+- 40 effects come from free 3D models (CC0 / CC-BY 4.0 / Apache-2.0) in
+  `public/assets/effects3d/glb/`, credits in `glb/CREDITS.md`; the others are
+  written in code (AGPL like the rest). How to add one:
+  `public/assets/effects3d/README.md`
+- The libraries and the model (about 20 MB) are downloaded **only the first
+  time** you open the *Effetti 3D* tab, with a notice; the browser keeps
+  them afterwards
+
+### Changed
+- More → *Face effects* opens the **Effetti 3D** tab. The old 2D face effects
+  (emoji stickers) are in their own **Classici** tab, exactly as before
+- A 3D effect stays when you change color style and when you turn the camera
+  off and on; choosing a virtual background turns it off, as with the
+  classic effects
+- Browsers without WebGL 2 graphics see a notice in the *Effetti 3D* tab and
+  keep the classic effects; if a 3D effect fails to start, it goes back to
+  *None* with a message instead of leaving a black video
+- Tested on Chrome (and Edge, Brave, Opera, which use the same engine),
+  Firefox and WebKit (Safari's engine). On Safari before 17, which has no
+  graphics inside a Web Worker, the face tracking runs on the page
+
+### Update
+- **Run `bash setup-mediapipe.sh` again**: it now also downloads MediaPipe
+  Tasks Vision and three.js into `public/assets/vendor/`. Then
+  `docker compose up -d --build`
+
 ## 1.6.0
 
 ### Added

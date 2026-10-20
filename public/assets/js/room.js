@@ -2972,6 +2972,41 @@ function _fxBuild() {
     btn.addEventListener('click', async () => { await applyStyle(st.id); _fxSyncActive(); });
     styleGrid.appendChild(btn);
   });
+  // ── Effetti 3D (1.7.0): scheda a parte, con le sezioni come Meet ──────────
+  const grid3d = document.getElementById('effects3dPickerGrid');
+  const sec = (title) => {
+    const g = document.createElement('div'); g.className = 'fx-grid fx-grid-fx';
+    if (title) { const h = document.createElement('h4'); h.className = 'fx-h'; h.textContent = title; grid3d.appendChild(h); }
+    grid3d.appendChild(g); return g;
+  };
+  const mkImg = (eff) => {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'effect-btn fx-item fx-item-img';
+    btn.innerHTML = `<img src="${escapeHtml(eff.thumb)}" alt="" loading="lazy" decoding="async"><span class="effect-label">${escapeHtml(eff.label)}</span>`;
+    return btn;
+  };
+  if (grid3d) {
+    const noneBtn = mk('fx-item-emo', '🚫', 'Nessuno'); noneBtn.dataset.id = 'none';
+    noneBtn.addEventListener('click', async () => { await applyFaceEffect('none'); _fxSyncActive(); });
+    sec(null).appendChild(noneBtn);
+    const can3D = !!window.FaceAR?.supported;
+    if (!can3D) {
+      const n = document.createElement('p'); n.className = 'fx-hint';
+      n.textContent = 'Gli effetti 3D non sono disponibili in questo browser (serve la grafica WebGL 2). Restano gli effetti classici.';
+      grid3d.appendChild(n);
+    }
+    (can3D ? (window.FaceEffects?.CATALOG3D || []) : []).forEach(section => {
+      if (!section.items.length) return;
+      const g = sec(section.label);
+      section.items.forEach(eff => {
+        const btn = eff.thumb ? mkImg(eff) : mk('fx-item-emo', eff.icon || '✨', eff.label);
+        btn.dataset.id = eff.id;
+        btn.addEventListener('click', async () => { await applyFaceEffect(eff.id); _fxSyncActive(); });
+        g.appendChild(btn);
+      });
+    });
+  }
+  // ── Classici: gli effetti viso di prima, nella loro scheda come in 1.6.0 ──
   const faceGrid = document.getElementById('effectsPickerGrid');
   (window.FaceEffects?.CATALOG || []).forEach(eff => {
     const btn = mk('fx-item-emo', eff.icon, eff.label);
@@ -2986,6 +3021,8 @@ function _fxBuild() {
 
 function _fxTab(tab) {
   _fxTabNow = tab;
+  // 1.7.0: aprendo gli effetti si scarica in anticipo il motore 3D (una volta sola, resta in cache)
+  if (tab === 'face3d' && window.FaceAR?.supported && (window.FaceEffects?.CATALOG3D || []).length) window.FaceAR.preload();
   document.querySelectorAll('#fxPanel .fx-tab').forEach(t => {
     const on = t.dataset.tab === tab;
     t.classList.toggle('active', on); t.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -2995,7 +3032,7 @@ function _fxTab(tab) {
 
 function _fxSyncActive() {
   try { markActiveBackground(); } catch (_) { }
-  document.querySelectorAll('#effectsPickerGrid .effect-btn').forEach(b => b.classList.toggle('active', b.dataset.id === (_currentFaceEffectId || 'none')));
+  document.querySelectorAll('#effectsPickerGrid .effect-btn, #effects3dPickerGrid .effect-btn').forEach(b => b.classList.toggle('active', b.dataset.id === (_currentFaceEffectId || 'none')));
   document.querySelectorAll('#stylesPickerGrid .effect-btn').forEach(b => b.classList.toggle('active', b.dataset.styleId === (_currentStyle || 'none')));
 }
 
@@ -3045,7 +3082,11 @@ window.openFxPanel = openFxPanel;
 window.closeFxPanel = closeFxPanel;
 
 // nomi di prima: chi li chiamava apre il pannello sulla scheda giusta
-function toggleEffectsPicker(e) { e?.stopPropagation?.(); toggleFxPanel('face'); }
+// Altro → Effetti viso: apre gli effetti 3D (o i classici se il browser non ha WebGL 2)
+function toggleEffectsPicker(e) {
+  e?.stopPropagation?.();
+  toggleFxPanel(window.FaceAR?.supported && (window.FaceEffects?.CATALOG3D || []).length ? 'face3d' : 'face');
+}
 function closeEffectsPicker() { closeFxPanel(); }
 
 window.closeMoreMenu = closeMoreMenu;
@@ -3222,6 +3263,14 @@ async function _ensureCameraAlive() {
 }
 
 const applyFaceEffect = (effectId) => _mediaQueue(() => _applyFaceEffectImpl(effectId));
+// 1.7.0: l'effetto 3D non è partito (niente WebGL, file mancanti…): avviso e si torna come prima
+function _on3DError(err) {
+  console.warn('[effetto 3D]', err);
+  showToast('Effetto 3D non disponibile: ' + (err?.message || 'errore'), 4000);
+  _currentFaceEffectId = null;
+  try { _fxSyncActive(); } catch (_) { }
+  applyFaceEffect('none');
+}
 const applyStyle = (styleId) => _mediaQueue(() => _applyStyleImpl(styleId));
 const applyBackground = (type, imageUrl) => _mediaQueue(() => _applyBackgroundImpl(type, imageUrl));
 
@@ -3362,11 +3411,13 @@ async function _applyFaceEffectImpl(effectId) {
       return;
     }
 
+    const is3D = !!window.FaceEffects?.is3D?.(effectId);
+    if (is3D && window.FaceAR && !window.FaceAR.libsLoaded) showToast('Scarico gli effetti 3D (solo la prima volta)…', 4000);
     // ── Effetto già attivo: cambia solo il tipo, non ricreare la pipeline ──
-    if (faceEffects && faceEffects.loaded && faceEffects.outputStream) {
+    if (faceEffects && faceEffects.outputStream) {
       faceEffects.setEffect(effectId);
       document.getElementById('btnEffects')?.classList.add('active');
-      showToast('✨ Effetto cambiato');
+      if (!is3D) showToast('✨ Effetto cambiato');
       return;
     }
 
@@ -3382,6 +3433,7 @@ async function _applyFaceEffectImpl(effectId) {
     if (faceEffects) { try { faceEffects.stop(); } catch { } faceEffects = null; }
 
     faceEffects = new FaceEffects();
+    faceEffects.onError = _on3DError;
     const outStream = await faceEffects.apply(rawCamStream);
     const newTrack = outStream.getVideoTracks()[0];
 
@@ -3425,7 +3477,7 @@ async function _applyStyleImpl(styleId) {
     }
 
     // Pipeline già attiva → applica solo lo stile
-    if (faceEffects && faceEffects.loaded && faceEffects.outputStream) {
+    if (faceEffects && faceEffects.outputStream) {
       faceEffects.setStyle(styleId || 'none');
       return;
     }
@@ -3438,6 +3490,7 @@ async function _applyStyleImpl(styleId) {
     showToast('Applico stile...', 2000);
     if (faceEffects) { try { faceEffects.stop(); } catch { } faceEffects = null; }
     faceEffects = new FaceEffects();
+    faceEffects.onError = _on3DError;
     const outStream = await faceEffects.apply(rawCamStream);
     const newTrack = outStream.getVideoTracks()[0];
     if (!newTrack || newTrack.readyState !== 'live') {

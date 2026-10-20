@@ -125,3 +125,27 @@ echo "✓ Totale scaricato: $TOTAL"
 echo ""
 echo "Ora rebuild il container:"
 echo "  docker compose down && docker compose up -d --build"
+
+# ── 1.7.0: effetti viso 3D — MediaPipe Tasks (Face Landmarker) + three.js ─────
+# Face Landmarker dà la posizione 3D della testa e le 52 espressioni; three.js
+# disegna cappelli, parrucche, personaggi. Entrambi in locale, niente CDN a runtime.
+TASKS_VER="1.1.1"
+THREE_VER="0.186.1"
+DEST_TASKS="public/assets/vendor/mediapipe_tasks"
+DEST_THREE="public/assets/vendor/three"
+echo "→ MediaPipe Tasks ${TASKS_VER} in $DEST_TASKS"
+mkdir -p "$DEST_TASKS/wasm" "$DEST_THREE/jsm/loaders" "$DEST_THREE/jsm/environments" "$DEST_THREE/jsm/utils"
+TB="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VER}"
+curl -fsSL -o "$DEST_TASKS/vision_bundle.mjs" "$TB/vision_bundle.mjs"
+for f in vision_wasm_internal.js vision_wasm_internal.wasm vision_wasm_nosimd_internal.js vision_wasm_nosimd_internal.wasm vision_wasm_module_internal.js vision_wasm_module_internal.wasm; do
+  curl -fsSL -o "$DEST_TASKS/wasm/$f" "$TB/wasm/$f"
+done
+curl -fsSL -o "$DEST_TASKS/face_landmarker.task" "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+echo "→ three.js ${THREE_VER} in $DEST_THREE"
+H="https://cdn.jsdelivr.net/npm/three@${THREE_VER}"
+curl -fsSL -o "$DEST_THREE/three.module.js" "$H/build/three.module.js"
+curl -fsSL -o "$DEST_THREE/three.core.js" "$H/build/three.core.js"
+for f in loaders/GLTFLoader.js environments/RoomEnvironment.js utils/BufferGeometryUtils.js utils/SkeletonUtils.js; do
+  curl -fsSL -o "$DEST_THREE/jsm/$f" "$H/examples/jsm/$f"
+done
+echo "✓ Effetti 3D pronti"

@@ -92,7 +92,9 @@ class BackgroundEffect {
       selfieMode: false,
     });
     this.selfieSeg.onResults(this._onResults.bind(this));
-    await this.selfieSeg.initialize();
+    // 1.7.0: in fila con gli altri caricamenti MediaPipe (vedi tdMediapipeLock in faceAR.js)
+    if (window.tdMediapipeLock) await window.tdMediapipeLock(() => this.selfieSeg.initialize());
+    else await this.selfieSeg.initialize();
 
     this.loaded = true;
     this.outputStream = this.canvas.captureStream(this._isMobile ? 20 : 30);

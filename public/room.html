@@ -3,6 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
+  <!-- 1.7.0: three.js per gli effetti viso 3D (i moduli addon importano "three") -->
+  <script type="importmap">{"imports":{"three":"/assets/vendor/three/three.module.js","three/addons/":"/assets/vendor/three/jsm/"}}</script>
   <script src="/assets/i18n/catalog.js"></script>
   <script src="/assets/i18n/i18n.js"></script>
 
@@ -173,7 +175,8 @@
       </div>
       <div class="fx-tabs" role="tablist">
         <button type="button" class="fx-tab active" role="tab" data-tab="bg" aria-selected="true">Sfondi</button>
-        <button type="button" class="fx-tab" role="tab" data-tab="face" aria-selected="false">Effetti viso</button>
+        <button type="button" class="fx-tab" role="tab" data-tab="face3d" aria-selected="false">Effetti 3D</button>
+        <button type="button" class="fx-tab" role="tab" data-tab="face" aria-selected="false">Classici</button>
         <button type="button" class="fx-tab" role="tab" data-tab="style" aria-selected="false">Stili</button>
       </div>
       <div class="fx-body">
@@ -197,6 +200,9 @@
           <h4 class="fx-h">Sfondi</h4>
           <div class="fx-grid fx-grid-img" id="bgPresetsGrid"><div class="bg-loading">Caricamento...</div></div>
           <div class="fx-hint">Le tue immagini: fino a 8 MB, meglio 1920×1080.</div>
+        </section>
+        <section class="fx-sec hidden" data-sec="face3d">
+          <div id="effects3dPickerGrid"></div>
         </section>
         <section class="fx-sec hidden" data-sec="face">
           <div class="fx-grid fx-grid-fx" id="effectsPickerGrid"></div>
@@ -384,6 +390,8 @@
   <script src="/assets/js/devices.js"></script>
   <script src="/assets/js/annotate.js"></script>
   <script src="/assets/vendor/mediapipe/face_mesh.js"></script>
+  <script src="/assets/effects3d/catalog.js"></script>
+  <script src="/assets/js/faceAR.js"></script>
   <script src="/assets/js/faceEffects.js"></script>
   <script src="/assets/vendor/mediapipe_selfie/selfie_segmentation.js"></script>
   <script src="/assets/js/backgroundEffect.js"></script>

@@ -1155,6 +1155,16 @@ body.tdt-room .fx-panel .fx-item .effect-label {
   font-size: 11.5px; text-align: center; color: inherit;
 }
 body.tdt-room .fx-panel .fx-item .effect-icon { width: auto; height: auto; font-size: 28px; line-height: 1; }
+/* 1.7.0: effetti 3D con la miniatura al posto dell'emoji */
+body.tdt-room .fx-panel .fx-item-img { padding: 0; justify-content: flex-end; background: var(--ink-4); }
+body.tdt-room .fx-panel .fx-item-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+body.tdt-room .fx-panel .fx-item-img .effect-label {
+  position: relative; width: 100%; padding: 16px 6px 5px; text-align: left; color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .72));
+}
+body.tdt-room .fx-panel .fx-sec[data-sec="face3d"] .fx-h:first-child { margin-top: 0; }
+body.tdt-room .fx-panel .fx-sec[data-sec="face3d"] { padding-top: 12px; }
+body.tdt-room .fx-panel .fx-tab { white-space: nowrap; }
 /* immagini di sfondo: miniatura a tutto riquadro, nome in basso */
 body.tdt-room .fx-panel .fx-grid-img .bg-item { aspect-ratio: 16 / 11; padding: 0; justify-content: flex-end; }
 body.tdt-room .fx-panel .fx-grid-img .bg-item img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

@@ -98,6 +98,10 @@ cloud, your branding.
   illustrations, or your own image), color styles and face
   effects (MediaPipe) in a **side panel with a live preview**, opened from More
   or from the button on your own tile
+- **228 3D face effects like Meet** (characters that copy your expressions,
+  wigs, beards, hats, glasses, painted masks, scenes with your face in a frame)
+  that follow the head in 3D: MediaPipe Face Landmarker in a Web Worker +
+  three.js, all served locally. The classic 2D effects stay in their own tab
 - **Call settings window** with sections: audio & video devices, room rules
   (hosts), recording quality, appearance, shortcuts, info
 - Microphone popup with **live mic and speaker levels** and a switch for
@@ -150,8 +154,9 @@ cd TiDiTalk
 cp .env.template .env
 nano .env        # at least: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USERS, SMTP_*
 
-# 2. Third-party assets (MediaPipe for backgrounds/effects, emoji images,
-#    background photos from Unsplash)
+# 2. Third-party assets (MediaPipe for backgrounds/effects and the 3D face
+#    effects, three.js, emoji images, background photos from Unsplash).
+#    Updating from 1.6.x: run setup-mediapipe.sh again for the 3D effects
 bash setup-mediapipe.sh
 bash setup-effects.sh
 bash setup-backgrounds.sh
