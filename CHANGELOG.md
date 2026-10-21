@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.8.2
+
+Chat, notifications and the shared screen, closer to Google Meet.
+
+### Added
+- **Pinned messages in the chat**: hosts pin up to 3 messages at the top of
+  the chat (server-checked); people who join later see them too and a click
+  jumps to the message
+- **Reactions on chat messages**: 👍 ❤️ 😂 😮 🙏 with the count under the
+  bubble; the tooltip says who reacted, the same emoji again removes yours
+- **Reply with a quote**: *Reply* shows the quoted message above yours, a click
+  on the quote jumps to the original (the server takes name and text from the
+  history, the client only sends the message id)
+- **Clickable links** in the chat: only http, https and www, opened in a new
+  tab with noopener; everything else stays plain text
+- **"Laura is typing…"** above the chat box
+- **Notifications at the bottom left**: who joins and leaves, chat messages,
+  recording started, stopped and saved arrive as cards stacked above the
+  control bar, with the person's initials and colour and the time. Chat cards
+  have a **Reply…** box that sends without opening the chat; older cards fade
+  and leave by themselves, they stay while the mouse is over them. One compact
+  card at a time on phones. The *raised hands* notice is the last card of the
+  stack. Technical warnings (microphone, network, permissions) are unchanged
+- **Zoom on a shared screen**: − % + and *Fit* bar, Ctrl/⌘ + wheel or trackpad
+  pinch on the cursor point (100 % to 400 %), drag to move, a minimap to pick
+  the area; Ctrl/⌘ + plus, minus and 0 only with the mouse over the shared
+  screen. Pinch and one-finger drag on phones. Drawings and laser stay aligned
+  with the content at any zoom; *Save image* and the recording still take the
+  whole screen. Only for who is watching: nothing goes to the server
+- **Open the shared screen in a new window** (for a second monitor): it uses the
+  same video stream of the meeting (no extra download), with zoom, minimap,
+  live drawings and laser; the room shows *Show the window* and *Bring it
+  back*. If the window is closed the screen comes back to the room, when the
+  presentation ends the window closes by itself
+
+### Changed
+- Joins, leaves and recording messages are no longer pills at the top: they
+  are notification cards at the bottom left
+- Your own replies sent from a notification do not count as unread messages
+- The reactions column starts above the notification stack
+
 ## 1.8.1
 
 3D face effects: the ones that did not work well are fixed, the weakest ones

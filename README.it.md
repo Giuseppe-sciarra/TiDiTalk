@@ -96,6 +96,14 @@ tuo marchio.
   server, pausa, +1 minuto, suona alla fine) e **domande e risposte** (anche
   anonime, si votano, l'organizzatore le segna «in risposta» e «risposta data»
   e le scarica per Excel)
+- **Chat** con **messaggi fissati** (dagli organizzatori, fino a 3),
+  **reazioni** su ogni messaggio, **risposta con citazione**, link cliccabili e
+  «… sta scrivendo»
+- **Notifiche in basso a sinistra** per ingressi, uscite, chat (rispondi senza
+  aprire la chat) e registrazione, con le iniziali della persona e l'orario
+- **Zoom sullo schermo condiviso** (− % +, Ctrl + rotellina o pizzico,
+  trascina, minimappa) e **apertura in una nuova finestra** per un secondo
+  monitor, con i disegni sempre allineati
 - **Reazioni in barra** con la tonalità della pelle e tutte le emoji, che
   salgono con il nome di chi le manda e restano qualche secondo sul suo riquadro
 - **Mani alzate in coda**: ordine di arrivo nella lista Persone, numero in coda

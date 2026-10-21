@@ -289,7 +289,16 @@
     if (!rise) return;
     const hands = document.querySelector('.tdt-hands-pill:not(.hidden)');
     const extra = hands ? hands.getBoundingClientRect().height + 10 : 0;
-    rise.style.bottom = (bottomGap() + 12 + extra) + 'px';
+    let b = bottomGap() + 12 + extra;
+    // 1.8.2: sopra la pila delle notifiche (notify.js, contiene anche l'avviso delle mani)
+    const st = window.TdtNotify?.top?.();
+    if (st) b = Math.max(b, window.innerHeight - st + 10);
+    rise.style.bottom = b + 'px';
+    // la salita non va oltre l'intestazione
+    const room = window.innerHeight - b - 70;
+    const def = window.matchMedia('(max-width: 640px)').matches ? Math.min(window.innerHeight * 0.46, 380) : Math.min(window.innerHeight * 0.62, 560);
+    if (room < def) rise.style.setProperty('--rise-h', Math.max(140, room) + 'px');
+    else rise.style.removeProperty('--rise-h');
   }
 
   function riseItem(name, emoji, self) {

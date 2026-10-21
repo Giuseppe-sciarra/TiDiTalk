@@ -459,6 +459,11 @@
         s.pointers.set(d.peerId, ptr);
       }
       const [x, y] = this._px(s, [d.x, d.y]);
+      // 1.8.2: schermo ingrandito da chi guarda (screenzoom.js) → il laser in scala inversa, resta della stessa misura
+      const k = 1 / Math.max(1, s.viewScale || 1);
+      ptr.ring.setAttribute('r', 22 * k); ptr.dot.setAttribute('r', 9 * k);
+      ptr.ring.style.strokeWidth = 2.5 * k; ptr.trail.style.strokeWidth = 5 * k;
+      ptr.label.style.fontSize = 13 * k + 'px'; ptr.label.style.strokeWidth = 4 * k + 'px';
       ptr.pts.push([x, y]); if (ptr.pts.length > 14) ptr.pts.shift();
       ptr.g.style.setProperty('--c', d.color || '#f0a44b');
       ptr.trail.setAttribute('points', ptr.pts.map(p => p.join(',')).join(' '));
@@ -466,7 +471,7 @@
       for (const c of [ptr.ring, ptr.dot]) { c.setAttribute('cx', x); c.setAttribute('cy', y); }
       ptr.ring.setAttribute('stroke', d.color || '#f0a44b');
       ptr.dot.setAttribute('fill', d.color || '#f0a44b');
-      ptr.label.setAttribute('x', x + 26); ptr.label.setAttribute('y', y - 18);
+      ptr.label.setAttribute('x', x + 26 * k); ptr.label.setAttribute('y', y - 18 * k);
       ptr.label.textContent = d.peerId === 'me' ? '' : d.name;
       clearTimeout(ptr.timer);
       ptr.timer = setTimeout(() => { ptr.g.remove(); s.pointers.delete(d.peerId); }, 1600);

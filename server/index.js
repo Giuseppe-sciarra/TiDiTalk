@@ -26,6 +26,7 @@ const brand = require('./brand');
 const org = require('./org'); // 1.8.0: termina per tutti, messaggio in sala d'attesa, secondo schermo
 const hands = require('./hands');         // 1.8.0: mani alzate in coda
 const reactions = require('./reactions'); // 1.8.0: reazioni in barra (emoji con tonalità)
+const chat = require('./chat');           // 1.8.2: chat con fissati, reazioni, risposte, «sta scrivendo»
 const bcrypt = require('bcryptjs');
 
 // ⭐ Safety net: log invece di crashare il processo su errori asincroni inattesi.
@@ -218,6 +219,7 @@ app.get('/', (req, res) => sendPage(res, 'login.html'));
 app.get('/home', (req, res) => sendPage(res, 'index.html'));
 app.get('/schedule', (req, res) => sendPage(res, 'schedule.html'));
 app.get('/room/:id', (req, res) => sendPage(res, 'room.html'));
+app.get('/screen-window', (req, res) => sendPage(res, 'screen.html')); // 1.8.2: schermo condiviso in una finestra separata
 app.get('/settings', (req, res) => sendPage(res, 'settings.html'));
 // Pagina di fine chiamata per gli ospiti (contenuti dal pannello Impostazioni → Fine chiamata)
 app.get('/bye', (req, res) => sendPage(res, 'bye.html'));
@@ -1221,6 +1223,7 @@ io.on('connection', (socket) => {
         routerRtpCapabilities: room.router.rtpCapabilities,
         peers: room.getPeersData(socket.id).filter(p => !_staleIds.includes(p.id)),
         chatHistory: room.chatHistory,
+        chat: chat.snapshot(room, socket.id), // 1.8.2: fissati e reazioni per chi entra in ritardo
         serverNow: Date.now(), // 1.8.0: per «da quanto è alzata la mano» con l'orologio del server
         polls: room.pollsSnapshot(socket.id),
         activities: activities.snapshot(room, socket.id),
@@ -1565,7 +1568,8 @@ io.on('connection', (socket) => {
   // 1.8.0 — Timer e Domande (server/activities.js)
   activities.bind(io, socket, { inRoom: _inRoom, room: () => currentRoom, peer: () => currentPeer });
 
-  socket.on('chatMessage', ({ message, type = 'text' } = {}) => {
+  const _chat = chat.bind(io, socket, { inRoom: _inRoom, room: () => currentRoom, peer: () => currentPeer }); // 1.8.2
+  socket.on('chatMessage', ({ message, type = 'text', replyTo } = {}) => {
     if (!_inRoom()) return;
     if (!_checkRl('chat', 'chatMessage')) return;
     // ⭐ FIX BUG 11+12: valida sia message che type. Senza, un client poteva
@@ -1575,6 +1579,7 @@ io.on('connection', (socket) => {
     const safeType = (type === 'system' || type === 'file') ? 'text' : _safeStr(type, 16);
     const finalType = ['text'].includes(safeType) ? safeType : 'text';
     const msg = currentRoom.addChatMessage(socket.id, currentPeer.displayName, clean, finalType);
+    _chat.onMessage(msg, { replyTo }); // 1.8.2: citazione presa dalla cronologia del server
     io.to(currentRoom.id).emit('chatMessage', msg);
   });
 

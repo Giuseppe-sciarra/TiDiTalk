@@ -1276,7 +1276,7 @@ async function initSocket() {
       _jlog('peerJoined', { peer: peer.id, name: peer.displayName, audioMuted: peer.audioMuted, videoOff: peer.videoOff, hadCachedVideo: !!cached?.video });
       updatePeerCount();
       refreshParticipants();
-      showToast(`${peer.displayName} è entrato nella riunione`);
+      if (!window.TdtNotify?.peer('join', peer.id, peer.displayName)) showToast(`${peer.displayName} è entrato nella riunione`); // 1.8.2: notifiche in basso a sinistra
       sounds.join();
       recorder?.refreshAudio();
     });
@@ -1319,7 +1319,7 @@ async function initSocket() {
       clearTimeout(speakingTimers.get(peerId)); speakingTimers.delete(peerId);
       updatePeerCount();
       refreshParticipants();
-      showToast(`${displayName} ha lasciato la riunione`);
+      if (!window.TdtNotify?.peer('leave', peerId, displayName)) showToast(`${displayName} ha lasciato la riunione`);
       sounds.leave();
     });
 
@@ -1392,6 +1392,7 @@ async function initSocket() {
 
     window.TdtReact?.bind(socket); // 1.8.0: reazioni col nome lungo il bordo sinistro e sul riquadro
     window.TdtHands?.bind(socket); // 1.8.0: mani alzate in coda
+    window.TdtChat?.bind(socket); // 1.8.2: fissati, reazioni, risposte, «sta scrivendo»
     window.TdtPolls?.bind(socket);
     window.TDTActivities?.bind(socket); // 1.8.0: timer e domande
     window._tdSocket = socket;
@@ -1463,10 +1464,11 @@ async function initSocket() {
 
     socket.on('chatMessage', (msg) => {
       appendChatMessage(msg);
-      if (!chatOpen) {
+      if (!chatOpen && msg.peerId !== socket.id) { // 1.8.2: la propria risposta dalla notifica non conta come non letta
         unreadCount++;
         updateChatBadge();
-        if (msg.peerId !== socket.id) sounds.chat();
+        sounds.chat();
+        window.TdtNotify?.chat(msg); // 1.8.2: anteprima con «Rispondi…» in basso a sinistra
       }
     });
 
@@ -1578,6 +1580,7 @@ async function joinRoom(micMuted = false, camOff = false) {
   // Disegni già presenti sugli schermi condivisi + regole della stanza
   window.__policy = res.policy || window.__BRAND?.rooms || {};
   window.__isHostRole = !!res.isHostRole;
+  window.TdtChat?.load(res.chat || null); // 1.8.2: fissati e reazioni per chi entra in ritardo
   window.TDTActivities?.load(res.activities || null); // 1.8.0: timer in corso e domande per chi entra tardi
   window._tdRoomRules = res.rules || null;
   window.TdtLobby?.load(res.lobby || [], res.rules || null);
@@ -2546,7 +2549,7 @@ async function startRecording() {
     document.getElementById('btnRecord').querySelector('.ctrl-label').textContent = 'Stop';
     document.getElementById('recIndicator').classList.add('visible');
     sounds.recStart();
-    showToast('⏺ Registrazione avviata');
+    if (!window.TdtNotify?.rec('start')) showToast('⏺ Registrazione avviata');
     console.log('[recorder] codec:', mimeType);
   } catch (err) { console.error('[recorder]', err); showToast('Errore: ' + err.message); recorder = null; }
 }
@@ -2556,9 +2559,10 @@ async function stopRecording() {
   document.getElementById('btnRecord').classList.remove('recording');
   document.getElementById('btnRecord').querySelector('.ctrl-label').textContent = 'Registra';
   document.getElementById('recIndicator').classList.remove('visible');
-  showToast('Salvataggio della registrazione…', 2000);
+  const _ntf = window.TdtNotify?.rec('stop'); // 1.8.2: scheda in basso a sinistra
+  if (!_ntf) showToast('Salvataggio della registrazione…', 2000);
   await r.stop();            // aspetta che il file sia consegnato al download
-  showToast('Registrazione salvata ✓ — download in corso');
+  if (_ntf) _ntf.saved(); else showToast('Registrazione salvata ✓ — download in corso');
 }
 
 // ─── Uscita dalla stanza (con conferma; se si registra, prima salva) ─────────
@@ -3551,7 +3555,9 @@ function toggleChat() {
 function sendChatMessage() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim(); if (!msg) return;
-  socket?.emit('chatMessage', { message: msg }); input.value = '';
+  const payload = { message: msg };
+  window.TdtChat?.outgoing(payload); // 1.8.2: risposta con citazione (aggiunge replyTo)
+  socket?.emit('chatMessage', payload); input.value = '';
 }
 function appendChatMessage(msg) {
   const isOwn = msg.peerId === socket?.id;
@@ -3581,6 +3587,7 @@ function appendChatMessage(msg) {
     div.querySelector('.msg-tts-btn').classList.add('speaking');
     setTimeout(() => div.querySelector('.msg-tts-btn')?.classList.remove('speaking'), 3000);
   });
+  window.TdtChat?.decorate(div, msg); // 1.8.2: link, citazione, reazioni, fissati
 
   c.appendChild(div);
   scrollChat();

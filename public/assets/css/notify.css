@@ -1,0 +1,138 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.8.2 — Notifiche in basso a sinistra (notify.js)
+   Pila sopra la barra comandi: ingressi, uscite, chat con «Rispondi…»,
+   registrazione. L'avviso delle mani alzate (hands.js) è la scheda fissa in
+   fondo. Il «bottom» lo calcola notify.js. Solo variabili del tema.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.tdt-ntf {
+  position: fixed; left: 14px; bottom: 96px; z-index: 245;
+  width: 330px; max-width: calc(100vw - 28px);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  pointer-events: none;
+  font-family: var(--font);
+}
+.tdt-ntf > * { pointer-events: auto; }
+.tdt-ntf-list { display: flex; flex-direction: column; gap: 8px; width: 100%; pointer-events: none; }
+.tdt-ntf-list:empty { display: none; }
+
+/* l'avviso delle mani dentro la pila: niente posizione propria */
+.tdt-ntf > .tdt-hands-pill { position: relative !important; left: auto !important; bottom: auto !important; max-width: 100%; }
+
+.tdt-ntf-card {
+  pointer-events: auto;
+  position: relative;
+  display: flex; align-items: flex-start; gap: 11px;
+  width: 100%; box-sizing: border-box;
+  padding: 10px 34px 10px 10px;
+  border-radius: 18px;
+  background: var(--ink-2);
+  border: 1px solid var(--hair-2);
+  box-shadow: var(--shadow-2);
+  color: var(--paper);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+  transform-origin: left bottom;
+  animation: tdt-ntf-in .38s var(--ease) both;
+  transition: opacity .5s ease, transform .5s var(--ease), height .26s var(--ease), margin .26s var(--ease), padding .26s var(--ease);
+}
+@keyframes tdt-ntf-in { from { opacity: 0; transform: translate(-18px, 10px) scale(.96); } to { opacity: 1; transform: none; } }
+.tdt-ntf-card.pulse { animation: tdt-ntf-pulse .45s var(--ease); }
+@keyframes tdt-ntf-pulse { 40% { transform: translateX(4px); } }
+
+/* le più vecchie si attenuano (solo il contenuto: lo sfondo resta pieno, così
+   non si vede in trasparenza il nome del riquadro dietro); col mouse sopra tornano piene */
+.tdt-ntf-card > .tdt-ntf-face, .tdt-ntf-card > .tdt-ntf-body { transition: opacity .5s ease; }
+.tdt-ntf-list > .tdt-ntf-card:not(:last-child) > .tdt-ntf-face,
+.tdt-ntf-list > .tdt-ntf-card:not(:last-child) > .tdt-ntf-body { opacity: .82; }
+.tdt-ntf-list > .tdt-ntf-card:nth-last-child(n+3) { transform: scale(.97); }
+.tdt-ntf-list > .tdt-ntf-card:nth-last-child(n+3) > .tdt-ntf-face,
+.tdt-ntf-list > .tdt-ntf-card:nth-last-child(n+3) > .tdt-ntf-body,
+.tdt-ntf-card.old > .tdt-ntf-face, .tdt-ntf-card.old > .tdt-ntf-body { opacity: .6; }
+.tdt-ntf.hover .tdt-ntf-card { transform: none; }
+.tdt-ntf.hover .tdt-ntf-card > .tdt-ntf-face, .tdt-ntf.hover .tdt-ntf-card > .tdt-ntf-body { opacity: 1; }
+.tdt-ntf-card.out {
+  opacity: 0 !important; transform: translateX(-24px) !important;
+  height: 0 !important; padding-top: 0; padding-bottom: 0; margin-top: -8px; border-width: 0;
+}
+
+/* faccia: iniziali e colore dell'avatar, con un segnetto del tipo */
+.tdt-ntf-face {
+  position: relative; flex-shrink: 0;
+  width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center;
+  color: #fff; font: 700 14px/1 var(--font);
+}
+.tdt-ntf-kind {
+  position: absolute; right: -3px; bottom: -3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 2px solid var(--ink-2);
+  background: var(--paper-3); color: var(--ink-2);
+}
+.tdt-ntf-join .tdt-ntf-kind { background: var(--ok); color: #fff; }
+.tdt-ntf-chat .tdt-ntf-kind { background: var(--accent); color: var(--accent-ink); }
+.tdt-ntf-face.ico { background: color-mix(in srgb, var(--danger) 16%, var(--ink-3)); }
+.tdt-ntf-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 25%, transparent); }
+.tdt-ntf-card.on .tdt-ntf-dot { animation: tdt-ntf-rec 1.4s ease-in-out infinite; }
+@keyframes tdt-ntf-rec { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--danger) 8%, transparent); } }
+
+.tdt-ntf-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 1px; }
+.tdt-ntf-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.tdt-ntf-who { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tdt-ntf-time { flex-shrink: 0; font-size: 11.5px; color: var(--paper-3); font-variant-numeric: tabular-nums; }
+.tdt-ntf-text { font-size: 13px; line-height: 1.38; color: var(--paper-2); overflow-wrap: anywhere; }
+.tdt-ntf-line { margin: 0; color: var(--paper); display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tdt-ntf-line + .tdt-ntf-line { margin-top: 3px; }
+.tdt-ntf-line.own { color: var(--paper-2); }
+.tdt-ntf-line.own b { font-weight: 600; color: var(--accent-text); }
+.tdt-ntf-open { cursor: pointer; border-radius: 8px; }
+.tdt-ntf-open:hover .tdt-ntf-line:not(.own) { color: var(--accent-text); }
+.tdt-ntf-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.tdt-ntf-x {
+  position: absolute; top: 7px; right: 7px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 0; background: transparent; color: var(--paper-3); cursor: pointer;
+  opacity: 0; transition: opacity .15s, background .15s, color .15s;
+}
+.tdt-ntf-card:hover .tdt-ntf-x, .tdt-ntf-x:focus-visible { opacity: 1; }
+.tdt-ntf-x:hover { background: var(--hair-2); color: var(--paper); }
+.tdt-ntf-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (hover: none) { .tdt-ntf-x { opacity: 1; } }
+
+/* «Rispondi…» */
+.tdt-ntf-reply { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; }
+.tdt-ntf-reply input {
+  flex: 1; min-width: 0; height: 34px; box-sizing: border-box;
+  padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--hair-2); background: var(--ink-3); color: var(--paper);
+  font: 400 13.5px/1 var(--font);
+  transition: border-color .15s, background .15s;
+}
+.tdt-ntf-reply input::placeholder { color: var(--paper-3); }
+.tdt-ntf-reply input:focus { outline: none; border-color: var(--accent-line); background: var(--ink-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tdt-ntf-send {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink);
+  transition: transform .15s var(--ease), filter .15s;
+}
+.tdt-ntf-send:hover { filter: brightness(1.08); transform: translateX(1px); }
+.tdt-ntf-send:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tdt-ntf-card.sent .tdt-ntf-reply { display: none; }
+
+:root[data-theme="light"] .tdt-ntf-card { background: #ffffff; }
+:root[data-theme="light"] .tdt-ntf-reply input { background: var(--ink-1); }
+
+/* telefono: pila compatta sopra la barra, una scheda alla volta */
+@media (max-width: 640px), (max-height: 500px) and (pointer: coarse) {
+  .tdt-ntf { left: 8px; right: 8px; width: auto; max-width: 420px; gap: 6px; }
+  .tdt-ntf-card { padding: 8px 32px 8px 8px; gap: 9px; border-radius: 16px; }
+  .tdt-ntf-face { width: 32px; height: 32px; font-size: 12.5px; }
+  .tdt-ntf-kind { width: 16px; height: 16px; }
+  .tdt-ntf-line { -webkit-line-clamp: 2; line-clamp: 2; }
+  .tdt-ntf-reply { margin-top: 6px; }
+  .tdt-ntf-reply input { height: 36px; font-size: 16px; } /* 16px: iOS non ingrandisce la pagina */
+  .tdt-ntf-send { width: 36px; height: 36px; }
+}

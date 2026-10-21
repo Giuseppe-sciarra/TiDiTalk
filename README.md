@@ -92,6 +92,12 @@ cloud, your branding.
   rings at the end) and **questions and answers** (also anonymous, voted by
   everyone, marked *answering now* and *answered* by the host, downloadable
   for Excel)
+- **Chat** with **pinned messages** (hosts, up to 3), **reactions** on each
+  message, **reply with a quote**, clickable links and *"… is typing"*
+- **Notifications at the bottom left** for joins, leaves, chat (reply without
+  opening the chat) and recording, with the person's initials and the time
+- **Zoom on a shared screen** (− % +, Ctrl + wheel or pinch, drag, minimap) and
+  **open it in a new window** for a second monitor, with drawings still aligned
 - **Reactions bar** with skin tones and every emoji, rising with the name of
   who sent them and staying for a few seconds on their tile
 - **Raised hands in a queue**: order of arrival in the People list, place in
