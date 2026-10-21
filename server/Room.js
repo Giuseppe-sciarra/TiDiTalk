@@ -16,6 +16,7 @@ class Peer {
     this.handRaised = false;
     this.isScreenSharing = false;
     this.isGuest = false;
+    this.secondScreen = false; // 1.8.0: entrato come secondo schermo (niente mic, camera, riquadro)
     this.closed = false;
     // ⭐ 1.5.1 — mai inviati agli altri client (fuori da toJSON):
     // admitTicket = "biglietto" dell'ospite già fatto entrare (vedi Room.issueTicket)
@@ -43,8 +44,10 @@ class Peer {
       audioMuted: this.audioMuted,
       videoOff: this.videoOff,
       handRaised: this.handRaised,
+      handRaisedAt: this.handRaisedAt || null, // 1.8.0: ora (server) in cui ha alzato la mano
       isScreenSharing: this.isScreenSharing,
       isGuest: this.isGuest,
+      secondScreen: this.secondScreen,
       producers: Array.from(this.producers.values()).map((p) => ({
         id: p.id, kind: p.kind, appData: p.appData,
       })),
@@ -118,7 +121,7 @@ class Room {
   // ─── Lobby ──────────────────────────────────────────────────────────────────
   // extra: { tabId, ticketOk } — dati interni, mai inviati agli organizzatori
   addToLobby(socketId, displayName, reason = 'nohost', extra = {}) {
-    this.lobby.set(socketId, { displayName, reason, since: Date.now(), tabId: extra.tabId || null, ticketOk: !!extra.ticketOk });
+    this.lobby.set(socketId, { displayName, reason, since: Date.now(), tabId: extra.tabId || null, ticketOk: !!extra.ticketOk, secondScreen: !!extra.secondScreen });
   }
 
   // ─── Biglietti ospiti (1.5.1) ───────────────────────────────────────────────
@@ -137,7 +140,7 @@ class Room {
   // Lista per gli organizzatori: solo chi aspetta di essere ammesso
   lobbyWaiting() {
     const out = [];
-    for (const [peerId, e] of this.lobby) if (e.reason === 'admit') out.push({ peerId, displayName: e.displayName, since: e.since });
+    for (const [peerId, e] of this.lobby) if (e.reason === 'admit') out.push({ peerId, displayName: e.displayName, since: e.since, secondScreen: !!e.secondScreen });
     return out;
   }
   hostSocketIds() {
@@ -165,12 +168,12 @@ class Room {
       if (peer.isGuest) {
         peer.close();
         this.clearSurface(socketId);
-        moved.push({ socketId, displayName: peer.displayName, tabId: peer.tabId, ticketOk: !!peer.admitTicket });
+        moved.push({ socketId, displayName: peer.displayName, tabId: peer.tabId, ticketOk: !!peer.admitTicket, secondScreen: !!peer.secondScreen });
       }
     }
     for (const m of moved) {
       this.peers.delete(m.socketId);
-      this.lobby.set(m.socketId, { displayName: m.displayName, reason: 'nohost', since: Date.now(), tabId: m.tabId || null, ticketOk: m.ticketOk });
+      this.lobby.set(m.socketId, { displayName: m.displayName, reason: 'nohost', since: Date.now(), tabId: m.tabId || null, ticketOk: m.ticketOk, secondScreen: m.secondScreen });
     }
     return moved;
   }

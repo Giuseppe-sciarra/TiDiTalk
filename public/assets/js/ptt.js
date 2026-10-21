@@ -50,6 +50,7 @@
     // ri-pressione subito dopo il rilascio: il mute in attesa si annulla e si resta in trasmissione
     if (pendingMute) { clearTimeout(pendingMute); pendingMute = null; active = true; downAt = Date.now(); document.body.classList.add('ptt-active'); showPill(true); return; }
     if (!window._tdIsMicMuted?.()) return;
+    if (window.TdtOrg?.blockMedia?.('mic')) return; // 1.8.0: secondo schermo
     active = true; downAt = Date.now();
     document.body.classList.add('ptt-active');
     showPill(true);

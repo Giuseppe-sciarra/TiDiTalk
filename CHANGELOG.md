@@ -1,5 +1,85 @@
 # Changelog
 
+## 1.8.0
+
+Ideas taken from Google Meet (only the idea: no code, icons or images from
+Google), redone with Tiditalk's colors, fonts and panels.
+
+### Added
+- **Change layout** (*View* button): Auto, Grid, Spotlight or Sidebar,
+  each with a small illustration; a slider for the maximum number of tiles
+  (2 to 25; beyond that a **+N** tile with the initials of who is not shown,
+  which opens the People list — people who raise their hand or speak move
+  into view by themselves); **hide people with the camera off**, with a notice
+  that says who is hidden and a *Show* button; **your own tile** in the grid,
+  as a small window you drag to a corner, or hidden. Only for you, saved in
+  the browser. On the phone it opens as a bottom sheet (max 8 tiles). Works
+  with the presenter view and the row of people above the shared screen
+- **Meeting timer**: an organizer starts a countdown (1, 3, 5, 10, 15 minutes
+  or a custom length, with an optional title). Everyone sees it in a pill at
+  the top; organizers can pause it, add a minute or cancel it. At the end it
+  rings (respecting the sound settings) and shows a notice. It runs on the
+  server clock, so it is the same for everyone, and people who join late see
+  it already running
+- **Questions and answers**: anyone asks a question, also **anonymously**
+  (the name does not even reach the server), and the others vote for it (one
+  vote each, can be taken back). Tabs *Top voted*, *Recent*, *Answered*.
+  Organizers mark a question *Answering now* (highlighted for everyone) and
+  *Answered*, hide off-topic ones and download the list as a CSV for Excel
+- **Activities** button in the bar (next to People, with a counter): one
+  panel with Polls, Timer and Questions. On narrow screens and phones it is
+  in the *More* menu
+- **Raised hands in a queue**: in the People list a *Raised hands* section in
+  order of arrival, with how long ago and *Lower* for each one (organizers
+  and the person themselves) and *Lower all* (organizers). The tile shows the
+  place in the queue (✋ 2) and a notice at the bottom left (*3 raised
+  hands*) opens the queue. The hand goes down by itself after about 4 seconds
+  of speaking (it was 10 fixed seconds). Order and times come from the server
+- **Reactions bar with skin tone and names**: a row of 9 reactions above the
+  button, the skin tone (saved in the browser) and a **+** with every emoji
+  and a search. Reactions rise along the left edge with the name of who sent
+  them (from the server) and stay on that person's tile for a few seconds;
+  the burst is kept when many people react together. The bar stays open after
+  a click and closes with Esc, a click outside or the button
+- **End the meeting for everyone**: pressing Leave, an organizer chooses
+  between *Just leave* and *End the meeting for everyone*: everyone goes
+  to the end-of-call page, including people still in the waiting room
+- **Message to people waiting**: from the waiting room card an organizer
+  writes to whoever is waiting (three quick replies or free text). The guest
+  sees the message and their place in line (*You are 2nd in line*)
+- **Join as a second screen**: from the pre-join page, join from the laptop in
+  the meeting room without microphone, speakers or camera (so no echo). Chat,
+  polls, hand, reactions and Present stay; the others don't see an extra tile
+  and *Second screen* is shown next to the name in People and in the waiting
+  room. *Switch to audio* turns it into a normal participant without
+  rejoining. The server refuses microphone and camera from a second screen
+- **New pre-join page, "Ready to join?"**: a large preview with your name and
+  the microphone and camera buttons inside it; below, three pills for
+  microphone, speakers and webcam; on the right who is already in the
+  meeting (only with a valid link), your name, a large join button and
+  *Other ways to join* (*Join as a second screen*, *Join and present*).
+  In a column on the phone; everything fits on 768 px high screens
+
+### Changed
+- **Animations always run**: the rule that turned off almost every animation
+  of the room when the system had *Reduce motion* enabled has been removed
+- Initials of names with parentheses or symbols: «Giuseppe (Sciarra)» is
+  now **GS** (it was «G(»), everywhere: tiles, People, waiting room, home,
+  pre-join, floating window, end page
+
+### Fixed
+- **Phone, light theme**: the full-screen panels (Chat, People, Polls, Info,
+  Backgrounds and effects, Settings) had a fixed dark background with dark
+  text and names could not be read; the × of the Info window was white on
+  white. They now use the theme colors (dark theme unchanged)
+- **Mute everyone on Firefox** could leave a microphone on while its button
+  showed it muted: the button now follows the real state of the track and a
+  microphone that turns itself back on is muted again
+- The *microphone muted* warning closed its audio part twice
+
+### Update
+- Only `docker compose up -d --build`: no new setup scripts to run
+
 ## 1.7.0
 
 ### Added

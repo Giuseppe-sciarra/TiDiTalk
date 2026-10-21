@@ -227,7 +227,8 @@
     body.querySelector('#csLayout').addEventListener('click', (e) => {
       const b = e.target.closest('[data-v]'); if (!b) return;
       const now = document.getElementById('videoGrid')?.dataset.spotlight === 'true';
-      if ((b.dataset.v === 'spot') !== now) document.getElementById('btnLayout')?.click();
+      if (window.TdtLayout) window.TdtLayout.setMode(b.dataset.v === 'spot' ? 'sidebar' : 'grid'); // 1.8.0
+      else if ((b.dataset.v === 'spot') !== now) document.getElementById('btnLayout')?.click();
       renderLook(body);
     });
     body.querySelector('#csDs').addEventListener('change', () => window._tdDataSaver?.toggle());
@@ -246,7 +247,7 @@
     const B = window.__BRAND || {};
     const name = B.branding?.platformName || document.title.split('·').pop().trim();
     const link = `${location.origin}/room/${ROOM_ID}`;
-    const n = (document.querySelectorAll('.video-tile:not(.screenshare)').length) || 1;
+    const n = (document.querySelectorAll('.video-tile:not(.screenshare):not(.lv-more)').length) || 1;
     body.innerHTML = `
       <div class="cs-group cs-info">
         <div class="cs-info-row"><span>Riunione</span><b translate="no">${esc(ROOM_ID)}</b></div>

@@ -47,7 +47,17 @@ cloud, your branding.
 - **Waiting room** like Google Meet: guests wait until a host admits them
   (Admit / Deny / Admit all card, on by default, switchable per meeting);
   registered users get straight in; guests go back to waiting if the last
-  host leaves. Hosts can also **lock the room** and remove a guest
+  host leaves. Hosts can also **lock the room** and remove a guest. From the
+  waiting room card hosts **write to the people waiting** (three quick replies
+  or free text) and each guest also sees their **place in line**
+- **"Ready to join?" pre-join page**: a large preview with your name and the
+  microphone and camera buttons inside it, pills for microphone, speakers and
+  webcam, who is already in (only with a valid link) and **other ways to
+  join**: as a **second screen** (the laptop in the meeting room with no
+  microphone, speakers or camera, so no echo; *Switch to audio* makes it a
+  normal participant) or joining and presenting right away
+- **End the meeting for everyone**: pressing Leave, a host chooses whether to
+  just leave or close the meeting for everyone, waiting room included
 - Home page with a full **device check** (camera preview, microphone level,
   speakers test on the chosen output) — switching tab does not close and
   reopen camera and microphone (they are released only after 10 minutes away),
@@ -58,6 +68,10 @@ cloud, your branding.
 - Guest links that expire, no sign-up — works in the browser on desktop and phone
 - Grid view that **sizes every tile to the available space** (all participants
   visible, same size, 16:9, last row centered) and speaker view
+- **Change layout** from the View button: Auto, Grid, Spotlight or Sidebar,
+  maximum number of tiles (a "+N" tile beyond that), **hide people with the
+  camera off**, your own tile in the grid, as a draggable small window or
+  hidden — only for you, saved in the browser
 - Portrait (phone) cameras shown in full instead of cropped
 
 **Presenting**
@@ -72,8 +86,17 @@ cloud, your branding.
   room waits for the file to be saved
 
 **In the room**
-- Chat, reactions, raise hand, participant list, **polls** (hosts create,
-  everyone votes, live results, anonymous or with names)
+- Chat, participant list and an **Activities** button with **polls** (hosts
+  create, everyone votes, live results, anonymous or with names), a **meeting
+  timer** (a countdown for everyone on the server clock, pause, +1 minute,
+  rings at the end) and **questions and answers** (also anonymous, voted by
+  everyone, marked *answering now* and *answered* by the host, downloadable
+  for Excel)
+- **Reactions bar** with skin tones and every emoji, rising with the name of
+  who sent them and staying for a few seconds on their tile
+- **Raised hands in a queue**: order of arrival in the People list, place in
+  line on the tile, *Lower* and *Lower all*; the hand goes down by itself
+  after you have spoken for a few seconds
 - **Microphone and speakers are separate controls**: mute yourself without
   muting the others, or silence the others (`A`) without touching your
   microphone. The speakers ▾ picks the output (system default unless you

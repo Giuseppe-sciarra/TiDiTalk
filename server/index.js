@@ -15,6 +15,7 @@ const uuidv4 = () => crypto.randomUUID(); // ex-uuid: ora nativo Node (crypto)
 
 const config = require('./config');
 const Room = require('./Room');
+const activities = require('./activities'); // 1.8.0: Timer e Domande
 const connlog = require('./connlog');
 const updateCheck = require('./update-check');
 const db = require('./db');
@@ -22,6 +23,9 @@ const { sendInvite, sendRaw, getSmtpStatus } = require('./mailer');
 const { t: i18nT, locale: defaultLocale, normalizeLanguage } = require('./i18n');
 const { syncUsersFromEnv } = require('./users-env');
 const brand = require('./brand');
+const org = require('./org'); // 1.8.0: termina per tutti, messaggio in sala d'attesa, secondo schermo
+const hands = require('./hands');         // 1.8.0: mani alzate in coda
+const reactions = require('./reactions'); // 1.8.0: reazioni in barra (emoji con tonalità)
 const bcrypt = require('bcryptjs');
 
 // ⭐ Safety net: log invece di crashare il processo su errori asincroni inattesi.
@@ -808,6 +812,7 @@ const io = new Server(server, {
 const workers = [];
 let workerIndex = 0;
 const rooms = new Map();
+org.installHttp(app, { rooms, verifyToken, verifyGuestToken, db });
 
 // ─── mediasoup Workers ────────────────────────────────────────────────────────
 async function createWorkers() {
@@ -888,6 +893,7 @@ function _destroyRoom(room) {
 function _lobbyNotifyHosts(room) {
   const waiting = room.lobbyWaiting();
   for (const sid of room.hostSocketIds()) io.to(sid).emit('lobbyUpdate', { waiting, rules: room.rules });
+  org.lobbyPositions(io, room); // 1.8.0: posto in coda e messaggio a chi aspetta
 }
 
 async function getOrCreateRoom(roomId) {
@@ -957,7 +963,7 @@ io.on('connection', (socket) => {
     wb: makeRateLimiter(80, 40),   // annotazioni: burst 80, 40 msg/s (disegno fluido)
     ptr: makeRateLimiter(40, 30),  // puntatore laser: 30 pos/s
     media: makeRateLimiter(20, 5),    // mediaState/handRaise: 20 burst, 5/s
-    reaction: makeRateLimiter(5, 1),     // reactions: 5 burst, 1/s (anti-spam emoji)
+    reaction: makeRateLimiter(8, 2),     // reactions: 8 burst, 2/s (1.8.0: la barra resta aperta, si clicca di seguito)
     poll: makeRateLimiter(10, 2),        // sondaggi: voti/creazione/chiusura
   };
   const _checkRl = (bucket, eventName) => {
@@ -1052,7 +1058,7 @@ io.on('connection', (socket) => {
     return stale;
   };
 
-  socket.on('joinRoom', async ({ roomId, displayName, token, guestToken, audioMuted, videoOff, admitTicket, tabId } = {}, callback) => {
+  socket.on('joinRoom', async ({ roomId, displayName, token, guestToken, audioMuted, videoOff, admitTicket, tabId, secondScreen } = {}, callback) => {
     if (typeof callback !== 'function') callback = () => { };
     try {
       if (!roomId || !displayName) throw new Error('roomId e displayName obbligatori');
@@ -1114,8 +1120,12 @@ io.on('connection', (socket) => {
       // d'attesa e rientra anche se nel frattempo la stanza è stata bloccata.
       const ticketOk = isGuest && room.hasTicket(admitTicket);
 
+      // 1.8.0: riunione appena terminata per tutti: non si rientra
+      if (org.isEnding(room)) return callback({ error: 'MEETING_ENDED', message: 'La riunione è terminata' });
+      secondScreen = secondScreen === true;
+
       if (isGuest && !room.hasHost()) {
-        room.addToLobby(socket.id, displayName, 'nohost', { tabId, ticketOk });
+        room.addToLobby(socket.id, displayName, 'nohost', { tabId, ticketOk, secondScreen });
         currentRoom = room;
         _dropStaleTab(room, tabId, true, '');
         // currentPeer resta null finché non viene effettivamente ammesso
@@ -1140,7 +1150,7 @@ io.on('connection', (socket) => {
       // ── SALA D'ATTESA: l'ospite aspetta che un organizzatore lo ammetta ────
       // Come Google Meet. Gli utenti registrati entrano sempre direttamente.
       if (isGuest && room.rules.waitingRoom && !room.admitted.has(socket.id) && !ticketOk) {
-        room.addToLobby(socket.id, displayName, 'admit', { tabId });
+        room.addToLobby(socket.id, displayName, 'admit', { tabId, secondScreen });
         currentRoom = room;
         _dropStaleTab(room, tabId, true, '');
         _lobbyNotifyHosts(room);
@@ -1165,6 +1175,8 @@ io.on('connection', (socket) => {
       // così il broadcast peerJoined porta l'icona mute corretta agli altri peer.
       peer.audioMuted = _safeBool(audioMuted);
       peer.videoOff = _safeBool(videoOff);
+      // 1.8.0: secondo schermo → niente microfono né camera (lo fa rispettare anche 'produce')
+      if (secondScreen) { peer.secondScreen = true; peer.audioMuted = true; peer.videoOff = true; }
       currentRoom = room; currentPeer = peer;
       peer.username = username;
       peer.tabId = tabId;
@@ -1209,7 +1221,9 @@ io.on('connection', (socket) => {
         routerRtpCapabilities: room.router.rtpCapabilities,
         peers: room.getPeersData(socket.id).filter(p => !_staleIds.includes(p.id)),
         chatHistory: room.chatHistory,
+        serverNow: Date.now(), // 1.8.0: per «da quanto è alzata la mano» con l'orologio del server
         polls: room.pollsSnapshot(socket.id),
+        activities: activities.snapshot(room, socket.id),
         annotations: room.annotationsSnapshot(),
         annOpen: Object.fromEntries(room.annOpen),
         policy: _roomPolicy(),
@@ -1223,6 +1237,7 @@ io.on('connection', (socket) => {
 
   // ── Sala d'attesa: ammetti / rifiuta (solo organizzatori) ────────────────
   const _isHost = () => _inRoom() && !currentPeer.isGuest;
+  org.bindSocket(socket, { io, room: () => currentRoom, peer: () => currentPeer, inRoom: _inRoom, isHost: _isHost });
   socket.on('lobbyAdmit', ({ peerId, all } = {}, callback) => {
     if (typeof callback !== 'function') callback = () => { };
     if (!_isHost()) return callback({ error: 'Solo gli organizzatori' });
@@ -1357,6 +1372,7 @@ io.on('connection', (socket) => {
       // ⭐ R12: appData ridotto al solo mediaType (whitelist). Prima l'oggetto del
       // client veniva rigirato a tutti i peer così com'era.
       const mt = _isPlainObject(appData) && _MEDIA_TYPES.has(appData.mediaType) ? appData.mediaType : (kind === 'audio' ? 'audio' : 'video');
+      if (org.refuseProduce(currentPeer, mt)) throw new Error('Un secondo schermo non trasmette microfono né videocamera: premi «Passa all\'audio»');
       if ((mt === 'screen' || mt === 'screen-audio') && currentPeer.isGuest && !currentRoom.rules.guestScreenShare) {
         throw new Error('La condivisione schermo è riservata agli organizzatori');
       }
@@ -1473,27 +1489,16 @@ io.on('connection', (socket) => {
   socket.on('handRaise', ({ raised } = {}) => {
     if (!_inRoom()) return;
     if (!_checkRl('media', 'handRaise')) return;
-    const r = _safeBool(raised);
-    currentPeer.handRaised = r;
-    io.to(currentRoom.id).emit('peerHandRaise', { peerId: socket.id, displayName: currentPeer.displayName, raised: r });
-
-    // Auto-abbassamento lato server dopo 10s (backup se il client non manda l'evento)
-    clearTimeout(currentPeer._handTimer);
-    if (r) {
-      currentPeer._handTimer = setTimeout(() => {
-        if (currentPeer && currentPeer.handRaised) {
-          currentPeer.handRaised = false;
-          io.to(currentRoom.id).emit('peerHandRaise', { peerId: socket.id, displayName: currentPeer.displayName, raised: false });
-        }
-      }, 10000);
-    }
+    // 1.8.0: coda in ordine d'arrivo (ora del server), niente abbassamento fisso dopo 10 s
+    hands.raise(io, currentRoom, currentPeer, _safeBool(raised));
   });
+  hands.bind(socket, { io, room: () => currentRoom, peer: () => currentPeer, inRoom: _inRoom, take: () => _checkRl('media', 'handLower') });
 
   socket.on('reaction', ({ emoji } = {}) => {
     if (!_inRoom()) return;
     if (!_checkRl('reaction', 'reaction')) return;
-    // ⭐ FIX BUG 11: limita lunghezza emoji (max 8 char: copre anche emoji compositi tipo 👨‍👩‍👧)
-    const e = _safeStr(emoji, 8);
+    // 1.8.0: solo emoji vere (anche con tonalità della pelle); il nome lo mette il server
+    const e = reactions.validEmoji(emoji);
     if (!e) return;
     io.to(currentRoom.id).emit('peerReaction', { peerId: socket.id, displayName: currentPeer.displayName, emoji: e });
   });
@@ -1556,6 +1561,9 @@ io.on('connection', (socket) => {
       callback({ ok: true });
     } catch (err) { callback({ error: err.message }); }
   });
+
+  // 1.8.0 — Timer e Domande (server/activities.js)
+  activities.bind(io, socket, { inRoom: _inRoom, room: () => currentRoom, peer: () => currentPeer });
 
   socket.on('chatMessage', ({ message, type = 'text' } = {}) => {
     if (!_inRoom()) return;

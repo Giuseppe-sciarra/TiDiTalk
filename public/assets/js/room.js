@@ -59,6 +59,7 @@ function _saveRejoin(why) {
       audioId: dev(window._localMicTrack || localMicTrack) || window._tdmeetSelectedAudio || '',
       videoId: dev(window._localCamTrack || localCamTrack) || window._tdmeetSelectedVideo || '',
       speakerId: window._tdmeetSpeakerId || '',
+      ss: !!window._tdSecondScreen, // 1.8.0: si rientra come secondo schermo
     }));
   } catch (_) { }
 }
@@ -89,6 +90,8 @@ const peers = new Map();
 let micMuted = false;
 let camOff = false;
 const peerTiles = new Map();
+window._tdPeers = peers;                       // 1.8.0: hands.js (nomi nella coda delle mani)
+window._tdDisplayName = () => DISPLAY_NAME;
 // 1.5.8: partecipanti usciti mentre si entrava (vedi joinRoom): non vanno
 // ricreati dall'elenco "chi c'è già" arrivato prima della loro uscita
 const _gonePeers = new Set();
@@ -200,7 +203,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const _rj = _takeRejoin();
     if (_rj) {
       setLoading('Rientro nella riunione…');
-      pjResult = await prejoin.quick(ROOM_ID, _rj.name || DISPLAY_NAME_DEFAULT, _rj);
+      pjResult = (_rj.ss && window.TdtOrg) ? window.TdtOrg.ssResult(_rj.name || DISPLAY_NAME_DEFAULT) : await prejoin.quick(ROOM_ID, _rj.name || DISPLAY_NAME_DEFAULT, _rj); // 1.8.0: secondo schermo
       _jlog('rejoin', { why: _rj.why, ok: !!pjResult });
     }
     if (!pjResult && !_guestToken) {
@@ -214,6 +217,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     if (!pjResult) pjResult = await prejoin.show(ROOM_ID, DISPLAY_NAME_DEFAULT);
     DISPLAY_NAME = pjResult.displayName;
+    window._tdSecondScreen = !!pjResult.secondScreen; // 1.8.0 (org.js)
 
     // Usa lo stream dalla pre-join (già acquisito, non riacquistare)
     rawCamStream = pjResult.stream;
@@ -309,6 +313,7 @@ window.addEventListener('DOMContentLoaded', async () => {
           hideLoading();
           setTimeout(() => startTour(false), 900);
           deviceSelector?.init(producers, rawCamStream);
+          window.TdtOrg?.afterJoin?.();
           showToast?.('✅ L\'host è entrato. Buona riunione!', 4000);
         } catch (e) {
           console.error('[lobby join retry]', e);
@@ -343,6 +348,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // Inizializza device selector con riferimenti a producers e stream
     deviceSelector?.init(producers, rawCamStream);
+    window.TdtOrg?.afterJoin?.();
 
   } catch (err) {
     console.error('[init]', err);
@@ -520,6 +526,7 @@ function setGuestWaitMode(mode) {
     t.textContent = T('Aspettiamo l\'organizzatore');
     su.textContent = T('Entrerai automaticamente appena si collega. Non serve ricaricare la pagina.');
   }
+  window.TdtOrg?.onWait?.(mode); // 1.8.0: posto in coda e messaggio dell'organizzatore
 }
 
 // Schermata finale per chi non viene fatto entrare o viene rimosso
@@ -582,7 +589,9 @@ function updateSoundIcon() {
 }
 
 // ─── Video Tile ───────────────────────────────────────────────────────────────
-function getInitials(n) { return escapeHtml(String(n || '?').trim().split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2) || '?'); }
+// 1.8.0: solo lettere e cifre — «Giuseppe (Sciarra)» → GS, non «G(»
+function getInitialsPlain(n) { return String(n || '').split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map(w => Array.from(w)[0]).join('').toUpperCase() || '?'; }
+function getInitials(n) { return escapeHtml(getInitialsPlain(n)); }
 function getAvatarColor(id) {
   const cols = ['#1a73e8', '#34a853', '#9c27b0', '#ff5722', '#00bcd4', '#e91e63', '#ff9800', '#607d8b'];
   let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % cols.length;
@@ -669,6 +678,9 @@ function updateGridLayout() {
   g.dataset.pinned = 'false';
   g.querySelectorAll('.video-tile').forEach(t => t.classList.remove('pinned-main', 'pinned-self'));
 
+  // ⭐ 1.8.0: pannello Vista (layout.js) — nasconde/sposta riquadri e sceglie la vista
+  window.TdtLayout?.before(g);
+
   // applySpotlight ripulisce PRIMA gli strip (rimuove .spotlight-strip e li riporta
   // nella griglia), poi decide spotlight vs griglia. In spotlight setta lui data-count.
   applySpotlight();
@@ -678,7 +690,7 @@ function updateGridLayout() {
   // calcolavo all'inizio, ma uscendo dallo spotlight i tile avevano ancora .spotlight-strip
   // → contava 1 invece di 2 → CSS metteva 1 colonna → tile impilati.
   if (g.dataset.spotlight !== 'true') {
-    g.dataset.count = Math.min(g.querySelectorAll('.video-tile:not(.spotlight-strip)').length, 20);
+    g.dataset.count = Math.min(g.querySelectorAll('.video-tile:not(.spotlight-strip):not(.lv-out)').length, 20);
     // click su un tile → vista relatore con quel peer grande (il "tieni grande" di Meet)
     g.querySelectorAll('.video-tile').forEach(t => {
       t.onclick = () => window.togglePin(t.dataset.peerId);
@@ -691,6 +703,7 @@ function updateGridLayout() {
 
   fitGridToViewport(); // riquadri dimensionati sullo spazio reale
   scheduleLayerUpdate(); // ⭐ ROUND 5: ricalcola i preferred layers dopo ogni cambio layout
+  window.TdtLayout?.after(g);
 }
 
 /* ── Vista griglia: i riquadri si adattano allo spazio disponibile ─────────
@@ -776,7 +789,7 @@ function fitGridToViewport() {
   // telefono: si usa sempre la vista relatore, ha già il suo layout
   if (!isGrid || window.innerWidth <= 820) { _clearGridFit(g); return; }
 
-  const tiles = [...g.querySelectorAll(':scope > .video-tile')].filter(t => getComputedStyle(t).display !== 'none');
+  const tiles = [...g.querySelectorAll(':scope > .video-tile:not(.lv-out)')].filter(t => getComputedStyle(t).display !== 'none');
   const n = tiles.length;
   if (!n) { _clearGridFit(g); return; }
 
@@ -906,7 +919,7 @@ try {
  * grandi → 1080p. Tanti → piccole → scala giù. Il risultato viene poi tagliato da
  * _maxSpatial per non sovraccaricare dispositivi/reti deboli. */
 function _desiredLayerForTile(tile, videoOff) {
-  if (videoOff || !tile) return { sl: 0, tl: 1 };
+  if (videoOff || !tile || tile.classList.contains('lv-hide')) return { sl: 0, tl: 1 };
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = (tile.clientWidth || 0) * dpr;
   let sl, tl;
@@ -948,7 +961,7 @@ function applySpotlight() {
   const oldCol = grid.querySelector('.spotlight-col');
   if (oldCol) { Array.from(oldCol.children).forEach(c => grid.appendChild(c)); oldCol.remove(); }
 
-  const tiles = Array.from(grid.querySelectorAll('.video-tile'));
+  const tiles = Array.from(grid.querySelectorAll('.video-tile:not(.lv-out)')); // 1.8.0: .lv-out = tolti dal pannello Vista
   tiles.forEach(t => {
     t.classList.remove('spotlight-main', 'spotlight-strip');
     if (t.classList.contains('local')) t.style.cssText = ''; // rimuovi PiP fixed residuo
@@ -964,7 +977,7 @@ function applySpotlight() {
   // la griglia a colonne sarebbe troppo stretta in verticale. Lo screen share forza
   // sempre lo spotlight. Desktop: override manuale (bottone Layout) o auto (griglia ≤4).
   const autoSpotlight = peopleTiles.length > 4;
-  const wantSpotlight = (hasScreen || isMobile)
+  const wantSpotlight = (hasScreen || (isMobile && !window.TdtLayout?.phoneGrid()))
     ? true
     : (_spotlightOverride !== null ? _spotlightOverride : autoSpotlight);
   const shouldSpotlight = _spotlightMode && wantSpotlight;
@@ -981,8 +994,8 @@ function applySpotlight() {
     ? grid.querySelector(`[data-peer-id="${_spotlightPeer}"]`)
     : null;
   if (!main) main = tiles.find(t => t.classList.contains('screenshare'));
-  if (!main) main = tiles.find(t => !t.classList.contains('local'));
-  if (!main) main = tiles[0];
+  if (!main) main = tiles.find(t => !t.classList.contains('local') && t.dataset.peerId);
+  if (!main) main = tiles.find(t => t.dataset.peerId) || tiles[0];
   if (!main) return;
 
   main.classList.add('spotlight-main');
@@ -1005,7 +1018,7 @@ function applySpotlight() {
   // FIX: aggiorna data-count in base ai tile non-strip effettivi
   // evita che le regole CSS PiP (data-count="2") scattino con dati stale
   grid.dataset.count = Math.min(
-    grid.querySelectorAll('.video-tile:not(.spotlight-strip)').length, 20
+    grid.querySelectorAll('.video-tile:not(.spotlight-strip):not(.lv-out)').length, 20
   );
 }
 
@@ -1040,6 +1053,7 @@ function setTileVideo(peerId, stream, hasVideo) {
   } else {
     v.style.display = 'none'; a.style.display = 'flex';
   }
+  window.TdtLayout?.videoChanged(peerId, hasVideo);
 }
 function setTileMuted(peerId, muted) { document.getElementById(`muteBadge-${peerId}`)?.classList.toggle('visible', muted); }
 function setTileHand(peerId, raised) { document.getElementById(`handBadge-${peerId}`)?.classList.toggle('visible', raised); }
@@ -1060,6 +1074,7 @@ function setSpeaking(peerId, speaking) {
     if (localTile) localTile.classList.toggle('is-speaking', speaking);
   }
 
+  window.TdtLayout?.speaking(peerId, speaking);
   if (speaking) console.log('[speaking] ▶ ACTIVE', peerId);
 }
 
@@ -1249,7 +1264,7 @@ async function initSocket() {
 
   socket.on('peerJoined', (peer) => {
       peers.set(peer.id, peer);
-      createTile(peer.id, peer.displayName);
+      if (!peer.secondScreen) createTile(peer.id, peer.displayName); // 1.8.0: il secondo schermo non ha riquadro
       // ⭐ FIX entrata-muto: rifletti subito lo stato mute/video del nuovo peer
       setTileMuted(peer.id, peer.audioMuted);
       if (peer.handRaised) setTileHand(peer.id, true);
@@ -1312,6 +1327,7 @@ async function initSocket() {
     // Reload pulito: tornerà nel prejoin → joinRoom → server risponde
     // waitingForHost → overlay. Più semplice e robusto del teardown manuale.
     socket.on('hostLeft', async () => {
+      if (window.TdtOrg?.ended) return; // 1.8.0: riunione terminata per tutti, si va già alla pagina di fine
       // Se nel pannello è scelta la pagina di fine chiamata, l'ospite ci va
       // invece di tornare in sala d'attesa.
       const bye = _publicSettings?.bye || window.__BRAND?.bye;
@@ -1352,7 +1368,8 @@ async function initSocket() {
       showGuestStopScreen('Sei stato rimosso dalla riunione', (by || 'L\'organizzatore') + ' ti ha rimosso dalla riunione.');
     });
     socket.on('forceMute', ({ by }) => {
-      if (window._tdIsMicMuted?.()) return;
+      // 1.8.0: già "muto" nell'interfaccia → si controlla comunque che la traccia sia spenta davvero
+      if (window._tdIsMicMuted?.()) { _enforceMicState(); return; }
       try { window._tdSetMicMuted?.(true); } catch (_) { }
       showToast(`🔇 ${by || 'L\'organizzatore'} ha silenziato tutti`, 3500);
     });
@@ -1370,13 +1387,16 @@ async function initSocket() {
       setTileHand(peerId === socket.id ? 'local' : peerId, raised);
       if (peerId === socket.id) window._setHandRaised?.(raised);
       refreshParticipants();
-      if (raised) showToast(`✋ ${displayName} ha alzato la mano`);
+      // 1.8.0: niente avviso per ogni mano (si impilavano): c'è l'avviso «N mani alzate» di hands.js
     });
 
-    socket.on('peerReaction', ({ peerId, emoji }) => { if (peerId !== socket.id) spawnReaction(emoji); });
+    window.TdtReact?.bind(socket); // 1.8.0: reazioni col nome lungo il bordo sinistro e sul riquadro
+    window.TdtHands?.bind(socket); // 1.8.0: mani alzate in coda
     window.TdtPolls?.bind(socket);
+    window.TDTActivities?.bind(socket); // 1.8.0: timer e domande
     window._tdSocket = socket;
     window.TdtLobby?.bind(socket);
+    window.TdtOrg?.bind(socket); // 1.8.0: termina per tutti, sala d'attesa, secondo schermo
     window.TdtCallSettings?.bind(socket);
 
     socket.on('newProducer', async ({ producerId, peerId, kind, appData, audioMuted, videoOff }) => {
@@ -1490,6 +1510,7 @@ async function joinRoom(micMuted = false, camOff = false) {
     try { const tk = sessionStorage.getItem(_ticketKey()); if (tk) joinPayload.admitTicket = tk; } catch (_) { }
   }
   else joinPayload.token = authToken;
+  if (window._tdSecondScreen) joinPayload.secondScreen = true;
 
   const res = await socketEmit('joinRoom', joinPayload);
   if (res.error === 'AUTH_REQUIRED') {
@@ -1498,6 +1519,7 @@ async function joinRoom(micMuted = false, camOff = false) {
     window.location.href = '/';
     return res;
   }
+  if (res.error === 'MEETING_ENDED') { showGuestStopScreen('La riunione è terminata', 'L\'organizzatore ha chiuso la riunione per tutti.'); return res; }
   if (res.error === 'ROOM_LOCKED') { showGuestStopScreen('Stanza bloccata', res.message || 'L\'organizzatore ha bloccato l\'ingresso di nuovi partecipanti.'); return res; }
   if (res.error) throw new Error(res.error);
 
@@ -1540,7 +1562,7 @@ async function joinRoom(micMuted = false, camOff = false) {
   // Aggiungi peer esistenti
   res.peers.forEach((peer) => {
     peers.set(peer.id, peer);
-    createTile(peer.id, peer.displayName);
+    if (!peer.secondScreen) createTile(peer.id, peer.displayName);
     // ⭐ FIX: applica TUTTO lo stato iniziale del peer, non solo il mute.
     // Prima la mano alzata di chi era già in stanza non si vedeva entrando,
     // e lo stato "camera spenta" non veniva forzato (restava video vuoto).
@@ -1550,11 +1572,13 @@ async function joinRoom(micMuted = false, camOff = false) {
   });
   updatePeerCount();
   refreshParticipants();
+  window.TdtHands?.load(res.peers, res.serverNow); // 1.8.0: coda delle mani in ordine d'arrivo
   res.chatHistory.forEach(appendChatMessage);
   window.TdtPolls?.load(res.polls || []);
   // Disegni già presenti sugli schermi condivisi + regole della stanza
   window.__policy = res.policy || window.__BRAND?.rooms || {};
   window.__isHostRole = !!res.isHostRole;
+  window.TDTActivities?.load(res.activities || null); // 1.8.0: timer in corso e domande per chi entra tardi
   window._tdRoomRules = res.rules || null;
   window.TdtLobby?.load(res.lobby || [], res.rules || null);
   window.TdtCallSettings?.onRules(res.rules || null);
@@ -2110,7 +2134,9 @@ async function _produceScreenInner() {
     // Safari: con vincoli di risoluzione cattura a bassa qualità (schermo
     // sfocato per tutti) → si lascia la risoluzione nativa del browser.
     const _isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
-    screenStream = await navigator.mediaDevices.getDisplayMedia(_isSafari ? { video: true, audio: true } : {
+    // 1.8.0: «Entra e presenta» — lo schermo è stato scelto nel pre-ingresso (gesto dell'utente)
+    const _pre = window._tdPendingScreen; window._tdPendingScreen = null;
+    screenStream = (_pre && _pre.getVideoTracks()[0]?.readyState === 'live') ? _pre : await navigator.mediaDevices.getDisplayMedia(_isSafari ? { video: true, audio: true } : {
       // cursor:'always' → il mouse del relatore è sempre nel video condiviso
       video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 15 }, cursor: 'always' },
       audio: true,
@@ -2633,6 +2659,24 @@ function closeLeaveDialog() {
   setTimeout(() => m.classList.add('hidden'), 180);
 }
 
+// ─── 1.8.0: microfono — lo stato mostrato è quello vero ──────────────────────
+// Da muti: traccia del microfono, traccia trasmessa (anche quella di RNNoise) e
+// producer devono essere TUTTI spenti. Chiamata a ogni cambio e ogni secondo dal
+// controllo di salute: se qualcosa è rimasto acceso (Firefox, cambio microfono
+// a metà, ripristino automatico) lo si spegne.
+function _enforceMicState() {
+  if (!micMuted) return;
+  try { if (localMicTrack && localMicTrack.enabled) localMicTrack.enabled = false; } catch (_) { }
+  const p = producers.get('audio');
+  if (!p || p.closed) return;
+  try { if (p.track && p.track.enabled) p.track.enabled = false; } catch (_) { }
+  if (!p.paused) { try { p.pause(); socket?.emit('pauseProducer', { producerId: p.id }); } catch (_) { } }
+}
+function _micReallyOn() {
+  const p = producers.get('audio');
+  return !!(p && !p.closed && !p.paused && p.track && p.track.readyState === 'live' && p.track.enabled);
+}
+
 // ─── Controlli ────────────────────────────────────────────────────────────────
 function bindControls() {
   let _micToggling = false;
@@ -2649,20 +2693,24 @@ function bindControls() {
   window._tdIsMicMuted = () => micMuted;
   const _setMicMutedImpl = async (next) => {
     if (_micToggling) return;
-    if (!!next === micMuted) return;
+    if (!next && window.TdtOrg?.blockMedia?.('mic')) return; // 1.8.0: secondo schermo
+    if (!!next === micMuted) { _enforceMicState(); return; }
     _micToggling = true;
     const btn = document.getElementById('btnMic');
     btn.disabled = true;
     try {
       micMuted = !!next;
-      // ⭐ Resume AudioContext (autoplay policy bypass) sempre quando l'utente clicca un controllo
-      if (audioContext && audioContext.state === 'suspended') {
-        try { await audioContext.resume(); } catch { }
-      }
+      // ⭐ 1.8.0 FIX «Silenzia tutti» su Firefox: prima qui si ASPETTAVA
+      // audioContext.resume(). Senza un gesto dell'utente (silenziamento
+      // arrivato dall'organizzatore) su Firefox resume() può non tornare mai:
+      // micMuted era già true (tasto e lista "muto") ma traccia e producer
+      // restavano accesi. Ora il contesto si risveglia in sottofondo e lo stato
+      // del microfono si applica subito.
+      if (audioContext && audioContext.state === 'suspended') audioContext.resume().catch(() => { });
       if (localMicTrack) localMicTrack.enabled = !micMuted;
       const p = producers.get('audio');
       let voluntaryMute = false;
-      if (p) {
+      if (p && !p.closed) {
         if (micMuted) { p.pause();  socket?.emit('pauseProducer',  { producerId: p.id }); }
         else          { p.resume(); socket?.emit('resumeProducer', { producerId: p.id }); }
         voluntaryMute = micMuted; // mute reale di un producer attivo
@@ -2681,6 +2729,9 @@ function bindControls() {
           micMuted = true;
         }
       }
+      // il tasto segue lo stato REALE della traccia: se non trasmette davvero risulta muto
+      _enforceMicState();
+      if (!micMuted && !_micReallyOn()) micMuted = true;
       socket?.emit('mediaState', { type: 'audio', status: micMuted });
       // Rimuovi il banner SOLO se è un mute volontario di un mic funzionante,
       // NON se micMuted=true è il fallback di un unmute fallito (lì il banner resta).
@@ -2702,6 +2753,7 @@ function bindControls() {
   document.getElementById('btnMic').addEventListener('click', () => { if (!_micToggling) setMicMuted(!micMuted); });
   // 1.5.4: casse (uscita audio) con il loro pulsante, indipendenti dal microfono
   document.getElementById('btnSpeaker')?.addEventListener('click', () => {
+    if (_spkMuted && window.TdtOrg?.blockMedia?.('spk')) return;
     _setSpkMuted(!_spkMuted);
     showToast(_spkMuted ? '🔇 Casse silenziate: non senti gli altri. Il microfono resta com\'è' : '🔊 Casse riattivate', 2600);
   });
@@ -2710,6 +2762,7 @@ function bindControls() {
   document.getElementById('btnCamera').addEventListener('click', async () => {
     // ⭐ FIX BUG 15: stessa protezione per la camera (anche se più rara la double-click qui)
     if (_camToggling || _camAuto.busy) return;    // 1.5.8: un tentativo automatico è in corso
+    if (camOff && window.TdtOrg?.blockMedia?.('cam')) return; // 1.8.0: secondo schermo
     _camToggling = true;
     const btn = document.getElementById('btnCamera');
     btn.disabled = true;
@@ -2762,7 +2815,8 @@ function bindControls() {
   });
 
   // Esci: conferma solo se si sta registrando (per salvare il file prima); altrimenti si esce subito
-  document.getElementById('btnLeave').addEventListener('click', () => { if (isRecording) openLeaveDialog(); else if (!_leaving) { _leaving = true; _leaveNow(); } });
+  // 1.8.0: l'organizzatore sceglie fra «Esci solo tu» e «Termina la riunione per tutti» (org.js)
+  document.getElementById('btnLeave').addEventListener('click', () => { if (window.TdtOrg?.onLeaveClick?.()) return; if (isRecording) openLeaveDialog(); else if (!_leaving) { _leaving = true; _leaveNow(); } });
   // chiusura della scheda mentre si registra: il browser chiede conferma
   window.addEventListener('beforeunload', (e) => {
     if (isRecording && !_leaving) { e.preventDefault(); e.returnValue = ''; }
@@ -2782,21 +2836,14 @@ function bindControls() {
   document.getElementById('btnHand').addEventListener('click', () => {
     handRaised = !handRaised;
     socket?.emit('handRaise', { raised: handRaised });
-    // Auto-abbassamento dopo 10 secondi
-    clearTimeout(_handAutoLowerTimer);
-    if (handRaised) {
-      _handAutoLowerTimer = setTimeout(() => {
-        if (handRaised) {
-          handRaised = false;
-          socket?.emit('handRaise', { raised: false });
-        }
-      }, 10000);
-    }
+    // 1.8.0: niente più abbassamento fisso dopo 10 s — si abbassa dopo che hai
+    // parlato ~4 s (hands.js) o la abbassa un organizzatore
   });
 
   // ⭐ Bottone Layout: flippa tra vista griglia e vista relatore (main + barra laterale)
   // a qualsiasi numero di partecipanti. Lo screen share resta sempre in spotlight.
   document.getElementById('btnLayout')?.addEventListener('click', () => {
+    if (window.TdtLayout) return; // 1.8.0: il tasto apre il pannello Vista (layout.js)
     const g = document.getElementById('videoGrid');
     const isSpotlightNow = g.dataset.spotlight === 'true';
     _spotlightOverride = !isSpotlightNow; // forza l'opposto della vista attuale
@@ -2813,7 +2860,7 @@ function bindControls() {
     clearTimeout(_layoutResizeT);
     _layoutResizeT = setTimeout(() => {
       const bl = document.getElementById('btnLayout');
-      if (bl) bl.style.display = window.matchMedia('(max-width: 640px)').matches ? 'none' : '';
+      if (bl && !window.TdtLayout) bl.style.display = window.matchMedia('(max-width: 640px)').matches ? 'none' : '';
       updateGridLayout();
     }, 200);
   };
@@ -2821,31 +2868,7 @@ function bindControls() {
   window.addEventListener('orientationchange', _onLayoutResize);
   _onLayoutResize();
 
-  const picker = document.getElementById('emojiPicker');
-  document.getElementById('btnReactions').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const willShow = picker.classList.contains('hidden');
-    picker.classList.toggle('hidden');
-    if (willShow) {
-      // Posiziona sopra il pulsante (ora è al centro, non più in basso a destra)
-      const r = e.currentTarget.getBoundingClientRect();
-      picker.style.right = 'auto';
-      const pw = picker.offsetWidth || 320;
-      let left = r.left + r.width / 2 - pw / 2;
-      left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
-      picker.style.left = left + 'px';
-      picker.style.bottom = (window.innerHeight - r.top + 10) + 'px';
-    }
-  });
-  document.addEventListener('click', () => picker.classList.add('hidden'));
-  picker.addEventListener('click', e => e.stopPropagation());
-  document.querySelectorAll('.emoji-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      socket?.emit('reaction', { emoji: btn.dataset.emoji });
-      spawnReaction(btn.dataset.emoji);
-      picker.classList.add('hidden');
-    });
-  });
+  // 1.8.0: il tasto Reazioni apre la barra di reactbar.js (9 reazioni, tonalità, +)
 
   document.getElementById('btnChat').addEventListener('click', toggleChat);
   document.getElementById('btnCloseChat').addEventListener('click', toggleChat);
@@ -4407,9 +4430,11 @@ async function startMuteWarningDetection() {
   let monitorTrack = null;
   try {
     const ctx = _muteWarningCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (_muteWarningCtx.state === 'suspended') await _muteWarningCtx.resume();
-    // se nel frattempo è arrivato uno stop (unmute veloce / push-to-talk) non si va avanti
-    if (_muteWarningCtx !== ctx) { try { ctx.close(); } catch (_) { } return; }
+    // (resume con un tetto: su Firefox senza gesto dell'utente può non tornare mai)
+    if (ctx.state === 'suspended') await Promise.race([ctx.resume().catch(() => { }), new Promise(r => setTimeout(r, 800))]);
+    // se nel frattempo è arrivato uno stop (unmute veloce / push-to-talk) non si va
+    // avanti; lo stop ha GIÀ chiuso questo contesto: niente seconda chiusura
+    if (_muteWarningCtx !== ctx) { _closeAudioCtx(ctx); return; }
 
     // Importante: usiamo un MediaStream costruito ad-hoc col SOLO mic track,
     // perché localMicTrack.enabled=false (mute) silenzia il flusso outbound MA
@@ -4457,11 +4482,20 @@ async function startMuteWarningDetection() {
 
 function stopMuteWarningDetection() {
   if (_muteWarningRAF) { cancelAnimationFrame(_muteWarningRAF); _muteWarningRAF = null; }
-  if (_muteWarningCtx) {
-    try { _muteWarningCtx._monitorTrack?.stop(); } catch { }
-    try { _muteWarningCtx.close(); } catch { }
-    _muteWarningCtx = null;
+  const ctx = _muteWarningCtx;
+  _muteWarningCtx = null; // PRIMA di chiudere: l'evento 'ended' del clone richiama questa funzione
+  if (ctx) {
+    const mt = ctx._monitorTrack; ctx._monitorTrack = null;
+    if (mt) { mt.removeEventListener('ended', stopMuteWarningDetection); try { mt.stop(); } catch { } }
+    _closeAudioCtx(ctx);
   }
+}
+// 1.8.0: chiude un AudioContext una volta sola (la seconda chiusura è un errore
+// "InvalidStateError" non gestito, la Promise rifiutata finiva in console)
+function _closeAudioCtx(ctx) {
+  if (!ctx || ctx._tdClosed || ctx.state === 'closed') return;
+  ctx._tdClosed = true;
+  try { const r = ctx.close(); if (r && r.catch) r.catch(() => { }); } catch (_) { }
 }
 
 function showMuteWarning() {
@@ -4566,6 +4600,7 @@ async function _recoverMic(reason) {
 }
 
 async function _micTick() {
+  _enforceMicState(); // 1.8.0: da muti niente deve restare acceso
   const t = localMicTrack;
   const p = producers.get('audio');
   // track terminato ma producer ancora in piedi e UI "acceso": è il caso del

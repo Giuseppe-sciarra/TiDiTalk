@@ -87,6 +87,7 @@ class PreJoin {
       // Mostra subito la schermata (senza preview): l'utente vede qualcosa mentre chiediamo i permessi
       document.getElementById('prejoinScreen').classList.remove('hidden');
       document.getElementById('loadingScreen').classList.add('hidden');
+      window.TdtOrg?.prejoinSetup?.(roomId); // 1.8.0: «Pronto a entrare?» (org.js)
 
       // Richiedi permessi + popola device + avvia preview
       const permsOk = await this._loadDevices();
@@ -151,7 +152,9 @@ class PreJoin {
       navigator.mediaDevices.addEventListener?.('devicechange', this._devChangeHandler);
 
       // ── Entra ─────────────────────────────────────────────────────────────────
-      const join = async () => {
+      // opts.secondScreen (1.8.0, org.js): si entra senza microfono, casse né videocamera
+      const join = async (opts) => {
+        const ss = !!(opts && opts.secondScreen === true);
         const name = nameInput.value.trim();
         if (!name) { nameInput.focus(); return; }
         localStorage.setItem('vc_displayName', name);
@@ -180,6 +183,13 @@ class PreJoin {
         navigator.mediaDevices.removeEventListener?.('devicechange', this._devChangeHandler);
 
         document.getElementById('prejoinScreen').classList.add('hidden');
+        if (ss) {
+          try { this.stream?.getTracks().forEach(t => t.stop()); } catch (_) { }
+          this.stream = null;
+          try { document.getElementById('pjVideo').srcObject = null; } catch (_) { }
+          resolve(window.TdtOrg ? window.TdtOrg.ssResult(name) : { displayName: name, stream: null, micMuted: true, camOff: true, secondScreen: true });
+          return;
+        }
         resolve({
           displayName: name,
           stream: this.stream,
@@ -191,7 +201,8 @@ class PreJoin {
         });
       };
 
-      document.getElementById('pjJoinBtn').addEventListener('click', join);
+      document.getElementById('pjJoinBtn').addEventListener('click', () => join());
+      document.getElementById('pjSecondScreen')?.addEventListener('click', () => join({ secondScreen: true }));
       nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
     });
   }
@@ -569,7 +580,7 @@ class PreJoin {
       // Aggiorna l'avatar iniziali se camOff
       const ai = document.getElementById('pjAvatarInitials');
       const name = document.getElementById('pjName')?.value?.trim();
-      if (ai && name) ai.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      if (ai && name) ai.textContent = window.getInitialsPlain ? window.getInitialsPlain(name) : name[0].toUpperCase();
 
       this._startMeter();
     } else {
@@ -849,7 +860,7 @@ class ParticipantList {
       else list.appendChild(el);
     }
 
-    const initials = this._esc(String(displayName || '?').trim().split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2) || '?');
+    const initials = this._esc(window.getInitialsPlain ? window.getInitialsPlain(String(displayName || '').replace(/ \(Tu\)$/, '')) : (String(displayName || '?')[0] || '?'));
     const color = this._color(peerId);
     const speakingRing = state.speaking ? `outline: 2px solid var(--green);` : '';
 

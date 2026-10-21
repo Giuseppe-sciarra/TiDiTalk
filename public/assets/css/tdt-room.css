@@ -555,23 +555,6 @@ body.tdt-room .prejoin-join-btn:hover { background: color-mix(in srgb, var(--acc
 #guestWaitOverlay .gw-sub { color: var(--paper-2) !important; max-width: 340px !important; }
 #guestWaitOverlay .gw-leave { border-radius: 999px !important; }
 
-@media (prefers-reduced-motion: reduce) {
-  /* Si azzerano solo le animazioni decorative. Reazioni, indicatore REC e
-     "sta parlando" SONO l'informazione: se le azzeri spariscono in un lampo,
-     ed è il motivo per cui le reazioni duravano una frazione di secondo su chi
-     ha "riduci movimento" attivo nel sistema. */
-  body.tdt-room *:not(.reaction-float):not(.rec-dot):not(.presenter-dot):not(.ann-ptr-ring),
-  .tdt-tip, .tdt-tour * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-  body.tdt-room .reaction-float { animation-name: tdt-react-still !important; }
-}
-/* versione senza volo per chi ha "riduci movimento": compare, resta, svanisce */
-@keyframes tdt-react-still {
-  0% { opacity: 0; transform: translateY(-40px) scale(.8); }
-  12% { opacity: 1; transform: translateY(-80px) scale(1); }
-  75% { opacity: 1; transform: translateY(-110px) scale(1); }
-  100% { opacity: 0; transform: translateY(-140px) scale(.9); }
-}
-
 /* ── Rifiniture mobile ──────────────────────────────────────────────────── */
 body.tdt-room .logo-small { flex-shrink: 0; flex-direction: row; }
 body.tdt-room .brand-name { white-space: nowrap; }

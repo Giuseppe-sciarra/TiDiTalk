@@ -413,7 +413,7 @@
   (async () => {
     user = await Tdt.requireAuth(); if (!user) return;
     greet();
-    const ini = String(user.displayName || '?').trim().split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2) || '?';
+    const ini = String(user.displayName || '').split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map(w => Array.from(w)[0]).join('').toUpperCase() || '?'; // «Giuseppe (Sciarra)» → GS
     document.querySelectorAll('[data-user-initials]').forEach(el => el.textContent = ini);
     pref.audioId = ls.get('vc_audioId') || null; pref.videoId = ls.get('vc_videoId') || null; pref.speakerId = ls.get('vc_speakerId') || null;
     // ?room=xxx (link dal CRM) → tab "Entra" precompilata

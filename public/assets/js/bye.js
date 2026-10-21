@@ -69,7 +69,7 @@
 
   // ── contatto ──
   if (cfg.contactName || cfg.contactEmail || cfg.contactPhone) {
-    const initials = (cfg.contactName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const initials = String(cfg.contactName || '').split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map(w => Array.from(w)[0]).join('').toUpperCase() || '?';
     const lines = [esc(cfg.contactRole), [cfg.contactEmail ? `<a href="mailto:${esc(cfg.contactEmail)}">${esc(cfg.contactEmail)}</a>` : '', cfg.contactPhone ? `<a href="tel:${esc(String(cfg.contactPhone).replace(/[^\d+]/g, ''))}">${esc(cfg.contactPhone)}</a>` : ''].filter(Boolean).join(' · ')].filter(Boolean);
     $('byeContact').innerHTML = `<div class="bye-avatar">${cfg.contactPhotoUrl ? `<img src="${esc(cfg.contactPhotoUrl)}" alt="">` : esc(initials)}</div><div><b>${esc(cfg.contactName || '')}</b>${lines.map(l => `<span>${l}</span>`).join('<br>')}</div>`;
     $('byeContact').classList.remove('hidden');
@@ -141,7 +141,7 @@
       const chip = document.createElement('span');
       chip.className = 'bye-chip' + (p === name ? ' me' : '');
       chip.style.left = slots[i][0] + '%'; chip.style.top = slots[i][1] + '%'; chip.style.setProperty('--d', (-i * 1.3) + 's');
-      const ini = String(p).trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+      const ini = String(p).split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map(w => Array.from(w)[0]).join('').toUpperCase() || '?';
       chip.innerHTML = `<i>${esc(ini)}</i><span>${esc(p)}</span>`;
       stage.appendChild(chip);
     });

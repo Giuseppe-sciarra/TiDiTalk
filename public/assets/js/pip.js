@@ -82,7 +82,7 @@ html,body{margin:0;height:100%;background:#121318;color:#ece7dc;font:500 13px/1.
   }
 
   function initials(name) {
-    return String(name || '?').trim().split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2) || '?';
+    return String(name || '').split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map(w => Array.from(w)[0]).join('').toUpperCase() || '?'; // «Giuseppe (Sciarra)» → GS
   }
 
   // ── Lettura dello stato della stanza principale ──────────────────────────

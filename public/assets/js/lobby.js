@@ -27,6 +27,7 @@
       <div class="lobby-list"></div>
       <div class="lobby-all"><button type="button" class="lobby-btn lobby-btn-primary" data-act="all">Ammetti tutti</button></div>`;
     document.body.appendChild(card);
+    window.TdtOrg?.lobbyCard?.(card); // 1.8.0: messaggio a chi aspetta (org.js)
     card.querySelector('.lobby-x').addEventListener('click', () => { card.classList.add('hidden'); card._dismissed = waiting.map(w => w.peerId).join(','); });
     card.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]'); if (!b) return;
@@ -52,8 +53,8 @@
     c.querySelector('.lobby-title').textContent = n === 1 ? T('Qualcuno vuole entrare') : T('{0} persone vogliono entrare').replace('{0}', n);
     c.querySelector('.lobby-list').innerHTML = waiting.map(w => `
       <div class="lobby-row" data-peer="${esc(w.peerId)}">
-        <span class="lobby-av">${esc((w.displayName || '?').trim().split(/\s+/).map(x => x[0] || '').join('').toUpperCase().slice(0, 2))}</span>
-        <span class="lobby-name"><b>${esc(w.displayName)}</b><small class="lobby-since" data-since="${w.since}">${ago(w.since)}</small></span>
+        <span class="lobby-av">${esc(window.getInitialsPlain ? window.getInitialsPlain(w.displayName) : (w.displayName || '?')[0])}</span>
+        <span class="lobby-name"><b>${esc(w.displayName)}</b>${w.secondScreen ? (window.TdtOrg?.ssTag?.() || '') : ''}<small class="lobby-since" data-since="${w.since}">${ago(w.since)}</small></span>
         <button type="button" class="lobby-btn lobby-btn-ghost" data-act="deny" data-peer="${esc(w.peerId)}">Rifiuta</button>
         <button type="button" class="lobby-btn lobby-btn-primary" data-act="admit" data-peer="${esc(w.peerId)}">Ammetti</button>
       </div>`).join('');

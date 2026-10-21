@@ -49,7 +49,17 @@ tuo marchio.
   di default, disattivabile riunione per riunione); gli utenti registrati
   entrano subito; gli ospiti tornano in attesa se l'ultimo organizzatore
   esce. Gli organizzatori possono anche **bloccare la stanza** e rimuovere
-  un ospite
+  un ospite. Dalla scheda della sala d'attesa gli organizzatori **scrivono a
+  chi aspetta** (tre risposte rapide o testo libero) e l'ospite vede anche il
+  suo **posto in coda**
+- **Pre-ingresso «Pronto a entrare?»**: anteprima grande con il nome e i tasti
+  microfono e camera dentro, pillole per microfono, casse e webcam, chi c'è
+  già (solo con un link valido) e **altri modi per entrare**: come **secondo
+  schermo** (il portatile in sala riunioni senza microfono, casse né camera,
+  quindi senza eco; «Passa all'audio» lo rende un partecipante normale) oppure
+  entrando e presentando subito
+- **Termina la riunione per tutti**: premendo Esci l'organizzatore sceglie se
+  uscire solo lui o chiudere la riunione per tutti, sala d'attesa compresa
 - Home con il **controllo completo dei dispositivi** (anteprima videocamera,
   livello del microfono, prova delle casse sull'uscita scelta) — cambiando
   scheda videocamera e microfono non si chiudono e riaprono (si rilasciano
@@ -62,6 +72,10 @@ tuo marchio.
   computer e da telefono
 - Vista griglia che **adatta i riquadri allo spazio disponibile** (tutti
   visibili, stessa misura, 16:9, ultima fila centrata) e vista relatore
+- **Cambia layout** dal tasto Vista: Automatico, Griglia, In evidenza o Barra
+  laterale, numero massimo di riquadri (oltre compare «+N»), **nascondi chi ha
+  la videocamera spenta**, il tuo riquadro in griglia, in finestrella
+  trascinabile o nascosto — solo per te, salvato nel browser
 - Le camere verticali dei telefoni si vedono intere, non tagliate
 
 **Presentare**
@@ -76,8 +90,17 @@ tuo marchio.
   stanza si aspetta che il file sia salvato
 
 **Nella stanza**
-- Chat, reazioni, alzata di mano, elenco partecipanti, **sondaggi** (li creano
-  gli organizzatori, votano tutti, risultati in diretta, anonimi o con i nomi)
+- Chat, elenco partecipanti e tasto **Attività** con **sondaggi** (li creano
+  gli organizzatori, votano tutti, risultati in diretta, anonimi o con i nomi),
+  **timer della riunione** (conto alla rovescia per tutti con l'orologio del
+  server, pausa, +1 minuto, suona alla fine) e **domande e risposte** (anche
+  anonime, si votano, l'organizzatore le segna «in risposta» e «risposta data»
+  e le scarica per Excel)
+- **Reazioni in barra** con la tonalità della pelle e tutte le emoji, che
+  salgono con il nome di chi le manda e restano qualche secondo sul suo riquadro
+- **Mani alzate in coda**: ordine di arrivo nella lista Persone, numero in coda
+  sul riquadro, «Abbassa» e «Abbassa tutte»; la mano si abbassa da sola dopo
+  qualche secondo che hai parlato
 - **Microfono e casse sono comandi separati**: ti muti senza silenziare gli
   altri, oppure silenzi gli altri (`A`) senza toccare il microfono. La ▾ delle
   casse sceglie l'uscita (quella di sistema, se non ne scegli un'altra), mostra

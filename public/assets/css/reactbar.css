@@ -1,0 +1,176 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.8.0 — Reazioni in barra (reactbar.js)
+   Barra sopra il tasto Reazioni · tonalità della pelle · «+» tutte le emoji ·
+   colonna che sale lungo il bordo sinistro con i nomi · emoji sul riquadro.
+   Colori solo dai token del tema (chiaro/scuro). Animazioni sempre attive.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.tdt-rbar {
+  position: fixed; z-index: 320;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  pointer-events: none;
+}
+.tdt-rbar.hidden { display: none; }
+.tdt-rbar-row, .tdt-rbar-tones {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 2px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--ink-2) 96%, transparent);
+  border: 1px solid var(--hair-2);
+  border-radius: 999px;
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  animation: tdt-rbar-in .22s var(--ease) both;
+}
+.tdt-rbar-row { order: 2; }
+.tdt-rbar-tones { order: 1; }
+.tdt-rbar-tones.hidden { display: none; }
+@keyframes tdt-rbar-in { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+.tdt-rbar-btn {
+  width: 44px; height: 44px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: transparent; color: var(--paper);
+  font: 25px/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  cursor: pointer;
+  transition: background .15s, transform .18s var(--ease);
+}
+.tdt-rbar-btn:hover { background: var(--hair-2); transform: translateY(-3px) scale(1.12); }
+.tdt-rbar-btn:active { transform: scale(.92); }
+.tdt-rbar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tdt-rbar-btn.pop { animation: tdt-rbar-pop .38s var(--ease); }
+@keyframes tdt-rbar-pop { 0% { transform: scale(1); } 40% { transform: translateY(-6px) scale(1.32); } 100% { transform: none; } }
+.tdt-rbar-tones .tdt-rbar-btn.active { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent-line); }
+.tdt-rbar-sep { width: 1px; height: 26px; margin: 0 4px; background: var(--hair-2); flex: 0 0 auto; }
+.tdt-rbar-tone { font-size: 22px; }
+.tdt-rbar-plus { color: var(--paper-2); }
+.tdt-rbar-plus[aria-expanded="true"], .tdt-rbar-tone[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent-text); }
+
+/* ── «+» tutte le emoji ─────────────────────────────────────────────────── */
+.tdt-epick {
+  position: fixed; z-index: 321;
+  width: min(352px, calc(100vw - 16px));
+  height: 380px; max-height: 380px;
+  display: flex; flex-direction: column;
+  background: var(--ink-2); color: var(--paper);
+  border: 1px solid var(--hair-2); border-radius: 18px;
+  box-shadow: var(--shadow-2);
+  font-family: var(--font);
+  overflow: hidden;
+  animation: tdt-rbar-in .2s var(--ease) both;
+}
+.tdt-epick.hidden { display: none; }
+.tdt-epick-top { padding: 10px 10px 6px; }
+.tdt-epick-q {
+  width: 100%; height: 36px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid var(--hair-2);
+  background: var(--ink-3); color: var(--paper);
+  font: 14px var(--font); outline: none;
+}
+.tdt-epick-q:focus { border-color: var(--accent-line); }
+.tdt-epick-q::placeholder { color: var(--paper-3); }
+.tdt-epick-tabs { display: flex; justify-content: space-between; padding: 0 6px 4px; border-bottom: 1px solid var(--hair); }
+.tdt-epick-tabs.dim { opacity: .45; }
+.tdt-epick-tab {
+  width: 34px; height: 32px; border: 0; border-radius: 10px; background: transparent; cursor: pointer;
+  font: 18px/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  filter: grayscale(.7); opacity: .75; transition: filter .15s, opacity .15s, background .15s;
+}
+.tdt-epick-tab:hover, .tdt-epick-tab.active { filter: none; opacity: 1; background: var(--hair); }
+.tdt-epick-tab.active { box-shadow: inset 0 -2px 0 var(--accent); }
+.tdt-epick-body { flex: 1; overflow-y: auto; padding: 4px 8px 10px; overscroll-behavior: contain; }
+.tdt-epick-body::-webkit-scrollbar { width: 6px; }
+.tdt-epick-body::-webkit-scrollbar-thumb { background: var(--hair-2); border-radius: 3px; }
+.tdt-epick-h {
+  position: sticky; top: -4px; z-index: 1;
+  padding: 8px 4px 4px; background: var(--ink-2);
+  font: 600 11px/1.2 var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--paper-3);
+}
+.tdt-epick-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+.tdt-epick-e {
+  aspect-ratio: 1; border: 0; border-radius: 10px; background: transparent; cursor: pointer; padding: 0;
+  font: 23px/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  transition: background .12s, transform .15s var(--ease);
+}
+.tdt-epick-e:hover { background: var(--hair-2); transform: scale(1.15); }
+.tdt-epick-e:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tdt-epick-e.pop { animation: tdt-rbar-pop .38s var(--ease); }
+.tdt-epick-msg { padding: 28px 8px; text-align: center; color: var(--paper-3); font-size: 13.5px; }
+
+/* ── colonna che sale lungo il bordo sinistro ──────────────────────────────
+   Il «bottom» lo calcola reactbar.js: sopra la barra comandi e sopra
+   l'avviso delle mani alzate, così non lo copre mai. */
+.tdt-rise {
+  position: fixed; left: 14px; bottom: 96px; z-index: 240;
+  --rise-h: min(62vh, 560px);
+  width: 220px; height: var(--rise-h);
+  pointer-events: none; overflow: visible;
+}
+.tdt-rise-item {
+  position: absolute; left: var(--dx, 0px); bottom: 0;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-2) 92%, transparent);
+  border: 1px solid var(--hair-2);
+  box-shadow: 0 10px 26px -14px rgba(0, 0, 0, .6);
+  color: var(--paper);
+  white-space: nowrap; max-width: 210px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  animation: tdt-rise 4.2s cubic-bezier(.25, .7, .3, 1) forwards;
+  will-change: transform, opacity;
+}
+.tdt-rise-item.self { border-color: var(--accent-line); }
+.tdt-rise-emoji { font: 30px/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; filter: drop-shadow(0 3px 8px rgba(0,0,0,.3)); }
+.tdt-rise-name { font: 600 12.5px/1.2 var(--font); overflow: hidden; text-overflow: ellipsis; }
+@keyframes tdt-rise {
+  0%   { opacity: 0; transform: translate(0, 0) scale(.6); }
+  8%   { opacity: 1; transform: translate(0, -14px) scale(1.06); }
+  14%  { transform: translate(0, -30px) scale(1); }
+  40%  { transform: translate(var(--wob, 8px), calc(-0.4 * var(--rise-h))); }
+  70%  { opacity: 1; transform: translate(calc(var(--wob, 8px) * -0.6), calc(-0.72 * var(--rise-h))); }
+  100% { opacity: 0; transform: translate(0, calc(-1 * var(--rise-h))) scale(.92); }
+}
+
+/* ── emoji sul riquadro di chi reagisce (in basso a destra, ~4 s) ───────── */
+.video-tile > .tdt-tile-react {
+  position: absolute; right: 10px; bottom: 10px; z-index: 7;
+  width: 46px; height: 46px; display: grid; place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink-2) 80%, transparent);
+  border: 1px solid var(--hair-2);
+  font: 27px/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  box-shadow: 0 10px 24px -10px rgba(0,0,0,.6);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; transform: scale(.4) translateY(8px);
+  transition: opacity .3s var(--ease), transform .35s var(--ease);
+  pointer-events: none;
+}
+.video-tile > .tdt-tile-react.on { opacity: 1; transform: none; animation: tdt-tile-react 1.1s var(--ease); }
+@keyframes tdt-tile-react { 0% { transform: scale(.4) translateY(8px); } 35% { transform: scale(1.22); } 60% { transform: scale(.95); } 100% { transform: none; } }
+/* se c'è il badge del muto (in basso a destra) l'emoji gli si mette accanto */
+.video-tile > .tile-mute-badge.visible ~ .tdt-tile-react { right: 46px; }
+.video-tile.spotlight-strip > .tdt-tile-react { width: 32px; height: 32px; font-size: 19px; right: 6px; bottom: 6px; }
+.video-tile.spotlight-strip > .tile-mute-badge.visible ~ .tdt-tile-react { right: 38px; }
+
+/* ── tema chiaro ────────────────────────────────────────────────────────── */
+:root[data-theme="light"] .tdt-rbar-row,
+:root[data-theme="light"] .tdt-rbar-tones { background: rgba(255, 255, 255, .97); }
+:root[data-theme="light"] .tdt-rise-item { background: rgba(255, 255, 255, .94); }
+:root[data-theme="light"] .video-tile > .tdt-tile-react { background: rgba(255, 255, 255, .88); }
+
+/* ── telefono ───────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .tdt-rbar-row { gap: 0; padding: 4px; max-width: calc(100vw - 16px); overflow-x: auto; scrollbar-width: none; }
+  .tdt-rbar-row::-webkit-scrollbar { display: none; }
+  /* 9 reazioni + tonalità + «+» devono stare tutte nello schermo (390 px) */
+  .tdt-rbar-btn { width: min(36px, calc((100vw - 34px) / 11)); height: min(36px, calc((100vw - 34px) / 11)); font-size: min(21px, calc((100vw - 34px) / 17)); }
+  .tdt-rbar-sep { margin: 0 1px; }
+  .tdt-rbar-tones .tdt-rbar-btn { width: 40px; height: 40px; }
+  .tdt-epick { height: 340px; }
+  .tdt-epick-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .tdt-rise { left: 8px; width: 170px; --rise-h: min(46vh, 380px); }
+  .tdt-rise-emoji { font-size: 24px; }
+  .tdt-rise-name { font-size: 11.5px; }
+  .tdt-rise-item { max-width: 168px; }
+  .video-tile > .tdt-tile-react { width: 38px; height: 38px; font-size: 22px; }
+}

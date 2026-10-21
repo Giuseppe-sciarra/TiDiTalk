@@ -8,6 +8,9 @@
  *   • Risultati live con barre e percentuali; nei sondaggi non anonimi si
  *     vede chi ha scelto cosa.
  * Server: pollCreate / pollVote / pollClose / pollDelete → pollUpdate / pollDeleted.
+ * 1.8.0: vive nella scheda «Sondaggi» del pannello Attività (activities.js →
+ * mount); toggle() apre quel pannello. Senza activities.js resta il pannello
+ * a parte di prima.
  */
 (function () {
   const polls = new Map();        // id → vista pubblica (con myVote)
@@ -17,6 +20,22 @@
   const isHost = () => !!window.__isHostRole;
   const T = (s) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(s) : s;
   const ICO_X = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  // 1.8.0: dentro il pannello Attività (sec = la sua sezione)
+  function mount(sec) {
+    if (!sec) return;
+    panel = sec;
+    panel.classList.add('polls-panel');
+    panel.innerHTML = `<div class="polls-body" id="pollsBody"></div><div class="polls-footer" id="pollsFooter"></div>`;
+    renderFooter();
+    render();
+  }
+  function _setVisible(v) {
+    open = !!v;
+    // il modulo resta com'è se si stava scrivendo un sondaggio (cambio di scheda)
+    if (open) { unseen = 0; updateBadge(); if (!panel.querySelector('#pollsForm')) renderFooter(); render(); }
+  }
+  const inActivities = () => !!window.TDTActivities;
 
   function build() {
     panel = document.createElement('aside');
@@ -139,6 +158,7 @@
   }
 
   function updateBadge() {
+    if (inActivities()) { window.TDTActivities.refreshBadge(); return; }
     const b = document.getElementById('pollsBadge');
     if (b) { b.textContent = unseen; b.classList.toggle('hidden', !unseen); }
     document.getElementById('btnMore')?.classList.toggle('has-badge', !!unseen);
@@ -152,6 +172,12 @@
     if (!open) { unseen = (list || []).filter(p => p.open && p.myVote == null).length; updateBadge(); }
   }
   function toggle(force) {
+    if (inActivities()) {
+      const A = window.TDTActivities;
+      const want = typeof force === 'boolean' ? force : !(A.isOpen && A.tab === 'polls');
+      if (want) A.open('polls'); else if (A.isOpen && A.tab === 'polls') A.close();
+      return;
+    }
     if (!panel) build();
     open = typeof force === 'boolean' ? force : !open;
     if (open) window.closeFxPanel?.();   // 1.6.0: un pannello alla volta
@@ -176,5 +202,5 @@
     sock.on('pollDeleted', ({ pollId }) => { polls.delete(pollId); if (panel) render(); });
   }
 
-  window.TdtPolls = { load, toggle, bind, get open() { return open; } };
+  window.TdtPolls = { load, toggle, bind, mount, _setVisible, get open() { return open; }, get unseen() { return unseen; }, get openCount() { return [...polls.values()].filter(p => p.open).length; } };
 })();
