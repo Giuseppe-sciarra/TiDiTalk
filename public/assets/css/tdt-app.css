@@ -429,7 +429,11 @@ canvas.bg-shapes { position: fixed; inset: 0; width: 100vw; height: 100vh; point
   /* l'altezza la decide la card dei dispositivi: a sinistra una lista lunga
      (Recenti, Pianifica) scorre dentro la card invece di allungarla */
   .home-left { box-sizing: border-box; height: 0; min-height: 100%; display: flex; flex-direction: column; }
-  .home-left > .panes { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  .home-left > .panes { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  /* niente barra di scorrimento sulla card: scorre solo l'elenco di Recenti o
+     Pianifica, e solo quando è più lungo della card */
+  .home-left #pane-recent.on, .home-left #pane-plan.on { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .home-left #pane-recent .recent-list, .home-left #pane-plan .recent-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin-right: -6px; padding-right: 6px; }
   .home-right { display: flex; flex-direction: column; }
   .home-prev { flex: 1 1 auto; box-sizing: border-box; }
 }

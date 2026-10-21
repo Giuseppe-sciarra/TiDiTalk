@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.4
+
+### Fixed
+- Home page on Windows: a vertical scrollbar appeared on the left card in every
+  tab (the hidden tabs counted in its height). Now the card never scrolls: only
+  the list in *Recent* or *Schedule* scrolls, and only when it is longer than
+  the card
+
 ## 1.8.3
 
 Tiles that show who is talking, a ⋮ menu on tiles, a simpler room on phones
