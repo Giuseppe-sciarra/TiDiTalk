@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.8.3
+
+Tiles that show who is talking, a ⋮ menu on tiles, a simpler room on phones
+and the second screen always at hand.
+
+### Added
+- **Voice indicator on every tile**: a round badge at the top right with three
+  bars that follow the voice while the person talks, or a crossed-out
+  microphone on red when they are muted (also on your own tile). A solid ring
+  in the accent colour around whoever is talking, drawn inside the tile so
+  nothing moves. Smaller badge and ring on small tiles; nothing on shared
+  screens and on the *+N* tile
+- **Camera off**: the tile takes the colour of the person's avatar, with a large
+  circle with the initials that scales with the tile and rings that spread out
+  while the person talks
+- **Phones** (portrait up to 640 px and landscape): at the top only the room
+  code, *switch camera* (when there are at least two cameras) and the
+  speakers; at the bottom five large buttons: microphone, camera, hand, More,
+  Leave. *More* opens as a sheet from the bottom with a grid for Present,
+  Draw, Reactions, People (with the count), Info, View and Record, then the
+  usual items and theme, notification sounds, language, quick guide, invite
+  and settings. The chat has a floating button on the right with the unread
+  count. Your own video is a small draggable window by default (until you
+  choose otherwise in *View*)
+- **Menu ⋮ on every tile** (on mouse over) and next to every name in the People
+  list. Hosts: *Pin for me*, *Pin for everyone* (up to 3 tiles, with "Pinned for
+  everyone by …" on the tile; everyone can still *Unpin for me*), *Full
+  screen*, *Mute* (that person only), *Send back to the waiting room* and
+  *Remove* (with confirmation). Guests and participants: *Pin for me* and *Full
+  screen*. Every host command is checked by the server
+- **Join as a second screen from the home page**: under *Join* in *Join with
+  code* and next to ongoing meetings in *Recent*, for registered users who
+  skip the pre-join screen
+- **Use as second screen** in *More* inside the room: microphone and camera
+  close, speakers are muted and your tile disappears for the others, without
+  leaving the meeting; *Switch to audio* brings everything back. It survives a
+  reconnection
+
+### Changed
+- Home page: the two cards always have the same height on computers; long
+  lists (Recent, Schedule) scroll inside the card
+- The network signal on the tiles shows only on mouse over, and always when the
+  connection is poor (on phones only when it is poor)
+- The old speaking bar and the red mute dot at the bottom right of the tiles
+  are replaced by the new badge
+- Computers and tablets keep the top bar and the control bar exactly as in
+  1.8.2
+
 ## 1.8.2
 
 Chat, notifications and the shared screen, closer to Google Meet.

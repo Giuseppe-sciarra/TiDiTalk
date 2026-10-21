@@ -24,6 +24,7 @@ const { t: i18nT, locale: defaultLocale, normalizeLanguage } = require('./i18n')
 const { syncUsersFromEnv } = require('./users-env');
 const brand = require('./brand');
 const org = require('./org'); // 1.8.0: termina per tutti, messaggio in sala d'attesa, secondo schermo
+const pinall = require('./pinall'); // 1.8.3: menu ⋮ sul riquadro (fissa per tutti, silenzia, sala d'attesa)
 const hands = require('./hands');         // 1.8.0: mani alzate in coda
 const reactions = require('./reactions'); // 1.8.0: reazioni in barra (emoji con tonalità)
 const chat = require('./chat');           // 1.8.2: chat con fissati, reazioni, risposte, «sta scrivendo»
@@ -1144,14 +1145,15 @@ io.on('connection', (socket) => {
       }
 
       // ── STANZA BLOCCATA: nessun ospite nuovo entra (chi era già ammesso sì)
-      if (isGuest && room.rules.locked && !room.admitted.has(socket.id) && !ticketOk) {
+      const _sentBack = isGuest && pinall.mustWait(room, tabId, displayName, socket.id); // 1.8.3: rimandato in sala d'attesa
+      if (isGuest && room.rules.locked && !room.admitted.has(socket.id) && !ticketOk && !_sentBack) {
         if (room.isFullyEmpty()) _destroyRoom(room);
         return callback({ error: 'ROOM_LOCKED', message: 'La stanza è bloccata dall\'organizzatore' });
       }
 
       // ── SALA D'ATTESA: l'ospite aspetta che un organizzatore lo ammetta ────
       // Come Google Meet. Gli utenti registrati entrano sempre direttamente.
-      if (isGuest && room.rules.waitingRoom && !room.admitted.has(socket.id) && !ticketOk) {
+      if (isGuest && (room.rules.waitingRoom || _sentBack) && !room.admitted.has(socket.id) && !ticketOk) {
         room.addToLobby(socket.id, displayName, 'admit', { tabId, secondScreen });
         currentRoom = room;
         _dropStaleTab(room, tabId, true, '');
@@ -1235,12 +1237,14 @@ io.on('connection', (socket) => {
         isHostRole: !isGuest,
         admitTicket: isGuest ? peer.admitTicket : undefined,
       });
+      pinall.afterJoin(socket, room); // 1.8.3: fissati per tutti a chi entra in ritardo
     } catch (err) { callback({ error: err.message }); }
   });
 
   // ── Sala d'attesa: ammetti / rifiuta (solo organizzatori) ────────────────
   const _isHost = () => _inRoom() && !currentPeer.isGuest;
   org.bindSocket(socket, { io, room: () => currentRoom, peer: () => currentPeer, inRoom: _inRoom, isHost: _isHost });
+  pinall.bindSocket(socket, { io, room: () => currentRoom, peer: () => currentPeer, isHost: _isHost });
   socket.on('lobbyAdmit', ({ peerId, all } = {}, callback) => {
     if (typeof callback !== 'function') callback = () => { };
     if (!_isHost()) return callback({ error: 'Solo gli organizzatori' });

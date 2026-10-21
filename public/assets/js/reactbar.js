@@ -116,7 +116,9 @@
 
   function place() {
     if (!isOpen()) return;
-    const b = btn(); if (!b) return;
+    let b = btn(); if (!b) return;
+    // 1.8.3: sul telefono il tasto Reazioni sta in Altro: la barra si apre sopra Altro
+    if (b.offsetParent === null) b = document.getElementById('btnMore') || b;
     const r = b.getBoundingClientRect();
     const w = bar.offsetWidth;
     let left = r.left + r.width / 2 - w / 2;

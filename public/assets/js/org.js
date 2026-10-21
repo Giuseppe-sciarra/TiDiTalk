@@ -246,13 +246,56 @@
       const cc = document.querySelector('.controls-bar .controls-center');
       if (cc && ssBtn.parentNode !== cc) cc.prepend(ssBtn);
     } else if (ssBtn) { ssBtn.remove(); }
+    // 1.8.3: «Usa come secondo schermo» in Altro solo per chi non lo è già
+    document.getElementById('btnOrgToSS')?.classList.toggle('hidden', isSS());
+  }
+  // 1.8.3 · da partecipante normale a secondo schermo, senza uscire e rientrare.
+  // Il server chiude i producer di microfono e videocamera (lo schermo condiviso
+  // resta) e avvisa gli altri; qui si spengono i dispositivi e si fa come se si
+  // fosse entrati come secondo schermo: «Passa all'audio» riporta indietro.
+  let toSSBusy = false;
+  function switchToSecondScreen() {
+    if (isSS() || !socket || toSSBusy) return;
+    toSSBusy = true;
+    socket.emit('setSecondScreen', { on: true }, (r) => {
+      toSSBusy = false;
+      if (!r || r.error) { window.showToast?.(T(r?.error || 'Non è stato possibile usarlo come secondo schermo'), 3000); return; }
+      window._tdSecondScreen = true; // vale anche per il rientro dopo una caduta (room.js: _saveRejoin)
+      ssStopMedia();
+      ssApply();
+      try { refreshParticipants(); } catch (_) { }
+      window.showToast?.(T('Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Passa all\'audio»'), 5000);
+      try { ssBtn?.focus(); } catch (_) { }
+    });
+  }
+  // spegne microfono e videocamera di questo dispositivo (i producer sul server
+  // sono già chiusi: qui solo quelli locali, senza avvisare di nuovo)
+  function ssStopMedia() {
+    ['audio', 'video'].forEach(k => { const p = producers.get(k); if (p) { try { p.close(); } catch (_) { } producers.delete(k); } });
+    try { _camAutoStop(); } catch (_) { }
+    try { stopMuteWarningDetection(); hideMuteWarning(); } catch (_) { }
+    try { faceEffects?.setPaused?.(true); backgroundEffect?.setPaused?.(true); } catch (_) { }
+    try { _stopCamSources(); } catch (_) { }
+    const tracks = new Set([localMicTrack, localCamTrack, window._localMicTrack, window._localCamTrack, ...(rawCamStream?.getTracks?.() || [])]);
+    tracks.forEach(t => { try { t && t.stop(); } catch (_) { } });
+    // stesso stato di chi entra come secondo schermo (niente tracce): «Passa
+    // all'audio» e poi i tasti le riaprono da zero (room.js: produceAudio/Video)
+    rawCamStream = null; localMicTrack = null; localCamTrack = null;
+    window._localMicTrack = null; window._localCamTrack = null;
+    micMuted = true; camOff = true;
+    const off = (id) => {
+      document.getElementById(id)?.classList.add('off');
+      document.querySelector(`#${id} .icon-on`)?.classList.add('hidden');
+      document.querySelector(`#${id} .icon-off`)?.classList.remove('hidden');
+    };
+    off('btnMic'); off('btnCamera');
   }
   // true = il comando è bloccato perché questo è un secondo schermo
   function blockMedia(kind) {
     if (!isSS()) return false;
     if (Date.now() - ssToastAt > 2500) {
       ssToastAt = Date.now();
-      window.showToast?.(T('Sei entrato come secondo schermo: premi «Passa all\'audio» per usare microfono, casse e videocamera'), 4000);
+      window.showToast?.(T('Questo dispositivo è un secondo schermo: premi «Passa all\'audio» per usare microfono, casse e videocamera'), 4000);
     }
     if (ssBtn) { ssBtn.classList.remove('org-ss-nudge'); void ssBtn.offsetWidth; ssBtn.classList.add('org-ss-nudge'); }
     return true;
@@ -277,6 +320,19 @@
     if (!d || typeof d.peerId !== 'string') return;
     const p = peers.get(d.peerId);
     if (!p) return;
+    // 1.8.3: è diventato un secondo schermo: via il suo riquadro
+    if (d.on === true) {
+      Object.assign(p, { secondScreen: true, audioMuted: true, videoOff: true });
+      try {
+        if (_spotlightPeer === d.peerId) _spotlightPeer = null;
+        removeTile(d.peerId);
+        peerStreams.delete(d.peerId);
+        const iid = _remoteSpeakingIntervals.get(d.peerId);
+        if (iid) { clearInterval(iid); _remoteSpeakingIntervals.delete(d.peerId); }
+        refreshParticipants();
+      } catch (_) { }
+      return;
+    }
     Object.assign(p, d.peer && typeof d.peer === 'object' ? { audioMuted: !!d.peer.audioMuted, videoOff: !!d.peer.videoOff, handRaised: !!d.peer.handRaised } : {}, { secondScreen: false });
     try {
       createTile(p.id, p.displayName);
@@ -404,9 +460,11 @@
       sock.on('meetingEnded', onMeetingEnded);
       sock.on('lobbyInfo', onLobbyInfo);
       sock.on('peerSecondScreen', onPeerSecondScreen);
-      if (isSS()) ssApply();
+      const toSS = document.getElementById('btnOrgToSS');
+      if (toSS && !toSS._tdOrg) { toSS._tdOrg = true; toSS.addEventListener('click', switchToSecondScreen); }
+      ssApply();
     },
-    afterJoin() { window.__tdJoined = true; if (isSS()) ssApply(); setTimeout(startPendingScreen, 400); },
+    afterJoin() { window.__tdJoined = true; ssApply(); setTimeout(startPendingScreen, 400); },
     ssResult,
     blockMedia,
     ssTag,

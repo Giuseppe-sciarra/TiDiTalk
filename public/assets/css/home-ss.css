@@ -1,0 +1,21 @@
+/* 1.8.3 · Home: «Entra come secondo schermo» (stesso stile del pre-ingresso, org.css .pj-more-btn) */
+.home-ss {
+  display: inline-flex; align-items: center; gap: 10px; margin-top: 14px;
+  padding: 10px 14px; border-radius: 12px; cursor: pointer; text-align: left;
+  background: transparent; color: var(--paper); border: 1px solid var(--hair-2);
+  font: 500 14px var(--font); transition: background .15s, border-color .15s;
+}
+.home-ss svg { color: var(--paper-2); flex-shrink: 0; }
+.home-ss:hover { background: var(--ink-3); border-color: var(--accent-line); }
+.home-ss:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+/* Recenti: sulle riunioni in corso, piccolo tasto accanto a «Rientra» */
+.rc-ss {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 10px; cursor: pointer; padding: 0;
+  background: transparent; color: var(--paper-2); border: 1px solid var(--hair-2);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.rc-ss:hover { background: var(--ink-3); border-color: var(--accent-line); color: var(--paper); }
+.rc-ss:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+@media (max-width: 560px) { .home-ss { width: 100%; } }

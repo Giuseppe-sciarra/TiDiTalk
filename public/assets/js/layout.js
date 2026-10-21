@@ -25,9 +25,11 @@
   const MODES = ['auto', 'grid', 'spotlight', 'sidebar'];
   const SELF = ['grid', 'float', 'hidden'];
   const DESK_MAX = 25, PHONE_MAX = 8;
-  const DEF = { mode: 'auto', maxDesk: 16, maxPhone: 6, hide: false, self: 'grid', corner: 'br' };
+  const DEF = { mode: 'auto', maxDesk: 16, maxPhone: 6, hide: false, self: 'grid', corner: 'br', selfSet: false };
 
   const isPhone = () => window.matchMedia('(max-width: 640px)').matches;
+  // 1.8.3: telefono anche in orizzontale (per la finestrella predefinita)
+  const isPhoneLike = () => window.matchMedia('(max-width: 640px), (max-height: 500px) and (pointer: coarse) and (orientation: landscape)').matches;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // ── stato salvato ─────────────────────────────────────────────────────────
@@ -37,6 +39,8 @@
     if (raw && typeof raw === 'object') {
       if (MODES.includes(raw.mode)) S.mode = raw.mode;
       if (SELF.includes(raw.self)) S.self = raw.self;
+      // 1.8.3: sul telefono, se non hai mai scelto, il tuo riquadro è in finestrella
+      S.selfSet = raw.selfSet === true || (SELF.includes(raw.self) && raw.self !== 'grid');
       if (['tl', 'tr', 'bl', 'br'].includes(raw.corner)) S.corner = raw.corner;
       if (Number.isFinite(raw.maxDesk)) S.maxDesk = clamp(Math.round(raw.maxDesk), 2, DESK_MAX);
       if (Number.isFinite(raw.maxPhone)) S.maxPhone = clamp(Math.round(raw.maxPhone), 2, PHONE_MAX);
@@ -53,7 +57,7 @@
       mode: phone && S.mode === 'sidebar' ? 'auto' : S.mode,
       max: phone ? S.maxPhone : S.maxDesk,
       hide: S.hide,
-      self: S.self,
+      self: !S.selfSet && isPhoneLike() ? 'float' : S.self,
     };
   }
 
@@ -215,6 +219,7 @@
         const id = t.dataset.peerId, p = G.peers().get(id);
         let s = 0;
         if (id === cur) s += 1000;
+        if (window.TdtTileMenu?.isPinAll(id)) s += 500; // 1.8.3: fissati per tutti sempre in vista
         if (t === self) s += 60;
         if (p?.handRaised) s += 50;
         if (G.speaking(id)) s += 40;
@@ -458,8 +463,8 @@
     });
     panel.querySelector('.lv-seg').addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-self]'); if (!b) return;
-      if (S.self === b.dataset.self) return;
-      S.self = b.dataset.self; save(); G.relayout(); syncPanel();
+      if (eff().self === b.dataset.self && S.selfSet) return;
+      S.self = b.dataset.self; S.selfSet = true; save(); G.relayout(); syncPanel();
     });
     const range = panel.querySelector('#lvMax');
     let rT = null;
@@ -515,12 +520,12 @@
     paintRange(range);
     panel.querySelector('#lvHide').checked = S.hide;
     panel.querySelectorAll('.lv-seg [data-self]').forEach(b => {
-      const on = b.dataset.self === S.self;
+      const on = b.dataset.self === eff().self;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
       b.tabIndex = on ? 0 : -1;
     });
-    panel.querySelector('#lvSelfHint').textContent = SELF_HINT[S.self];
+    panel.querySelector('#lvSelfHint').textContent = SELF_HINT[eff().self];
   }
 
   function place() {
@@ -615,6 +620,7 @@
     // chiamato da setTileVideo: la videocamera di qualcuno si accende/spegne
     videoChanged() { if (S.hide || overflowIds.size) schedule(150); },
     phoneGrid: () => eff().phone && eff().mode === 'grid' && !lvPin,
+    getPin: () => lvPin, // 1.8.3: menu ⋮ (Fissa / Sblocca per me)
     setMode, open: openPanel, close, get state() { return Object.assign({}, S); },
   };
 })();

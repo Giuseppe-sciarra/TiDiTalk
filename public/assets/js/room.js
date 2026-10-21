@@ -209,7 +209,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!pjResult && !_guestToken) {
       let pref = null;
       try { pref = JSON.parse(sessionStorage.getItem('tdt_home_pref') || 'null'); } catch (_) { }
-      if (pref && pref.checked && pref.roomId === ROOM_ID) {
+      if (pref && pref.secondScreen === true && pref.roomId === ROOM_ID && window.TdtOrg) { // 1.8.3: dalla home come secondo schermo (niente dispositivi)
+        sessionStorage.removeItem('tdt_home_pref');
+        pjResult = window.TdtOrg.ssResult(pref.name || DISPLAY_NAME_DEFAULT || 'Anonimo');
+      } else if (pref && pref.checked && pref.roomId === ROOM_ID) {
         sessionStorage.removeItem('tdt_home_pref');
         setLoading('Preparo microfono e videocamera…');
         pjResult = await prejoin.quick(ROOM_ID, pref.name || DISPLAY_NAME_DEFAULT, pref);
@@ -647,6 +650,8 @@ function createTile(peerId, displayName, isLocal = false) {
     <div class="speaking-eq" id="speakEq-${peerId}"><div class="eq-up"></div><div class="eq-down"></div></div>
     ${isLocal ? '' : `<button class="tile-rotate-btn" id="rotBtn-${peerId}" title="Ruota video (utile se il guest mobile è capovolto)">↻</button>`}`;
   peerTiles.set(peerId, tile);
+  window.TdtTiles183?.tile(tile, peerId); // 1.8.3: indicatore voce e colore dell'avatar
+  window.TdtTileMenu?.tile(tile, peerId); // 1.8.3: menu ⋮ sul riquadro
   tile.querySelector('.tile-fx-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleFxPanel('bg'); });
   document.getElementById('videoGrid').appendChild(tile);
   _watchAspect(tile.querySelector('video'), tile);
@@ -1075,6 +1080,7 @@ function setSpeaking(peerId, speaking) {
   }
 
   window.TdtLayout?.speaking(peerId, speaking);
+  window.TdtTiles183?.speaking(peerId, speaking); // 1.8.3: barrette che seguono il volume
   if (speaking) console.log('[speaking] ▶ ACTIVE', peerId);
 }
 
@@ -1151,6 +1157,7 @@ async function initSpeakingDetection() {
     const check = () => {
       a.getByteFrequencyData(data);
       const avg = data.slice(0, 64).reduce((s, b) => s + b, 0) / 64;
+      window.TdtTiles183?.volLocal(avg); // 1.8.3: solo memorizza il livello
       // Log il valore ogni ~1s per i primi 10 secondi (debug)
       _logCount++;
       if (_logCount % 60 === 0 && _logCount < 600) {
@@ -1398,6 +1405,7 @@ async function initSocket() {
     window._tdSocket = socket;
     window.TdtLobby?.bind(socket);
     window.TdtOrg?.bind(socket); // 1.8.0: termina per tutti, sala d'attesa, secondo schermo
+    window.TdtTileMenu?.bind(socket); // 1.8.3: menu ⋮ sul riquadro e nella lista Persone
     window.TdtCallSettings?.bind(socket);
 
     socket.on('newProducer', async ({ producerId, peerId, kind, appData, audioMuted, videoOff }) => {
@@ -1481,6 +1489,7 @@ async function initSocket() {
       // ⭐ 1.6.0: il bordo resta acceso per SPEAK_HOLD_MS dall'ultimo segnale di
       // voce (prima 800 ms, e ogni pausa fra le parole lo spegneva: sfarfallava)
       _lastSpeakAt.set(peerId, Date.now());
+      window.TdtTiles183?.volDb(peerId, volume); // 1.8.3
       setSpeaking(peerId, true);
       clearTimeout(speakingTimers.get(peerId));
       speakingTimers.set(peerId, setTimeout(() => setSpeaking(peerId, false), SPEAK_HOLD_MS));

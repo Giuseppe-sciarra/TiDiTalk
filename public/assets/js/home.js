@@ -19,6 +19,7 @@
   const nameIn = $('#roomNameInput'), idIn = $('#roomIdInput');
   const pref = { mic: true, cam: true, audioId: null, videoId: null, speakerId: null, checked: false };
   let stream = null, tab = 'new', user = null, meter = null, checkState = 'wait';
+  const SS_ICO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="13" height="9.5" rx="1.6"/><path d="M6 17h6M9 13.5V17"/><rect x="17" y="8" width="4.5" height="12" rx="1.2"/><path d="M19.25 17.2h.01"/></svg>';
   const ls = { get: (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) { } } };
 
   // ── animazione d'ingresso: da destra, a cascata ───────────────────────────
@@ -87,22 +88,27 @@
     const m = v.match(/\/room\/([A-Za-z0-9-]+)/); if (m) v = m[1];
     return Tdt.roomCode(v) || v.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 32);
   }
-  $('#btnJoinRoom').addEventListener('click', () => {
+  function joinByCode(opts) {
     // 1.5.2: incollato un link d'invito /join/<token> → si segue quello
     const jl = String(idIn.value || '').match(/\/join\/([A-Za-z0-9_.-]+)/);
     if (jl) { window.location.href = '/join/' + jl[1]; return; }
     const code = codeFromInput(idIn.value);
-    if (!code) { idIn.focus(); return; }
-    go(`/room/${code}`);
-  });
+    if (!code) { idIn.focus(); if (opts) Tdt.toast(T('Scrivi prima il codice della riunione')); return; }
+    go(`/room/${code}`, opts);
+  }
+  $('#btnJoinRoom').addEventListener('click', () => joinByCode());
+  $('#btnJoinSS')?.addEventListener('click', () => joinByCode({ secondScreen: true })); // 1.8.3
   idIn.addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnJoinRoom').click(); });
   idIn.addEventListener('paste', () => setTimeout(() => { const c = codeFromInput(idIn.value); if (c && /\/room\//.test(idIn.value)) idIn.value = c; }, 0));
 
-  function go(url) {
+  // opts.secondScreen (1.8.3): si entra come secondo schermo, senza microfono,
+  // casse né videocamera (room.js legge tdt_home_pref e salta i dispositivi)
+  function go(url, opts) {
     const roomId = (url.match(/\/room\/([^/?#]+)/) || [])[1] || '';
+    const ss = !!(opts && opts.secondScreen);
     // sveglia l'audio dentro il gesto dell'utente: la stanza eredita il permesso di riprodurre
     try { const c = new (window.AudioContext || window.webkitAudioContext)(); c.resume?.().catch(() => { }); setTimeout(() => c.close().catch(() => { }), 300); } catch (_) { }
-    try { sessionStorage.setItem('tdt_home_pref', JSON.stringify({ ...pref, roomId, name: user?.displayName || '', checked: checkState === 'ok' || checkState === 'warn' })); } catch (_) { }
+    try { sessionStorage.setItem('tdt_home_pref', JSON.stringify({ ...pref, ...(ss ? { mic: false, cam: false, secondScreen: true } : {}), roomId, name: user?.displayName || '', checked: checkState === 'ok' || checkState === 'warn' })); } catch (_) { }
     stopPreview();
     window.location.href = url;
   }
@@ -341,6 +347,7 @@
             ${who ? `<small class="rc-who" translate="no">${who}</small>` : ''}
           </div>
           <button type="button" class="rc-x" data-act="hide" data-tip="Togli dall'elenco" aria-label="Togli">×</button>
+          ${r.live ? `<button type="button" class="rc-ss" data-act="ss" data-tip="${esc(T('Per usare questo dispositivo accanto a quello con cui parli: chat, sondaggi, mano, reazioni e Presenta, senza microfono, casse né videocamera'))}" aria-label="${esc(T('Entra come secondo schermo'))}">${SS_ICO}</button>` : ''}
           <button type="button" class="btn btn-sm rc-go" data-act="go">${r.live ? T('Rientra') : T('Riapri')}</button>
         </div>`;
       }).join('');
@@ -360,7 +367,7 @@
       catch (err) { card.style.opacity = ''; Tdt.toast(err.message); }
       return;
     }
-    go(`/room/${card.dataset.room}`);
+    go(`/room/${card.dataset.room}`, act === 'ss' ? { secondScreen: true } : null);
   });
 
   // ── pianifica: prossime riunioni in calendario ────────────────────────────

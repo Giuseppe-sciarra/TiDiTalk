@@ -5,6 +5,7 @@
    • endMeeting       termina la riunione per tutti (anche chi è in sala d'attesa)
    • lobbyMessage     messaggio a chi aspetta in sala d'attesa (+ posto in coda)
    • setSecondScreen  il secondo schermo passa all'audio (diventa partecipante normale)
+                      e, dalla 1.8.3, anche il contrario ({ on: true }) dal menu Altro
    • GET /api/room/:id/who   solo i NOMI di chi c'è, solo con un link valido
    Tutti i permessi sono controllati QUI: il client non decide niente.
    index.js chiama le funzioni esportate con agganci di una riga.
@@ -99,7 +100,23 @@ function bindSocket(socket, ctx) {
     if (!ctx.inRoom()) return cb({ error: 'Non in stanza' });
     if (!rl.mod.take()) return cb({ error: 'Troppe richieste, riprova tra poco' });
     const p = ctx.peer();
-    if (d && d.on === true) return cb({ error: 'Per entrare come secondo schermo usa la pagina d\'ingresso' });
+    // 1.8.3: partecipante normale → secondo schermo, senza uscire e rientrare.
+    // Si chiudono QUI microfono e videocamera (lo schermo condiviso resta) e da
+    // ora refuseProduce rifiuta mic e camera finché non «passa all'audio».
+    if (d && d.on === true) {
+      if (p.secondScreen) return cb({ ok: true });
+      const room = ctx.room();
+      for (const pr of [...p.producers.values()]) {
+        const mt = pr.appData && pr.appData.mediaType;
+        if (mt !== 'audio' && mt !== 'video') continue;
+        try { room.closeProducer(socket.id, pr.id); } catch (_) { }
+        socket.to(room.id).emit('producerClosed', { producerId: pr.id, peerId: socket.id, mediaType: mt });
+      }
+      p.secondScreen = true; p.audioMuted = true; p.videoOff = true;
+      // per gli altri sparisce il suo riquadro (org.js: onPeerSecondScreen)
+      socket.to(room.id).emit('peerSecondScreen', { peerId: socket.id, on: true, peer: p.toJSON() });
+      return cb({ ok: true });
+    }
     if (!p.secondScreen) return cb({ ok: true });
     p.secondScreen = false;
     // per gli altri è come un ingresso: compare il suo riquadro

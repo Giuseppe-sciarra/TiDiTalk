@@ -104,6 +104,17 @@ tuo marchio.
 - **Zoom sullo schermo condiviso** (− % +, Ctrl + rotellina o pizzico,
   trascina, minimappa) e **apertura in una nuova finestra** per un secondo
   monitor, con i disegni sempre allineati
+- **Riquadri che mostrano chi parla**: indicatore della voce con le barrette
+  o il microfono barrato, bordo pieno attorno a chi parla e, con la videocamera
+  spenta, il colore dell'avatar, un cerchio grande con le iniziali e onde
+  quando parla
+- **Menu ⋮ sui riquadri e nella lista Persone**: fissa per me o per tutti (fino
+  a 3), schermo intero e, per gli organizzatori, silenzia una persona, rimanda
+  in sala d'attesa o rimuovi
+- **Secondo schermo** dal pre-ingresso, dalla home o da «Altro» nella stanza
+- **Telefono**: cinque tasti grandi (microfono, camera, mano, Altro, Esci), il
+  resto in «Altro», pulsante della chat flottante e il tuo video in una
+  finestrella trascinabile
 - **Reazioni in barra** con la tonalità della pelle e tutte le emoji, che
   salgono con il nome di chi le manda e restano qualche secondo sul suo riquadro
 - **Mani alzate in coda**: ordine di arrivo nella lista Persone, numero in coda

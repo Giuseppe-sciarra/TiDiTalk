@@ -98,6 +98,17 @@ cloud, your branding.
   opening the chat) and recording, with the person's initials and the time
 - **Zoom on a shared screen** (− % +, Ctrl + wheel or pinch, drag, minimap) and
   **open it in a new window** for a second monitor, with drawings still aligned
+- **Tiles that show who is talking**: a voice badge with live bars or a
+  crossed-out microphone, a ring around whoever talks, and with the camera off
+  the avatar colour, a large circle with the initials and rings while talking
+- **Menu ⋮ on tiles and in the People list**: pin for me or for everyone (up to
+  3), full screen, and for hosts mute one person, send back to the waiting room
+  or remove
+- **Second screen** from the pre-join screen, the home page or *More* in the
+  room
+- **Phone layout**: five large buttons (microphone, camera, hand, More, Leave),
+  everything else in *More*, a floating chat button and your own video in a
+  small draggable window
 - **Reactions bar** with skin tones and every emoji, rising with the name of
   who sent them and staying for a few seconds on their tile
 - **Raised hands in a queue**: order of arrival in the People list, place in
