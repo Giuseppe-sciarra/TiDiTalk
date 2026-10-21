@@ -1,10 +1,11 @@
 // Monocolo dorato sull'occhio destro, con catenella che scende lungo la guancia.
+import { finish, lens as lensMaterial } from './_kit_acc.js';
 export const meta = { label: 'Monocolo', labelEn: 'Monocle', category: 'accessori', icon: '🧐' };
 
 export default function build(THREE, h) {
   const g = new THREE.Group();
   const gold = h.mat(0xd8b35a, { roughness: .25, metalness: .95 });
-  const lensMat = new THREE.MeshPhysicalMaterial({ color: 0xe8f0ff, roughness: .02, transparent: true, opacity: .2, clearcoat: 1, side: THREE.DoubleSide });
+  const lensMat = lensMaterial(THREE, 0xdfe8f2, 0.06, { side: THREE.DoubleSide });
 
   // sull'occhio destro di chi lo porta (−X)
   const s = -1;
@@ -43,5 +44,5 @@ export default function build(THREE, h) {
     const pp = geo.attributes.position, nn = geo.attributes.normal;
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
-  return g;
+  return finish(THREE, g);
 }

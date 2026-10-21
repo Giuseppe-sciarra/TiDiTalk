@@ -1,5 +1,6 @@
 // Pulcino nel nido in testa: nido di rametti intrecciati appoggiato sui capelli, pulcino giallo che si dondola e apre il becco
 // quando apri la bocca; un pezzo di guscio d'uovo sul bordo.
+import { finish, plastic } from './_kit_acc.js';
 export const meta = { label: 'Pulcino nel nido', labelEn: 'Chick in a nest', category: 'divertenti', icon: '🐣' };
 
 export default function build(THREE, h) {
@@ -34,7 +35,7 @@ export default function build(THREE, h) {
   // ciuffo
   for (let i = 0; i < 3; i++) { const t = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.2, 6), fluff); t.position.set((i - 1) * 0.35, 2.2, -0.2); t.rotation.z = (i - 1) * -0.5; head.add(t); }
   // occhi neri lucidi con riflesso
-  const eyeMat = new THREE.MeshPhysicalMaterial({ color: 0x111111, roughness: .05, clearcoat: 1 });
+  const eyeMat = plastic(THREE, 0x111111, 0.50);
   for (const s of [-1, 1]) {
     const e = new THREE.Mesh(new THREE.SphereGeometry(0.36, 14, 10), eyeMat); e.position.set(s * 0.8, 0.35, 1.72); head.add(e);
     const hl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); hl.position.set(s * 0.8 + 0.1, 0.48, 2.04); head.add(hl);
@@ -57,13 +58,14 @@ export default function build(THREE, h) {
   occ.scale.set(8.3, 12.6, 9.2); occ.position.set(0, 1.0, -3.2); occ.renderOrder = -1; occ.name = 'hairOccluder'; if (!h.preview) g.add(occ);
   g.userData = { chick, head, lowerPivot, wings };
   update(g, {}, 0.3);
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {
   const u = g.userData;
-  const chirp = Math.max(bs.jawOpen || 0, (t % 2.6) < 0.25 ? 0.6 : 0);
-  u.lowerPivot.rotation.x = 0.7 * chirp;
+  // pigola da solo ogni tanto; con la bocca aperta (0..1 calibrato) il becco si apre del tutto
+  const chirp = Math.max(Math.min(1, (bs.jawOpen || 0) * 1.2), (t % 2.6) < 0.25 ? 0.6 : 0);
+  u.lowerPivot.rotation.x = 0.55 * chirp;
   u.chick.rotation.z = Math.sin(t * 2.0) * 0.12; u.chick.position.y = 2.6 + Math.abs(Math.sin(t * 2.0)) * 0.3;
   u.head.rotation.y = Math.sin(t * 0.9) * 0.35; u.head.rotation.x = -0.1 * chirp;
   u.wings.forEach((w, i) => { w.rotation.z = (i ? 1 : -1) * (0.35 + 0.35 * Math.max(0, Math.sin(t * 9)) * chirp); });

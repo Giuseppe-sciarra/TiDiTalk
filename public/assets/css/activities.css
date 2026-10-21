@@ -326,6 +326,8 @@ body.tdt-room #activitiesBtn .ctrl-icon { position: relative; }
 body.tdt-room #activitiesBtn.active { color: var(--accent-text); }
 @media (max-width: 1150px) { body.tdt-room #activitiesBtn { display: none !important; } }
 @media (min-width: 1151px) { body.tdt-room #moreMenu #btnActivities { display: none; } }
+/* 1.8.1: i Sondaggi stanno in Attività (tasto in barra o voce «Attività» in Altro): niente doppione in Altro */
+body.tdt-room #moreMenu #btnPolls { display: none !important; }
 
 /* ── Telefono: a tutto schermo come la chat, con i colori del tema ────────── */
 @media (max-width: 640px) {

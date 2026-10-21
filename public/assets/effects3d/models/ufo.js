@@ -1,5 +1,6 @@
 // Disco volante con alieno sopra la testa: piattino metallico con luci colorate che girano, cupola di vetro con un alieno verde
 // che saluta, raggio traente che scende sulla testa; il disco ondeggia.
+import { finish, plastic } from './_kit_acc.js';
 export const meta = { label: 'UFO con alieno', labelEn: 'UFO with alien', category: 'divertenti', icon: '🛸' };
 
 export default function build(THREE, h) {
@@ -25,7 +26,7 @@ export default function build(THREE, h) {
   const skin = h.mat(0x7ed957, { roughness: .55 });
   const head = new THREE.Mesh(new THREE.SphereGeometry(1.6, 24, 18), skin); head.scale.set(1.1, 1.0, 0.95); head.position.y = 3.6; alien.add(head);
   const chin = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12), skin); chin.position.set(0, 2.5, 0.25); alien.add(chin);
-  const eyeMat = new THREE.MeshPhysicalMaterial({ color: 0x0d0d12, roughness: .05, clearcoat: 1 });
+  const eyeMat = plastic(THREE, 0x0d0d12, 0.50);
   for (const s of [-1, 1]) {
     const e = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 12), eyeMat); e.scale.set(1.25, 0.8, 0.55); e.position.set(s * 0.72, 3.55, 1.25); e.rotation.z = s * 0.45; alien.add(e);
     const hl = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); hl.position.set(s * 0.55, 3.75, 1.6); alien.add(hl);
@@ -44,8 +45,11 @@ export default function build(THREE, h) {
   dome.scale.y = 1.15; dome.position.y = 0.9; ufo.add(dome);
   const domeRing = new THREE.Mesh(new THREE.TorusGeometry(4.0, 0.25, 8, 64), hullDark); domeRing.rotation.x = Math.PI / 2; domeRing.position.y = 0.95; ufo.add(domeRing);
   // raggio traente: cono aperto additivo verso la testa
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 7.6, 5.8, 40, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0x9dffb0, transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  // raggio: luce che sfuma verso il basso e ai bordi (colori dei vertici × alpha), una faccia sola: niente cono pieno
+  const bg = new THREE.CylinderGeometry(2.4, 7.6, 5.8, 40, 8, true);
+  { const p = bg.attributes.position, c = []; for (let i = 0; i < p.count; i++) { const k = 0.25 + 0.75 * Math.pow((p.getY(i) + 2.9) / 5.8, 0.7); c.push(1, 1, 1, k); } bg.setAttribute('color', new THREE.Float32BufferAttribute(c, 4)); }
+  // (fusione normale, non additiva: sul canvas trasparente dell'app l'additiva sul fondo vuoto diventa grigia)
+  const beam = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color: 0xb8ffc8, vertexColors: true, transparent: true, opacity: .3, depthWrite: false, side: THREE.FrontSide }));
   beam.position.y = -4.6; ufo.add(beam);
   ufo.position.set(0, 19.4, -2.0); ufo.rotation.x = 0.18; ufo.scale.setScalar(0.82);   // compatto: sta nel frame anche con poca aria sopra la testa
   g.add(ufo);
@@ -53,7 +57,7 @@ export default function build(THREE, h) {
   occ.scale.set(8.5, 13.0, 9.6); occ.position.set(0, 1.0, -3.2); occ.renderOrder = -1; occ.name = 'hairOccluder'; if (!h.preview) g.add(occ);
   g.userData = { ufo, lights, arm, beam };
   update(g, {}, 0.4);
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {
@@ -62,5 +66,5 @@ export function update(g, bs, t) {
   u.ufo.rotation.z = Math.sin(t * 1.1) * 0.08;
   u.lights.forEach((m, i) => { m.emissiveIntensity = 0.3 + 1.4 * Math.max(0, Math.sin(t * 5 - i * 0.8)); });
   u.arm.rotation.z = -0.5 + 0.6 * Math.sin(t * 6);
-  u.beam.material.opacity = 0.12 + 0.06 * Math.sin(t * 7);
+  u.beam.material.opacity = 0.26 + 0.08 * Math.sin(t * 7);
 }

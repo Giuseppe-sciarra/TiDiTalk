@@ -1,4 +1,5 @@
 // Visore cyberpunk: unica fascia curva scura con banda neon ciano pulsante e astine fino alle orecchie.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Visore cyber', labelEn: 'Cyber visor', category: 'accessori', icon: '🤖' };
 
 export default function build(THREE, h) {
@@ -39,7 +40,7 @@ export default function build(THREE, h) {
     const pp = geo.attributes.position, nn = geo.attributes.normal;
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

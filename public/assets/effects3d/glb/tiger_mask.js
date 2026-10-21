@@ -1,68 +1,63 @@
 // Tiger — Apache-2.0, Jeeliz (jeelizFaceFilter demos)
-// Modello: tiger_mask.glb (ottimizzato: <25k triangoli, texture ≤512 px, niente Draco/meshopt).
+// Modello: tiger_mask.glb (Jeeliz FaceFilter, Apache-2.0). 1.8.0: la mascherina ha i fori di occhi e bocca (dentro si
+// vede il tuo viso): il mento bianco scende quando apri la bocca e il taglio della bocca si allarga col sorriso; le
+// palpebre a strisce scendono sui fori degli occhi quando li chiudi/strizzi; le arcate si aggrottano col broncio;
+// i baffi vibrano un poco quando parli.
+import { loadHead, toCanon } from './_glbhead.js';
 export const meta = {"label": "Tigre", "labelEn": "Tiger", "category": "personaggi", "icon": "🐯"};
 export const hideHead = true;
-const P = {"c": [0.0, 0.37397, -0.06431], "s": 14.553, "p": [0.0, 2.7, 0.0], "r": [0, 0, 0]};   // c = centro del modello (unità del file), s = scala → cm, p = posizione sulla testa canonica, r = rotazione (gradi)
+const P = {"c": [0.0, 0.37397, -0.06431], "s": 14.553, "p": [0.0, 2.7, 0.0], "r": [0, 0, 0]};
 const O = {"hideMats": ["eyes"], "env": 0.5};
+const c01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const B = (bs, k) => { const v = bs ? bs[k] : 0; return (typeof v === 'number' && v === v) ? c01(v) : 0; };
+const sm = (s, k, v, a) => { const p = s[k]; return (s[k] = p === undefined ? v : p + (v - p) * a); };
+const ss = (a, b, x) => { const t = c01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+// morph per vertice: fn(x,y,z) → [dx,dy,dz] in cm (canonico), oppure null
+function morph(THREE, g, mesh, fn) {
+  const geo = mesh.geometry, pos = geo.attributes.position, n = pos.count;
+  const M = toCanon(THREE, g, mesh), Mi = new THREE.Matrix3().setFromMatrix4(M).invert();
+  const v = new THREE.Vector3(), d = new THREE.Vector3(), out = new Float32Array(n * 3);
+  let any = false;
+  for (let i = 0; i < n; i++) {
+    v.fromBufferAttribute(pos, i).applyMatrix4(M);
+    const r = fn(v.x, v.y, v.z); if (!r) continue;
+    d.set(r[0], r[1], r[2]).applyMatrix3(Mi); any = true;
+    out[i * 3] = d.x; out[i * 3 + 1] = d.y; out[i * 3 + 2] = d.z;
+  }
+  if (!geo.morphAttributes.position) geo.morphAttributes.position = [];
+  geo.morphAttributes.position.push(new THREE.Float32BufferAttribute(out, 3));
+  geo.morphTargetsRelative = true;
+  return geo.morphAttributes.position.length - 1;
+}
 
 export default async function build(THREE, h) {
-  const gltf = await new h.GLTFLoader().loadAsync(new URL('./tiger_mask.glb', import.meta.url).href);
-  const model = gltf.scene;
-  model.position.set(-P.c[0], -P.c[1], -P.c[2]);
-  const wrap = new THREE.Group();
-  wrap.add(model);
-  wrap.scale.setScalar(P.s);
-  wrap.position.set(P.p[0], P.p[1], P.p[2]);
-  wrap.rotation.set(P.r[0] * Math.PI / 180, P.r[1] * Math.PI / 180, P.r[2] * Math.PI / 180);
-  const g = new THREE.Group();
-  g.name = 'tiger_mask';
-  g.add(wrap);
+  const { g, model } = await loadHead(THREE, h, new URL('./tiger_mask.glb', import.meta.url).href, P, O, 'tiger_mask');
+  const u = g.userData; u.m = [];
   model.traverse((o) => {
-    if (!o.isMesh) return;
-    o.frustumCulled = false;
-    const mats = Array.isArray(o.material) ? o.material : [o.material];
-    for (const m of mats) {
-      if (O.hideMats && O.hideMats.some((n) => (m.name || '').toLowerCase().includes(n))) { o.visible = false; continue; }
-      if (O.env != null && 'envMapIntensity' in m) m.envMapIntensity = O.env;
-      if (O.color) { m.color.setRGB(O.color[0], O.color[1], O.color[2], THREE.SRGBColorSpace); }
-      if (O.rough != null && 'roughness' in m) m.roughness = O.rough;
-      if (O.metal != null && 'metalness' in m) m.metalness = O.metal;
-      if (O.matColor) for (const k in O.matColor) if ((m.name || '').includes(k)) m.color.setRGB(O.matColor[k][0], O.matColor[k][1], O.matColor[k][2], THREE.SRGBColorSpace);
-      if (O.tint != null) m.color.multiplyScalar(O.tint);
-      if (O.cards && m.map) {                    // ciocche/peli su piani con alpha: niente ordinamento, alpha test
-        m.transparent = false; m.alphaTest = O.alphaTest || 0.35; m.depthWrite = true; m.side = THREE.DoubleSide;
-      }
-      if (m.map) m.map.anisotropy = 4;
-      m.needsUpdate = true;
-    }
+    if (!o.isMesh || !o.visible) return;
+    const name = [].concat(o.material)[0].name || '';
+    // bocca: foro a y≈-5.4 (x ±3.4); il mento (sotto) scende, il labbro sopra sale un filo; ai lati si apre col sorriso
+    const iJaw = morph(THREE, g, o, (x, y, z) => { const f = ss(4, 9, z) * (1 - ss(5, 9, Math.abs(x))); if (f <= 0) return null; const lo = ss(-4.9, -6.4, y) * (1 - ss(-12, -15, y) * 0.5); const up = ss(-5.9, -4.6, y) * (1 - ss(-3.6, -2.4, y)); return [0, (-lo * 3.0 + up * 0.45) * f, -lo * 0.5 * f]; });
+    const iWide = morph(THREE, g, o, (x, y, z) => { const f = ss(4, 9, z) * ss(-2.8, -4.8, y) * (1 - ss(-7, -9, y)) * ss(0.5, 3, Math.abs(x)); if (f <= 0) return null; return [Math.sign(x) * 0.9 * f, 0.8 * f, 0]; });
+    // occhi: fori a (±7, 5.3); il bordo alto scende fino a chiuderli
+    const eye = (sd) => morph(THREE, g, o, (x, y, z) => { if (Math.sign(x) !== sd || z < 3) return null; const dx = Math.abs(x) - 6.9; const f = Math.max(0, 1 - (dx / 4.2) ** 2) ** 0.5 * ss(4.0, 5.6, y) * (1 - ss(8.4, 10.6, y)); if (f <= 0) return null; return [0, -(y - 3.4) * 0.96 * f, 0.25 * f]; });
+    const iER = eye(1), iEL = eye(-1);
+    const brow = morph(THREE, g, o, (x, y, z) => { if (z < 3) return null; const f = ss(6.5, 8.5, y) * (1 - ss(11, 13, y)) * ss(1.5, 3.5, Math.abs(x)) * (1 - ss(10, 12, Math.abs(x))); if (f <= 0) return null; return [0, -1.1 * f * (1 - (Math.abs(x) - 2) / 12), 0.2 * f]; });
+    o.updateMorphTargets();
+    u.m.push({ o, iJaw, iWide, iER, iEL, brow, whisk: name === 'whiskers' });
   });
-  if (O.clip && gltf.animations.length) {        // animazione di attesa del modello
-    const clip = THREE.AnimationClip.findByName(gltf.animations, O.clip) || gltf.animations[0];
-    const mixer = new THREE.AnimationMixer(model);
-    mixer.clipAction(clip).play();
-    g.userData.mixer = mixer;
-  }
-  if (O.jaw) {                                   // mandibola separata: perno sul bordo alto posteriore
-    const jaw = model.getObjectByName(O.jaw);
-    if (jaw && jaw.geometry) {
-      jaw.geometry.computeBoundingBox();
-      const b = jaw.geometry.boundingBox;
-      const hinge = new THREE.Vector3((b.min.x + b.max.x) / 2, b.max.y, b.min.z + (b.max.z - b.min.z) * 0.3);
-      jaw.geometry.translate(-hinge.x, -hinge.y, -hinge.z);
-      jaw.position.add(hinge);
-      g.userData.jaw = jaw;
-      g.userData.jaw0 = jaw.rotation.x;
-    }
-  }
   return g;
 }
 
 export function update(g, bs, t) {
-  const u = g.userData;
-  if (u.mixer) {
-    const dt = u.t0 == null ? 0 : Math.min(0.1, Math.max(0, t - u.t0));
-    u.t0 = t;
-    u.mixer.update(dt);
+  const u = g.userData, s = u.s || (u.s = {}), k = 0.5;
+  const jaw = sm(s, 'j', B(bs, 'jawOpen'), k), smile = sm(s, 's', (B(bs, 'mouthSmileLeft') + B(bs, 'mouthSmileRight')) / 2, k);
+  const pk = sm(s, 'p', Math.max(B(bs, 'mouthPucker'), B(bs, 'mouthFunnel') * 0.85), k);
+  const blL = sm(s, 'bl', c01(B(bs, 'eyeBlinkLeft') + B(bs, 'eyeSquintLeft') * 0.45), 0.7), blR = sm(s, 'br', c01(B(bs, 'eyeBlinkRight') + B(bs, 'eyeSquintRight') * 0.45), 0.7);
+  const bd = sm(s, 'bd', (B(bs, 'browDownLeft') + B(bs, 'browDownRight')) / 2, k);
+  for (const m of u.m) {
+    const I = m.o.morphTargetInfluences;
+    I[m.iJaw] = jaw * (1 - pk * 0.5); I[m.iWide] = smile * (1 - pk); I[m.iER] = blL; I[m.iEL] = blR; I[m.brow] = bd;
+    if (m.whisk) m.o.rotation.z = Math.sin(t * 18) * 0.012 * jaw;
   }
-  if (u.jaw) u.jaw.rotation.x = u.jaw0 + (bs.jawOpen || 0) * O.jawAngle;
 }

@@ -1,5 +1,6 @@
 // Polpo sulla testa: corpo a cupola rosa-viola appoggiato sui capelli, occhioni che sbattono insieme a quelli di chi lo
 // indossa, otto tentacoli che scendono sui capelli (quelli davanti si arricciano sulla fronte, non coprono gli occhi).
+import { finish, plastic } from './_kit_acc.js';
 export const meta = { label: 'Polpo in testa', labelEn: 'Octopus hat', category: 'divertenti', icon: '🐙' };
 
 // superficie "testa + capelli": i tentacoli la seguono un po' staccati
@@ -43,7 +44,7 @@ export default function build(THREE, h) {
   for (const s of [-1, 1]) {
     const eye = new THREE.Group(); eye.position.set(s * 2.3, 3.9, 5.25); eye.rotation.y = s * 0.35;
     const white = new THREE.Mesh(new THREE.SphereGeometry(1.35, 24, 16), h.mat(0xf3efe8, { roughness: .3 })); white.scale.z = 0.7; eye.add(white);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.72, 18, 12), new THREE.MeshPhysicalMaterial({ color: 0x15101a, roughness: .05, clearcoat: 1 })); pupil.position.z = 0.7; pupil.scale.z = 0.5; eye.add(pupil);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.72, 18, 12), plastic(THREE, 0x15101a, 0.50)); pupil.position.z = 0.7; pupil.scale.z = 0.5; eye.add(pupil);
     const hl = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); hl.position.set(0.25, 0.3, 1.05); eye.add(hl);
     // palpebra chiusa: guscio di pelle appena più grande dell'occhio, con la piega scura; visibile solo durante il battito
     const lid = new THREE.Group(); const sh = new THREE.Mesh(new THREE.SphereGeometry(1.44, 24, 16), skinMat); sh.scale.z = 0.76; lid.add(sh);
@@ -78,7 +79,7 @@ export default function build(THREE, h) {
   occ.scale.set(8.3, 12.6, 9.2); occ.position.set(0, 1.0, -3.2); occ.renderOrder = -1; occ.name = 'hairOccluder'; if (!h.preview) g.add(occ);
   g.userData = { mantle, lids, tentacles };
   update(g, {}, 0.3);
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

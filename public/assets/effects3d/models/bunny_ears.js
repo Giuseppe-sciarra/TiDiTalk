@@ -1,4 +1,5 @@
 // Orecchie da coniglio: cerchietto con due lunghe orecchie bianche (interno rosa), una leggermente piegata.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Orecchie da coniglio', labelEn: 'Bunny ears', category: 'costumi', icon: '🐰' };
 
 export default function build(THREE, h) {
@@ -40,7 +41,7 @@ export default function build(THREE, h) {
   const eL = ear(1, 0.0), eR = ear(-1, -0.9);
   g.add(eL, eR);
   g.userData.ears = [eL, eR];
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

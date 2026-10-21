@@ -1,5 +1,6 @@
 // Cuori che girano attorno alla testa: 8 cuori lucidi (rosso, rosa, fucsia) su un'orbita inclinata, ruotano e pulsano;
 // quando si sorride pulsano di più.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Cuori in orbita', labelEn: 'Orbiting hearts', category: 'divertenti', icon: '💕' };
 
 export default function build(THREE, h) {
@@ -25,7 +26,7 @@ export default function build(THREE, h) {
   occ.scale.set(8.5, 13.0, 9.6); occ.position.set(0, 1.0, -3.2); occ.renderOrder = -1; occ.name = 'hairOccluder'; if (!h.preview) g.add(occ);   // nell'harness coprirebbe il manichino
   g.userData.hearts = hearts;
   update(g, {}, 0.6);
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

@@ -1,4 +1,5 @@
 // Cerchietto da unicorno: corno a spirale con sfumatura pastello, fiorellini alla base e orecchiette bianche.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Corno da unicorno', labelEn: 'Unicorn horn', category: 'costumi', icon: '🦄' };
 
 export default function build(THREE, h) {
@@ -62,5 +63,5 @@ export default function build(THREE, h) {
     e.add(o, i); e.position.set(s * 5.0, 11.0, -3.0); e.rotation.z = -s * 0.5; e.rotation.y = s * 0.3;
     g.add(e);
   }
-  return g;
+  return finish(THREE, g);
 }

@@ -1,4 +1,5 @@
 // Pipa di legno all'angolo della bocca: cannello ricurvo, fornello in radica, ghiera metallica e un filo di fumo.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Pipa', labelEn: 'Pipe', category: 'accessori', icon: '🪵' };
 
 function tubeVar(THREE, pts, rFn, segs = 40, radial = 20) {
@@ -46,7 +47,7 @@ export default function build(THREE, h) {
   const puffs = [];
   for (let i = 0; i < 4; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.45 + i * 0.18, 12, 10), smokeMat.clone()); p.position.set(s * 8.2, -7.0 + i * 1.3, 9.6); g.add(p); puffs.push(p); }
   g.userData.puffs = puffs; g.userData.s = s;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

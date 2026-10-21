@@ -1,4 +1,5 @@
 // Corna da diavolo: due corna rosse lucide e ricurve, ancorate ai lati del cranio.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Corna da diavolo', labelEn: 'Devil horns', category: 'costumi', icon: '😈' };
 
 function tubeVar(THREE, pts, rFn, segs = 40, radial = 24) {
@@ -44,5 +45,5 @@ export default function build(THREE, h) {
     g.add(new THREE.Mesh(geo, red));
     const tip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), red); tip.position.set(s * 6.2, 19.4, -1.0); g.add(tip);
   }
-  return g;
+  return finish(THREE, g);
 }

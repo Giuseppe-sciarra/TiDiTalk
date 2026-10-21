@@ -1,4 +1,5 @@
 // Occhialoni steampunk: coppe in ottone con lenti verdastre, rivetti, ponte a vite, cinghia di cuoio attorno alla testa.
+import { finish, lens as lensMaterial } from './_kit_acc.js';
 export const meta = { label: 'Occhialoni steampunk', labelEn: 'Steampunk goggles', category: 'accessori', icon: '⚙️' };
 
 export default function build(THREE, h) {
@@ -6,7 +7,7 @@ export default function build(THREE, h) {
   const brass = h.mat(0xb8893c, { roughness: .38, metalness: .9 });
   const brassDark = h.mat(0x7a5a24, { roughness: .45, metalness: .85 });
   const leather = h.mat(0x4a2c17, { roughness: .7 });
-  const lensMat = new THREE.MeshPhysicalMaterial({ color: 0x6fb07c, roughness: .05, metalness: .1, transparent: true, opacity: .5, clearcoat: 1, side: THREE.DoubleSide });
+  const lensMat = lensMaterial(THREE, 0x1c4a26, 0.6, { side: THREE.DoubleSide });
 
   for (const s of [-1, 1]) {
     const C = new THREE.Group();
@@ -60,5 +61,5 @@ export default function build(THREE, h) {
     const pp = geo.attributes.position, nn = geo.attributes.normal;
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
-  return g;
+  return finish(THREE, g);
 }

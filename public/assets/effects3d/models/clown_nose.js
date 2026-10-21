@@ -1,4 +1,5 @@
 // Naso da clown: pallina rossa lucida sulla punta del naso, con riflesso morbido.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Naso da clown', labelEn: 'Clown nose', category: 'accessori', icon: '🤡' };
 
 export default function build(THREE, h) {
@@ -10,7 +11,7 @@ export default function build(THREE, h) {
   nose.position.set(0, -1.0, 6.55);
   g.add(nose);
   g.userData.nose = nose;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

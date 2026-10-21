@@ -1,4 +1,5 @@
 // Fiore tra i capelli: grande ibisco rosa-corallo sopra l'orecchio sinistro, con foglie e un bocciolo; ondeggia appena.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Fiore tra i capelli', labelEn: 'Flower in hair', category: 'accessori', icon: '🌺' };
 
 // superficie "testa + capelli" (ellissoide più grande del cranio): x≈±8.5, sommità y≈14, fronte z≈4.7
@@ -47,7 +48,7 @@ export default function build(THREE, h) {
   flower.scale.setScalar(1.05);
   g.add(flower);
   g.userData.flower = flower; g.userData.q0 = flower.quaternion.clone();
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

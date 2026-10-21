@@ -149,16 +149,6 @@
   "Requin",
   "Hai"
  ],
- "Bradipo": [
-  "Sloth",
-  "Paresseux",
-  "Faultier"
- ],
- "Faccina": [
-  "Smiley",
-  "Smiley",
-  "Smiley"
- ],
  "Pupazzo di neve": [
   "Snowman",
   "Bonhomme de neige",
@@ -183,11 +173,6 @@
   "Turtle",
   "Tortue",
   "Schildkröte"
- ],
- "Unicorno": [
-  "Unicorn",
-  "Licorne",
-  "Einhorn"
  ],
  "Casco da astronauta": [
   "Astronaut helmet",
@@ -244,11 +229,6 @@
   "Lapin à lunettes",
   "Häschen mit Brille"
  ],
- "Farfalle": [
-  "Butterflies",
-  "Papillons",
-  "Schmetterlinge"
- ],
  "Berretto da capitano": [
   "Captain's cap",
   "Casquette de capitaine",
@@ -304,11 +284,6 @@
   "Cornes de diable",
   "Teufelshörner"
  ],
- "Orecchini": [
-  "Earrings",
-  "Boucles d'oreilles",
-  "Ohrringe"
- ],
  "Benda da pirata": [
   "Eye patch",
   "Bandeau de pirate",
@@ -343,11 +318,6 @@
   "Hair bow",
   "Nœud",
   "Haarschleife"
- ],
- "Mollette": [
-  "Hair clips",
-  "Barrettes",
-  "Haarspangen"
  ],
  "Aureola": [
   "Halo",
@@ -444,11 +414,6 @@
   "Casquette à hélice",
   "Propellermütze"
  ],
- "Nuvola di pioggia": [
-  "Rain cloud",
-  "Nuage de pluie",
-  "Regenwolke"
- ],
  "Cappello di Babbo Natale": [
   "Santa hat",
   "Bonnet de père Noël",
@@ -483,11 +448,6 @@
   "Sunglasses",
   "Lunettes de soleil",
   "Sonnenbrille"
- ],
- "Cappello sushi": [
-  "Sushi hat",
-  "Chapeau sushi",
-  "Sushi-Hut"
  ],
  "Tiara": [
   "Tiara",
@@ -609,20 +569,10 @@
   "Crête punk",
   "Irokese"
  ],
- "Dreadlocks": [
-  "Dreadlocks",
-  "Dreadlocks",
-  "Dreadlocks"
- ],
  "Ciuffo rock anni 50": [
   "Rockabilly pompadour",
   "Banane rockabilly",
   "Rockabilly-Tolle"
- ],
- "Frangia emo": [
-  "Emo side fringe",
-  "Frange emo",
-  "Emo-Pony"
  ],
  "Capelli grigi con basette": [
   "Grey hair with sideburns",
@@ -808,11 +758,6 @@
   "Blond hair",
   "Cheveux blonds",
   "Blonde Haare"
- ],
- "Capelli rossi raccolti": [
-  "Red swept hair",
-  "Cheveux roux coiffés",
-  "Rote Frisur"
  ],
  "Capelli lunghi neri": [
   "Long black hair",

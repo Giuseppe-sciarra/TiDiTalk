@@ -1,4 +1,5 @@
 // Occhiali a cuore rosa: montatura in plastica lucida, lenti rosa trasparenti.
+import { finish, lens as lensMaterial, plastic } from './_kit_acc.js';
 export const meta = { label: 'Occhiali a cuore', labelEn: 'Heart sunglasses', category: 'accessori', icon: '😍' };
 
 function heart(THREE, size) {
@@ -16,8 +17,8 @@ function heart(THREE, size) {
 
 export default function build(THREE, h) {
   const g = new THREE.Group();
-  const frameMat = new THREE.MeshPhysicalMaterial({ color: 0xff4f9a, roughness: .25, clearcoat: 1, clearcoatRoughness: .1 });
-  const lensMat = new THREE.MeshPhysicalMaterial({ color: 0xff8fc4, roughness: .05, transparent: true, opacity: .5, clearcoat: 1, side: THREE.DoubleSide });
+  const frameMat = plastic(THREE, 0xff4f9a, 0.50);
+  const lensMat = lensMaterial(THREE, 0x8a1d4c, 0.62, { side: THREE.DoubleSide });   // lente rosa scura (tinta lineare: una lente filtra la luce)
 
   for (const s of [-1, 1]) {
     const L = new THREE.Group();
@@ -47,5 +48,5 @@ export default function build(THREE, h) {
     const pp = geo.attributes.position, nn = geo.attributes.normal;
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
-  return g;
+  return finish(THREE, g);
 }

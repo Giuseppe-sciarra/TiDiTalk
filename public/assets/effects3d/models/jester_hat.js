@@ -1,4 +1,5 @@
 // Cappello da giullare: calotta con fascia a rombi, tre punte morbide ricadenti (rosso, viola, giallo) con sonagli dorati che dondolano.
+import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
 export const meta = { label: 'Cappello da giullare', labelEn: 'Jester hat', category: 'costumi', icon: '🃏' };
 
 function tubeVar(THREE, pts, rFn, segs = 48, radial = 24) {
@@ -60,7 +61,11 @@ export default function build(THREE, h) {
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
     occ.scale.set(8.2, 5, 8.2); occ.position.set(0, -2.0, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   g.userData.bells = bells;
-  return g;
+  // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
+  const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
+  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
+  root.add(faceOccluder(THREE, h, 0.2));
+  return afterFace(finish(THREE, root));
 }
 
 export function update(g, bs, t) {

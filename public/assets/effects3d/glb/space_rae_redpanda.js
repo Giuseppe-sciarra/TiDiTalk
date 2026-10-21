@@ -1,68 +1,32 @@
 // Astronaut red panda — CC0-1.0, Quaternius (quaternius.com)
-// Modello: space_rae_redpanda.glb (ottimizzato: <25k triangoli, texture ≤512 px, niente Draco/meshopt).
+// Modello: space_rae_redpanda.glb (Quaternius Ultimate Space Kit, CC0). 1.8.0: il mento si apre con la tua bocca
+// (morph sul muso, si vede la bocca scura con la lingua), la boccuccia stampata sorride e fa il bacio; palpebre
+// del colore del pelo sopra gli occhi (sbattono, occhiolino, strizzano); le pupille guardano dove guardi.
+import { loadHead, jawMorph, eraseTris } from './_glbhead.js';
+import { buildFace, updateFace, mat } from './_face.js';
 export const meta = {"label": "Panda rosso astronauta", "labelEn": "Astronaut red panda", "category": "personaggi", "icon": "🦊"};
 export const hideHead = true;
-const P = {"c": [0.0, 2.32652, -0.05756], "s": 24.288, "p": [0.0, 2.7, -1.5], "r": [0, 0, 0]};   // c = centro del modello (unità del file), s = scala → cm, p = posizione sulla testa canonica, r = rotazione (gradi)
+const P = {"c": [0.0, 2.32652, -0.05756], "s": 24.288, "p": [0.0, 2.7, -1.5], "r": [0, 0, 0]};
 const O = {"env": 0.5};
+const c01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 export default async function build(THREE, h) {
-  const gltf = await new h.GLTFLoader().loadAsync(new URL('./space_rae_redpanda.glb', import.meta.url).href);
-  const model = gltf.scene;
-  model.position.set(-P.c[0], -P.c[1], -P.c[2]);
-  const wrap = new THREE.Group();
-  wrap.add(model);
-  wrap.scale.setScalar(P.s);
-  wrap.position.set(P.p[0], P.p[1], P.p[2]);
-  wrap.rotation.set(P.r[0] * Math.PI / 180, P.r[1] * Math.PI / 180, P.r[2] * Math.PI / 180);
-  const g = new THREE.Group();
-  g.name = 'space_rae_redpanda';
-  g.add(wrap);
-  model.traverse((o) => {
-    if (!o.isMesh) return;
-    o.frustumCulled = false;
-    const mats = Array.isArray(o.material) ? o.material : [o.material];
-    for (const m of mats) {
-      if (O.hideMats && O.hideMats.some((n) => (m.name || '').toLowerCase().includes(n))) { o.visible = false; continue; }
-      if (O.env != null && 'envMapIntensity' in m) m.envMapIntensity = O.env;
-      if (O.color) { m.color.setRGB(O.color[0], O.color[1], O.color[2], THREE.SRGBColorSpace); }
-      if (O.rough != null && 'roughness' in m) m.roughness = O.rough;
-      if (O.metal != null && 'metalness' in m) m.metalness = O.metal;
-      if (O.matColor) for (const k in O.matColor) if ((m.name || '').includes(k)) m.color.setRGB(O.matColor[k][0], O.matColor[k][1], O.matColor[k][2], THREE.SRGBColorSpace);
-      if (O.tint != null) m.color.multiplyScalar(O.tint);
-      if (O.cards && m.map) {                    // ciocche/peli su piani con alpha: niente ordinamento, alpha test
-        m.transparent = false; m.alphaTest = O.alphaTest || 0.35; m.depthWrite = true; m.side = THREE.DoubleSide;
-      }
-      if (m.map) m.map.anisotropy = 4;
-      m.needsUpdate = true;
-    }
+  const { g, model } = await loadHead(THREE, h, new URL('./space_rae_redpanda.glb', import.meta.url).href, P, O, 'space_rae_redpanda');
+  const u = g.userData; let body = null; model.traverse((o) => { if (o.isMesh) body = body || o; });
+  // mento (sotto la bocca, muso chiaro) che si apre
+  u.jaw = jawMorph(THREE, g, body, { hinge: [0, 0.2, 5.0], angle: 0.42, y0: 0.6, y1: -0.6, z0: 5.0, zs: 2.5, xMax: 3.8, xs: 1.5 });
+  // via la boccuccia stampata (scura, y 1.1..2.7 al centro): la rifà il kit (sorride, bacio)
+  eraseTris(THREE, g, body, (x, y, z) => Math.abs(x) < 2.9 && y > 1.0 && y < 2.75 && z > 11.8);
+  const root = new THREE.Group(); g.add(root);
+  u.face = buildFace(THREE, root, {
+    eyes: { style: 'lids', x: 5.23, y: 5.38, z: 4.71, r: 3.33, sx: 1.0, sy: 1.0, sz: 1.0, ry: 0.55, lidMat: mat(THREE, 0xc96a35, { roughness: 0.85, flatShading: true }), lidR: 1.04, open: -1.0, low: 1.65, liner: 0x202125, linerW: 0.16, angry: 0.35 },
+    mouth: { y: 1.45, z: 12.3, w: 1.6, h: 2.0, d: 0.9, rx: -0.3, inner: 0x3a1418, tongue: 0xe06a7c, line: 0x202125, lineTh: 0.2, curve: 0.25, smileK: 0.7, frownK: 0.8, lip: null },
   });
-  if (O.clip && gltf.animations.length) {        // animazione di attesa del modello
-    const clip = THREE.AnimationClip.findByName(gltf.animations, O.clip) || gltf.animations[0];
-    const mixer = new THREE.AnimationMixer(model);
-    mixer.clipAction(clip).play();
-    g.userData.mixer = mixer;
-  }
-  if (O.jaw) {                                   // mandibola separata: perno sul bordo alto posteriore
-    const jaw = model.getObjectByName(O.jaw);
-    if (jaw && jaw.geometry) {
-      jaw.geometry.computeBoundingBox();
-      const b = jaw.geometry.boundingBox;
-      const hinge = new THREE.Vector3((b.min.x + b.max.x) / 2, b.max.y, b.min.z + (b.max.z - b.min.z) * 0.3);
-      jaw.geometry.translate(-hinge.x, -hinge.y, -hinge.z);
-      jaw.position.add(hinge);
-      g.userData.jaw = jaw;
-      g.userData.jaw0 = jaw.rotation.x;
-    }
-  }
   return g;
 }
 
-export function update(g, bs, t) {
+export function update(g, bs) {
   const u = g.userData;
-  if (u.mixer) {
-    const dt = u.t0 == null ? 0 : Math.min(0.1, Math.max(0, t - u.t0));
-    u.t0 = t;
-    u.mixer.update(dt);
-  }
-  if (u.jaw) u.jaw.rotation.x = u.jaw0 + (bs.jawOpen || 0) * O.jawAngle;
+  const s = updateFace(u.face, bs);
+  if (u.jaw) u.jaw.set(c01(Math.max(s.jaw, s.tongue * 0.4)) * (1 - s.pk * 0.5));
 }

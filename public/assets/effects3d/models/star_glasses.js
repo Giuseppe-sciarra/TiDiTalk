@@ -1,4 +1,5 @@
 // Occhiali a stella: montatura gialla lucida a forma di stella, lenti dorate semitrasparenti.
+import { finish, lens as lensMaterial, plastic } from './_kit_acc.js';
 export const meta = { label: 'Occhiali a stella', labelEn: 'Star glasses', category: 'accessori', icon: '🌟' };
 
 function star(THREE, R, r, n = 5, rot = -Math.PI / 2) {
@@ -12,8 +13,8 @@ function star(THREE, R, r, n = 5, rot = -Math.PI / 2) {
 
 export default function build(THREE, h) {
   const g = new THREE.Group();
-  const frameMat = new THREE.MeshPhysicalMaterial({ color: 0xffc928, roughness: .25, clearcoat: 1, clearcoatRoughness: .1 });
-  const lensMat = new THREE.MeshPhysicalMaterial({ color: 0xffd96a, roughness: .05, metalness: .2, transparent: true, opacity: .5, clearcoat: 1, side: THREE.DoubleSide });
+  const frameMat = plastic(THREE, 0xffc928, 0.50);
+  const lensMat = lensMaterial(THREE, 0x8a5c0a, 0.55, { side: THREE.DoubleSide });
 
   for (const s of [-1, 1]) {
     const L = new THREE.Group();
@@ -43,5 +44,5 @@ export default function build(THREE, h) {
     const pp = geo.attributes.position, nn = geo.attributes.normal;
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
-  return g;
+  return finish(THREE, g);
 }

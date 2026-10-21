@@ -1,4 +1,5 @@
 // Occhiali da Capodanno "2027": cifre dorate a palloncino sopra due lenti tonde glitterate, stelline e un pennacchio di coriandoli.
+import { finish, lens } from './_kit_acc.js';
 export const meta = { label: 'Occhiali 2027', labelEn: '2027 party glasses', category: 'accessori', icon: '🎉' };
 
 export default function build(THREE, h) {
@@ -11,7 +12,7 @@ export default function build(THREE, h) {
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 1);
     return new THREE.MeshStandardMaterial({ map: t, roughness: .35, metalness: .6 });
   })();
-  const lensMat = new THREE.MeshPhysicalMaterial({ color: 0x3a2a44, roughness: .05, metalness: .3, transparent: true, opacity: .55, clearcoat: 1, side: THREE.DoubleSide });
+  const lensMat = lens(THREE, 0x1e1424, 0.62, { side: THREE.DoubleSide });
 
   // montatura: due cerchi glitterati sugli occhi + ponte + aste
   for (const s of [-1, 1]) {
@@ -51,7 +52,7 @@ export default function build(THREE, h) {
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
   g.userData.stars = stars; g.userData.word = word;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

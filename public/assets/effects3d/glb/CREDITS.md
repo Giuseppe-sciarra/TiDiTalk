@@ -78,7 +78,7 @@ MakeHuman community assets marked "CC-BY" are CC BY 4.0 per the MakeHuman FAQ (h
 - Author: Elvaerwyn
 - Source: http://www.makehumancommunity.org/node/1860
 - License: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
-- Credit line: "elvs_short_daisy_hair" by Elvaerwyn (http://www.makehumancommunity.org/node/1860), MakeHuman community asset repository, shared under the terms of Creative Commons Attribution 4.0 (CC BY 4.0) https://creativecommons.org/licenses/by/4.0/. Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); converted from MakeHuman .mhclo/.obj to glTF, mesh quantized.
+- Credit line: "elvs_short_daisy_hair" by Elvaerwyn (http://www.makehumancommunity.org/node/1860), MakeHuman community asset repository, shared under the terms of Creative Commons Attribution 4.0 (CC BY 4.0) https://creativecommons.org/licenses/by/4.0/. Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); converted from MakeHuman .mhclo/.obj to glTF, mesh quantized; 1.8.0: re-fitted onto the skull (scaled/moved, no longer inside the forehead), left half mirrored for a centred parting, new centred fringe made of strand cards above the eyebrows, strand cards over the crown, scalp cap added, texture recoloured (dusty rose with darker roots), soft alpha edges.
 
 ### `mh_witchy_lil_bob` — Blond bob (Caschetto biondo)
 - File: `mh_witchy_lil_bob.glb`
@@ -86,7 +86,7 @@ MakeHuman community assets marked "CC-BY" are CC BY 4.0 per the MakeHuman FAQ (h
 - Author: Elvaerwyn
 - Source: http://www.makehumancommunity.org/node/1710
 - License: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
-- Credit line: "elvs_witchy_lil_bob" by Elvaerwyn (http://www.makehumancommunity.org/node/1710), MakeHuman community asset repository, shared under the terms of Creative Commons Attribution 4.0 (CC BY 4.0) https://creativecommons.org/licenses/by/4.0/. Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); converted from MakeHuman .mhclo/.obj to glTF, mesh quantized.
+- Credit line: "elvs_witchy_lil_bob" by Elvaerwyn (http://www.makehumancommunity.org/node/1710), MakeHuman community asset repository, shared under the terms of Creative Commons Attribution 4.0 (CC BY 4.0) https://creativecommons.org/licenses/by/4.0/. Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); converted from MakeHuman .mhclo/.obj to glTF, mesh quantized; 1.8.0: re-fitted onto the skull, original fringe removed and replaced by strand cards (same texture) with a centred fringe above the eyebrows, outer layer of strand cards for volume, scalp cap added, texture recoloured (honey blond with darker roots), soft alpha edges.
 
 ### `dali_moustache` — Dalí moustache (Baffi alla Dalí)
 - File: `dali_moustache.glb`
@@ -308,7 +308,7 @@ The full license text is in `LICENSE-Apache-2.0.txt` next to the files. NOTICE: 
 - Author: makehuman_system
 - Source: http://www.makehumancommunity.org
 - License: CC0 1.0 (public domain) — https://creativecommons.org/publicdomain/zero/1.0/
-- Credit line: "bob01" by makehuman_system (http://www.makehumancommunity.org), CC0 1.0 — public domain, attribution not required (credited as a courtesy). Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); converted from MakeHuman .mhclo/.obj to glTF, mesh quantized.
+- Credit line: "bob01" by makehuman_system (http://www.makehumancommunity.org), CC0 1.0 — public domain, attribution not required (credited as a courtesy). Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); converted from MakeHuman .mhclo/.obj to glTF, mesh quantized; 1.8.0: re-fitted onto the skull, original fringe (it covered one eye) removed and replaced by strand cards above the eyebrows, outer layer of strand cards for volume, scalp cap added, texture recoloured (espresso brown with darker roots), soft alpha edges.
 
 ### `q_casual_blond` — Blond hair (Capelli biondi)
 - File: `q_casual_blond.glb`
@@ -316,15 +316,7 @@ The full license text is in `LICENSE-Apache-2.0.txt` next to the files. NOTICE: 
 - Author: Quaternius (quaternius.com)
 - Source: https://quaternius.com/packs/ultimatemodularwomen.html
 - License: CC0 1.0 (public domain) — https://creativecommons.org/publicdomain/zero/1.0/
-- Credit line: "quaternius_casual_blond_hair (Quaternius Ultimate Modular Women)" by Quaternius (quaternius.com) (https://quaternius.com/packs/ultimatemodularwomen.html), CC0 1.0 — public domain, attribution not required (credited as a courtesy). Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); cut out of the full character (hair part only).
-
-### `q_formal_red` — Red swept hair (Capelli rossi raccolti)
-- File: `q_formal_red.glb`
-- Title: quaternius_formal_red_hair (Quaternius Ultimate Modular Women)
-- Author: Quaternius (quaternius.com)
-- Source: https://quaternius.com/packs/ultimatemodularwomen.html
-- License: CC0 1.0 (public domain) — https://creativecommons.org/publicdomain/zero/1.0/
-- Credit line: "quaternius_formal_red_hair (Quaternius Ultimate Modular Women)" by Quaternius (quaternius.com) (https://quaternius.com/packs/ultimatemodularwomen.html), CC0 1.0 — public domain, attribution not required (credited as a courtesy). Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); cut out of the full character (hair part only).
+- Credit line: "quaternius_casual_blond_hair (Quaternius Ultimate Modular Women)" by Quaternius (quaternius.com) (https://quaternius.com/packs/ultimatemodularwomen.html), CC0 1.0 — public domain, attribution not required (credited as a courtesy). Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); cut out of the full character (hair part only); 1.8.0: re-fitted onto the skull, welded/subdivided/smoothed (no flat facets), fringe cut above the eyebrows, procedural strand texture and alpha strand cards added on top (generated for Tiditalk), darker roots.
 
 ### `q_witch_long_black` — Long black hair (Capelli lunghi neri)
 - File: `q_witch_long_black.glb`
@@ -332,4 +324,4 @@ The full license text is in `LICENSE-Apache-2.0.txt` next to the files. NOTICE: 
 - Author: Quaternius (quaternius.com)
 - Source: https://quaternius.com/packs/ultimatemodularwomen.html
 - License: CC0 1.0 (public domain) — https://creativecommons.org/publicdomain/zero/1.0/
-- Credit line: "quaternius_witch_long_black_hair (Quaternius Ultimate Modular Women)" by Quaternius (quaternius.com) (https://quaternius.com/packs/ultimatemodularwomen.html), CC0 1.0 — public domain, attribution not required (credited as a courtesy). Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); cut out of the full character (head part only), hair recoloured darker.
+- Credit line: "quaternius_witch_long_black_hair (Quaternius Ultimate Modular Women)" by Quaternius (quaternius.com) (https://quaternius.com/packs/ultimatemodularwomen.html), CC0 1.0 — public domain, attribution not required (credited as a courtesy). Changes: optimised for Tiditalk (pruned/welded, textures resized to ≤512 px, re-centred and scaled onto the head); cut out of the full character (head part only), hair recoloured darker; 1.8.0: re-fitted onto the skull, welded/subdivided/smoothed (no flat facets), fringe cut above the eyebrows, procedural strand texture and alpha strand cards added on top (generated for Tiditalk), long strands down to the shoulders, darker roots.

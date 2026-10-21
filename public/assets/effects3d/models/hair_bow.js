@@ -1,4 +1,5 @@
 // Fiocco gigante sulla testa: nastro rosso a pois crema su cerchietto, due anse gonfie, nodo centrale e code tagliate a V.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Fiocco', labelEn: 'Hair bow', category: 'accessori', icon: '🎀' };
 
 export default function build(THREE, h) {
@@ -41,7 +42,7 @@ export default function build(THREE, h) {
   bow.position.set(0, 14.4, -1.8); bow.rotation.x = -0.3; bow.scale.setScalar(1.25);
   g.add(bow);
   g.userData.bow = bow;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

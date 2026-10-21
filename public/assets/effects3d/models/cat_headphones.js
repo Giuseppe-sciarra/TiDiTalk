@@ -1,4 +1,5 @@
 // Cuffie con orecchie da gatto: corpo bianco/rosa, orecchie e anelli LED rosa che pulsano.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Cuffie gatto LED', labelEn: 'Cat-ear headphones', category: 'accessori', icon: '🐾' };
 
 export default function build(THREE, h) {
@@ -55,7 +56,7 @@ export default function build(THREE, h) {
     g.add(cup);
   }
   g.userData.leds = [ledMat];
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

@@ -121,7 +121,7 @@ cloud, your branding.
   illustrations, or your own image), color styles and face
   effects (MediaPipe) in a **side panel with a live preview**, opened from More
   or from the button on your own tile
-- **228 3D face effects like Meet** (characters that copy your expressions,
+- **217 3D face effects like Meet** (characters that copy your expressions,
   wigs, beards, hats, glasses, painted masks, scenes with your face in a frame)
   that follow the head in 3D: MediaPipe Face Landmarker in a Web Worker +
   three.js, all served locally. The classic 2D effects stay in their own tab

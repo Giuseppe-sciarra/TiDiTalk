@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.8.1
+
+3D face effects: the ones that did not work well are fixed, the weakest ones
+are removed.
+
+### Fixed
+- **The effect appeared huge for a moment** when applied (or after standing
+  still, switching tab or losing the face) and went back to normal only when
+  moving. Two causes: an old pose left over from the previous effect, and a
+  single wrong measurement drawn as is. The effect now appears only after a
+  few consistent measurements of the face, impossible measurements are
+  discarded, a sudden jump counts only if the next measurement confirms it,
+  and the motion prediction is limited and reset after a pause
+- **Wigs from free models**: the pink bob went down over the eyes, sat to
+  one side and left a hole on the forehead (the cap went inside the head); the
+  blond bob looked like a flat orange box (its colour texture and normal map
+  were swapped). Both are rebuilt: cap on the skull, fringe centred above the
+  eyebrows, natural colours with darker roots, soft-edged locks. Also rebuilt:
+  dark bob (its fringe covered an eye), blond hair, long black hair
+
+### Changed
+- **Expressions follow your face**: MediaPipe gives small values (a wide open
+  mouth is about 0.5 out of 1) and the effects used them as they came. The
+  engine now learns each person's neutral face in about half a second and
+  maps every expression to its full range, with a filter that removes jitter
+  without delay. Effects receive calibrated values (0 = your neutral face,
+  1 = full expression)
+- **Characters rebuilt** (33): a real mouth with teeth and tongue that opens,
+  smiles, kisses and puffs the cheeks; glossy cartoon eyes that blink, squint
+  and look where you look; eyebrows; ears, whiskers and tufts that move with
+  a little inertia
+- **Heads from free models** (cube animals, monsters, wolf, werewolf, tiger,
+  pumpkin, red panda, sugar skull): now with a mouth and eyes that copy your
+  expressions
+- **Hair and beards**: fine strands with a highlight along the hair, a
+  hairline that rises gradually (no more "bowl"), afro and curls as a frizzy
+  cloud, real braids; beards and moustaches follow the jaw when you open the
+  mouth
+- **Hats, glasses and accessories**: believable materials (felt, knit,
+  leather, metal, tinted lenses instead of milky ones), rounded edges; on a
+  bald head tilted down the back of a hat no longer shows through the
+  forehead. The light bulb lights up with surprise, not when you talk
+- **More menu**: *Polls* removed, it is already in *Activities* (button in the
+  bar, or *Activities* in the More menu on narrow screens)
+
+### Removed
+- Effects that stayed poor: unicorn, sloth, smiley, butterflies, rain cloud,
+  sushi hat, hair clips, earrings, dreadlocks, emo hair, red swept-back hair
+  (228 → 217 effects)
+
+### Update
+- Only `docker compose up -d --build`
+
 ## 1.8.0
 
 Ideas taken from Google Meet (only the idea: no code, icons or images from

@@ -1,5 +1,6 @@
 // Cappello torta di compleanno: torta a due piani calzata sui capelli, glassa rosa che cola, codette colorate, ciliegia e
 // tre candeline a righe con fiammelle che tremolano (si spengono per un attimo se soffi: mouthPucker / mouthFunnel).
+import { afterFace, faceOccluder, finish, headOccluder, plastic } from './_kit_acc.js';
 export const meta = { label: 'Cappello torta', labelEn: 'Cake hat', category: 'costumi', icon: '🎂' };
 
 export default function build(THREE, h) {
@@ -41,7 +42,7 @@ export default function build(THREE, h) {
     m.rotation.set(Math.PI / 2, 0, a * 3); g.add(m);
   }
   // ciliegia
-  const cherry = new THREE.Mesh(new THREE.SphereGeometry(0.85, 18, 14), new THREE.MeshPhysicalMaterial({ color: 0xb3001b, roughness: .15, clearcoat: 1 }));
+  const cherry = new THREE.Mesh(new THREE.SphereGeometry(0.85, 18, 14), plastic(THREE, 0xb3001b, 0.50));
   cherry.position.set(2.6, 8.7, 2.4); g.add(cherry);
   g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(2.6, 9.4, 2.4), new THREE.Vector3(2.9, 10.4, 2.1), new THREE.Vector3(3.5, 11.0, 1.9)]), 10, 0.07, 5), h.mat(0x4c6b22, { roughness: .7 })));
   // candeline a righe (texture) con stoppino e fiamma
@@ -68,7 +69,11 @@ export default function build(THREE, h) {
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
     occ.scale.set(8.4, 5, 8.4); occ.position.set(0, -2.0, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   g.userData.flames = flames;
-  return g;
+  // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
+  const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
+  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
+  root.add(faceOccluder(THREE, h, 0.2));
+  return afterFace(finish(THREE, root));
 }
 
 export function update(g, bs, t) {

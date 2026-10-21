@@ -1,4 +1,5 @@
 // Orecchie da volpe: orecchie alte arancioni con punta nera e interno bianco, su cerchietto.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Orecchie da volpe', labelEn: 'Fox ears', category: 'costumi', icon: '🦊' };
 
 export default function build(THREE, h) {
@@ -31,7 +32,7 @@ export default function build(THREE, h) {
   };
   const eL = ear(1), eR = ear(-1);
   g.add(eL, eR); g.userData.ears = [eL, eR];
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

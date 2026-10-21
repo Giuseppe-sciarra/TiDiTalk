@@ -1,5 +1,6 @@
 // Lampadina dell'idea sopra la testa: bulbo di vetro caldo con filamento acceso, attacco a vite, raggi che pulsano;
 // si accende di più quando si alzano le sopracciglia o si spalancano gli occhi.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Idea luminosa', labelEn: 'Bright idea', category: 'divertenti', icon: '💡' };
 
 export default function build(THREE, h) {
@@ -39,12 +40,13 @@ export default function build(THREE, h) {
   g.add(bulb);
   g.userData = { bulb, glass, glow, filMat, rays, rayMat };
   update(g, {}, 0.5);
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {
   const u = g.userData;
-  const idea = Math.max(bs.browInnerUp || 0, ((bs.eyeWideLeft || 0) + (bs.eyeWideRight || 0)) / 2, bs.jawOpen || 0);
+  // "idea" = sorpresa (sopracciglia su, occhi spalancati), non il parlare: con la bocca si accenderebbe a ogni parola
+  const idea = Math.min(1, Math.max(bs.browInnerUp || 0, ((bs.eyeWideLeft || 0) + (bs.eyeWideRight || 0)) / 2) * 1.1);
   const k = 0.6 + 0.25 * (0.5 + 0.5 * Math.sin(t * 3.2)) + 0.6 * idea;
   u.filMat.emissiveIntensity = 1.4 + 1.6 * k;
   u.glass.material.emissiveIntensity = 0.25 + 0.45 * k;

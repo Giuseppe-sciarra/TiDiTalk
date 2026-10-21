@@ -1,4 +1,5 @@
 // Maschera da sub con boccaglio: vetro ovale su occhi e naso (il viso si vede), bordo in silicone giallo, cinghia, boccaglio laterale con bolle.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Maschera da sub', labelEn: 'Snorkel mask', category: 'costumi', icon: '🤿' };
 
 export default function build(THREE, h) {
@@ -64,7 +65,7 @@ export default function build(THREE, h) {
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
   g.userData.bubbles = bubbles;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

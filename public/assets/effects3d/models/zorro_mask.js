@@ -1,5 +1,6 @@
 // Maschera di Zorro 3D: fascia di stoffa nera che aderisce al viso (proiettata sulla mesh canonica), fori per gli occhi,
 // laccio annodato dietro la testa con due code che dondolano.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Maschera di Zorro', labelEn: 'Zorro mask', category: 'costumi', icon: '🦹' };
 
 export default function build(THREE, h) {
@@ -92,7 +93,7 @@ export default function build(THREE, h) {
   }
   g.add(knot);
   g.userData.tails = tails;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

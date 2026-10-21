@@ -1,11 +1,13 @@
 // Occhiali 3D anaglifo: montatura di cartoncino bianco, lente rossa a sinistra (di chi li porta) e ciano a destra.
+import { finish, lens } from './_kit_acc.js';
 export const meta = { label: 'Occhiali 3D', labelEn: '3D glasses', category: 'accessori', icon: '🎬' };
 
 export default function build(THREE, h) {
   const g = new THREE.Group();
   const card = h.mat(0xd9d2c3, { roughness: .9 });
-  const lensR = new THREE.MeshPhysicalMaterial({ color: 0xff2a2a, roughness: .1, transparent: true, opacity: .55, side: THREE.DoubleSide });
-  const lensC = new THREE.MeshPhysicalMaterial({ color: 0x19d4e8, roughness: .1, transparent: true, opacity: .55, side: THREE.DoubleSide });
+  // gelatine colorate: rosso e ciano saturi ma scuri (filtrano), con il riflesso del kit
+  const lensR = lens(THREE, 0xa0080c, 0.6, { side: THREE.DoubleSide });
+  const lensC = lens(THREE, 0x00707e, 0.6, { side: THREE.DoubleSide });
 
   // montatura frontale: rettangolo arrotondato con due fori rettangolari, poi piegata a seguire il viso
   const rr = (x, y, w, hh, r) => { const s = new THREE.Path(); s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r); s.lineTo(x + w, y + hh - r); s.quadraticCurveTo(x + w, y + hh, x + w - r, y + hh); s.lineTo(x + r, y + hh); s.quadraticCurveTo(x, y + hh, x, y + hh - r); s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y); return s; };
@@ -43,5 +45,5 @@ export default function build(THREE, h) {
     const pp = geo.attributes.position, nn = geo.attributes.normal;
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; outerG.add(occ); }
-  return outerG;
+  return finish(THREE, outerG);
 }

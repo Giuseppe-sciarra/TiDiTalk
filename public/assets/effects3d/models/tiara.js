@@ -1,4 +1,5 @@
 // Tiara d'argento: cerchietto sottile, archetti ornamentali crescenti verso il centro e gemme azzurre.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Tiara', labelEn: 'Tiara', category: 'costumi', icon: '💎' };
 
 export default function build(THREE, h) {
@@ -48,5 +49,5 @@ export default function build(THREE, h) {
 
   g.position.set(0, 8.8, -2.2);
   g.rotation.x = -0.22;
-  return g;
+  return finish(THREE, g);
 }

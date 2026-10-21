@@ -1,5 +1,6 @@
 // Casco da astronauta: sfera bianca con oblò frontale (visiera trasparente, il viso resta visibile), anello, collare e dettagli.
 // Grande (r 14.2) perché deve contenere anche i capelli veri; l'oblò va dalla fronte a sotto il mento.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Casco da astronauta', labelEn: 'Astronaut helmet', category: 'costumi', icon: '👩‍🚀' };
 
 export default function build(THREE, h) {
@@ -76,7 +77,7 @@ export default function build(THREE, h) {
   const tag = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.6), h.mat(0x2e6bd6, { roughness: .5 })); tag.position.copy(onShell([0.72, 0.5, 0.32], 0.12)); tag.lookAt(tag.position.clone().sub(C).multiplyScalar(3).add(C)); g.add(tag);
 
   g.userData.antTip = antTip;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

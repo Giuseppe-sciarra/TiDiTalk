@@ -1,4 +1,5 @@
 // Orecchie da gatto: cerchietto nero con due orecchie triangolari, interno rosa, un filo di pelo sui bordi.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Orecchie da gatto', labelEn: 'Cat ears', category: 'costumi', icon: '🐱' };
 
 export default function build(THREE, h) {
@@ -32,7 +33,7 @@ export default function build(THREE, h) {
   };
   const eL = ear(1), eR = ear(-1);
   g.add(eL, eR); g.userData.ears = [eL, eR];
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

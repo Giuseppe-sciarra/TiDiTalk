@@ -1,4 +1,5 @@
 // Orecchie da orso: due orecchie tonde marroni con interno chiaro, su cerchietto marrone.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Orecchie da orso', labelEn: 'Bear ears', category: 'costumi', icon: '🐻' };
 
 export default function build(THREE, h) {
@@ -27,7 +28,7 @@ export default function build(THREE, h) {
   };
   const eL = ear(1), eR = ear(-1);
   g.add(eL, eR); g.userData.ears = [eL, eR];
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

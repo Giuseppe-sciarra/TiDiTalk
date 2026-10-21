@@ -1,11 +1,12 @@
 // Gattina con occhiali (combo stile Meet): orecchie da gatto nere su cerchietto + occhiali cat-eye neri con punte dorate.
+import { finish, lens, plastic } from './_kit_acc.js';
 export const meta = { label: 'Gattina con occhiali', labelEn: 'Cat ears & cat-eye glasses', category: 'costumi', icon: '😼' };
 
 export default function build(THREE, h) {
   const g = new THREE.Group();
   const fur = h.mat(0x24222a, { roughness: .95 });
   const pink = h.mat(0xf0a2b4, { roughness: .9 });
-  const black = new THREE.MeshPhysicalMaterial({ color: 0x141416, roughness: .25, clearcoat: 1 });
+  const black = plastic(THREE, 0x141416, 0.50);
   const gold = h.mat(0xd9b24a, { roughness: .25, metalness: .95 });
 
   // cerchietto + orecchie da gatto
@@ -25,7 +26,7 @@ export default function build(THREE, h) {
     g.add(e); ears.push(e);
   }
   // occhiali cat-eye: montatura spessa con le punte esterne rialzate
-  const lensMat = new THREE.MeshPhysicalMaterial({ color: 0x2b2440, roughness: .05, metalness: .2, transparent: true, opacity: .5, clearcoat: 1, side: THREE.DoubleSide });
+  const lensMat = lens(THREE, 0x1a1626, 0.6, { side: THREE.DoubleSide });
   const catEye = (s, k) => {
     const sh = new THREE.Shape(), P = [];
     for (let i = 0; i <= 48; i++) {
@@ -58,7 +59,7 @@ export default function build(THREE, h) {
     for (let i = 0; i < pp.count; i++) pp.setXYZ(i, pp.getX(i) - nn.getX(i) * 0.3, pp.getY(i) - nn.getY(i) * 0.3, pp.getZ(i) - nn.getZ(i) * 0.3);
     const occ = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false })); occ.renderOrder = -1; occ.name = 'faceOccluder'; g.add(occ); }
   g.userData.ears = ears;
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

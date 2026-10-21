@@ -1,4 +1,5 @@
 // Aureola: anello dorato luminoso che fluttua sopra la testa e ondeggia piano.
+import { finish } from './_kit_acc.js';
 export const meta = { label: 'Aureola', labelEn: 'Halo', category: 'accessori', icon: '😇' };
 
 export default function build(THREE, h) {
@@ -14,7 +15,7 @@ export default function build(THREE, h) {
   g.position.set(0, 15.0, -2.8);
   g.rotation.x = -0.18;
   g.userData.base = g.position.clone();
-  return g;
+  return finish(THREE, g);
 }
 
 export function update(g, bs, t) {

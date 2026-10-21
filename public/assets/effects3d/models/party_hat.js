@@ -1,4 +1,5 @@
 // Cappellino da festa: cono a righe colorate con pompon animato.
+import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
 export const meta = { label: 'Cappellino da festa', labelEn: 'Party hat', category: 'costumi', icon: '🥳' };
 
 export default function build(THREE, h) {
@@ -52,7 +53,11 @@ export default function build(THREE, h) {
   g.rotation.z = 0.12;
   outer.add(g);
   outer.userData.pom = pom;
-  return outer;
+  // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
+  const root = new THREE.Group(); root.add(outer); root.userData = outer.userData;   // update() legge userData dal gruppo restituito
+  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
+  root.add(faceOccluder(THREE, h, 0.2));
+  return afterFace(finish(THREE, root));
 }
 
 export function update(g, bs, t) {
