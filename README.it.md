@@ -56,7 +56,7 @@ tuo marchio.
   microfono e camera dentro, pillole per microfono, casse e webcam, chi c'è
   già (solo con un link valido) e **altri modi per entrare**: come **secondo
   schermo** (il portatile in sala riunioni senza microfono, casse né camera,
-  quindi senza eco; «Passa all'audio» lo rende un partecipante normale) oppure
+  quindi senza eco; «Torna in chiamata» lo rende un partecipante normale) oppure
   entrando e presentando subito
 - **Termina la riunione per tutti**: premendo Esci l'organizzatore sceglie se
   uscire solo lui o chiudere la riunione per tutti, sala d'attesa compresa

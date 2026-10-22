@@ -2383,5 +2383,22 @@
   "{0} ti ha rimandato in sala d'attesa…": "{0} vous a renvoyé en salle d'attente…",
   "Puoi fissare per tutti al massimo 3 riquadri": "Vous pouvez épingler 3 vignettes maximum pour tous",
   "Per te usa il tasto del microfono": "Pour vous, utilisez le bouton du micro",
-  "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa": "Les organisateurs entrent toujours : impossible de les renvoyer en salle d'attente"
+  "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa": "Les organisateurs entrent toujours : impossible de les renvoyer en salle d'attente",
+  "Riunione in corso": "Réunion en cours",
+  "altre {0}": "{0} autres",
+  "Scrivi la risposta": "Écrire la réponse",
+  "Scrivi la risposta: la vedranno tutti": "Écrivez la réponse : tout le monde la verra",
+  "Pubblica la risposta": "Publier la réponse",
+  "Togli la risposta": "Retirer la réponse",
+  "Modifica": "Modifier",
+  "modificata": "modifiée",
+  "Risposta scritta": "Réponse écrite",
+  "Questa risposta l'ha scritta un altro organizzatore": "Un autre organisateur a écrit cette réponse",
+  "Torna in chiamata": "Revenir à l'appel",
+  "Torna in chiamata: usa microfono, casse e videocamera da questo dispositivo": "Revenir à l'appel : utiliser le micro, les haut-parleurs et la caméra de cet appareil",
+  "Sei entrato come secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Vous avez rejoint comme second écran : appuyez sur « Revenir à l'appel » pour utiliser le micro, les haut-parleurs et la caméra",
+  "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»": "Un second écran n'envoie ni micro ni caméra : appuyez sur « Revenir à l'appel »",
+  "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»": "Pour utiliser cet appareil à côté de celui avec lequel vous parlez : le micro, les haut-parleurs et la caméra s'éteignent. Pour revenir, appuyez sur « Revenir à l'appel »",
+  "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»": "C'est maintenant un second écran : le micro, les haut-parleurs et la caméra sont éteints. Pour revenir, appuyez sur « Revenir à l'appel »",
+  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Cet appareil est un second écran : appuyez sur « Revenir à l'appel » pour utiliser le micro, les haut-parleurs et la caméra"
 }

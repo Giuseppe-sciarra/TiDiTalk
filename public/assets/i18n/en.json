@@ -2383,5 +2383,22 @@
   "{0} ti ha rimandato in sala d'attesa…": "{0} sent you back to the waiting room…",
   "Puoi fissare per tutti al massimo 3 riquadri": "You can pin up to 3 tiles for everyone",
   "Per te usa il tasto del microfono": "To mute yourself, use the microphone button",
-  "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa": "Organizers always get in: you can't send them to the waiting room"
+  "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa": "Organizers always get in: you can't send them to the waiting room",
+  "Riunione in corso": "Meeting in progress",
+  "altre {0}": "{0} more",
+  "Scrivi la risposta": "Write the answer",
+  "Scrivi la risposta: la vedranno tutti": "Write the answer: everyone will see it",
+  "Pubblica la risposta": "Post the answer",
+  "Togli la risposta": "Remove the answer",
+  "Modifica": "Edit",
+  "modificata": "edited",
+  "Risposta scritta": "Written answer",
+  "Questa risposta l'ha scritta un altro organizzatore": "Another host wrote this answer",
+  "Torna in chiamata": "Back to the call",
+  "Torna in chiamata: usa microfono, casse e videocamera da questo dispositivo": "Back to the call: use the microphone, speakers and camera on this device",
+  "Sei entrato come secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "You joined as a second screen: press “Back to the call” to use the microphone, speakers and camera",
+  "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»": "A second screen doesn't send microphone or camera: press “Back to the call”",
+  "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»": "To use this device next to the one you talk on: microphone, speakers and camera turn off. To go back, press “Back to the call”",
+  "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»": "This is now a second screen: microphone, speakers and camera are off. To go back, press “Back to the call”",
+  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "This device is a second screen: press “Back to the call” to use the microphone, speakers and camera"
 }

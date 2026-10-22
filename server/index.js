@@ -1379,7 +1379,7 @@ io.on('connection', (socket) => {
       // ⭐ R12: appData ridotto al solo mediaType (whitelist). Prima l'oggetto del
       // client veniva rigirato a tutti i peer così com'era.
       const mt = _isPlainObject(appData) && _MEDIA_TYPES.has(appData.mediaType) ? appData.mediaType : (kind === 'audio' ? 'audio' : 'video');
-      if (org.refuseProduce(currentPeer, mt)) throw new Error('Un secondo schermo non trasmette microfono né videocamera: premi «Passa all\'audio»');
+      if (org.refuseProduce(currentPeer, mt)) throw new Error('Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»');
       if ((mt === 'screen' || mt === 'screen-audio') && currentPeer.isGuest && !currentRoom.rules.guestScreenShare) {
         throw new Error('La condivisione schermo è riservata agli organizzatori');
       }

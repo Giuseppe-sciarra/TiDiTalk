@@ -27,6 +27,7 @@ const LIM = {
   DUR_MAX: 3 * 3600,    // 3 ore
   ADD_MAX: 600,         // "+N" al massimo 10 minuti per volta
   Q_TEXT: 300,          // caratteri di una domanda
+  Q_ANSWER: 1000,       // caratteri di una risposta scritta (1.8.5)
   Q_ROOM: 200,          // domande per stanza
   Q_SOCKET: 30,         // domande per connessione
 };
@@ -124,6 +125,8 @@ function qView(room, q, sid) {
     votes: q.votes.size, voted: q.votes.has(key),
     status: q.status, hidden: q.hidden,
     createdAt: q.createdAt, answeredAt: q.answeredAt,
+    // 1.8.5: risposta scritta dall'organizzatore (la vedono tutti)
+    answer: q.answer ? { text: q.answer.text, name: q.answer.name, at: q.answer.at, edited: !!q.answer.edited, mine: !!q.answer.key && q.answer.key === key } : null,
   };
 }
 
@@ -299,6 +302,27 @@ function bind(io, socket, ctx) {
     }
     q.status = status;
     q.answeredAt = status === 'answered' ? now : null;
+    broadcastQ(io, room, q, socket.id);
+    cb({ ok: true });
+  });
+  // 1.8.5 · risposta scritta: la scrive un organizzatore, la domanda passa a
+  // «Risposta data»; solo chi l'ha scritta la corregge o la toglie (testo vuoto)
+  on('qnaAnswer', (d, cb) => {
+    guard(d, 'mod', true, Q_HOST);
+    const room = ctx.room(), q = qFind(room, safeId(d.id));
+    if (!q) throw new Error('Domanda non trovata');
+    const key = room.voterKey(socket.id);
+    if (q.answer && q.answer.key && q.answer.key !== key) throw new Error('Questa risposta l\'ha scritta un altro organizzatore');
+    const text = cleanText(d.text, LIM.Q_ANSWER, false);
+    const now = Date.now();
+    if (!text) {
+      if (!q.answer) return cb({ ok: true });
+      q.answer = null;
+      if (q.status === 'answered') { q.status = 'open'; q.answeredAt = null; }
+    } else {
+      q.answer = { text, name: ctx.peer().displayName, key, at: q.answer ? q.answer.at : now, edited: !!q.answer };
+      q.status = 'answered'; q.answeredAt = q.answeredAt || now; q.hidden = false;
+    }
     broadcastQ(io, room, q, socket.id);
     cb({ ok: true });
   });

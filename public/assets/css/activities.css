@@ -358,3 +358,22 @@ body.tdt-room #moreMenu #btnPolls { display: none !important; }
 :root[data-theme="light"] body.tdt-room .tmr-pill { background: color-mix(in srgb, #ffffff 90%, transparent); box-shadow: 0 12px 30px -14px rgba(16, 18, 23, .35), 0 0 0 1px rgba(16, 18, 23, .04); }
 :root[data-theme="light"] body.tdt-room .tmr-pill.is-ended { background: var(--accent); }
 :root[data-theme="light"] body.tdt-room .act-tab.active { box-shadow: 0 1px 0 var(--hair), 0 4px 12px -8px rgba(16, 18, 23, .3); }
+
+/* 1.8.5 · Domande: risposta scritta dall'organizzatore */
+body.tdt-room .qna-q.is-done.has-answer { opacity: 1; }
+body.tdt-room .qna-answer {
+  margin-top: 4px; padding: 9px 11px; border-radius: 12px;
+  background: color-mix(in srgb, var(--ok) 8%, var(--ink-2)); border: 1px solid color-mix(in srgb, var(--ok) 28%, var(--hair-2));
+  display: flex; flex-direction: column; gap: 4px;
+}
+body.tdt-room .qna-answer-head { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--paper-3); }
+body.tdt-room .qna-answer-head svg { color: var(--ok); flex-shrink: 0; }
+body.tdt-room .qna-answer-who { font-weight: 600; color: var(--paper-2); }
+body.tdt-room .qna-answer-text { font-size: 14px; line-height: 1.42; color: var(--paper); white-space: pre-wrap; overflow-wrap: anywhere; }
+body.tdt-room .qna-answer-form { background: var(--ink-2); border-color: var(--accent-line); }
+body.tdt-room .qna-answer-input {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px; max-height: 220px;
+  padding: 8px 10px; border-radius: 10px; border: 1px solid var(--hair-2);
+  background: var(--ink-1); color: var(--paper); font: 400 14px/1.4 var(--font);
+}
+body.tdt-room .qna-answer-input:focus { outline: none; border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }

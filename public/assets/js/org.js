@@ -218,7 +218,7 @@
   // ── 09 · Secondo schermo ─────────────────────────────────────────────────
   // Entrato dal pre-ingresso senza microfono, casse né videocamera: restano
   // chat, sondaggi, mano, reazioni e Presenta. Gli altri non hanno il suo
-  // riquadro (room.js: peerJoined). «Passa all'audio» lo rende un partecipante
+  // riquadro (room.js: peerJoined). «Torna in chiamata» lo rende un partecipante
   // normale senza rientrare. Il server rifiuta comunque mic e camera (server/org.js).
   const isSS = () => !!window._tdSecondScreen;
   const SS_ICO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="13" height="9.5" rx="1.6"/><path d="M6 17h6M9 13.5V17"/><rect x="17" y="8" width="4.5" height="12" rx="1.2"/><path d="M19.25 17.2h.01"/></svg>';
@@ -238,9 +238,9 @@
         ssBtn.type = 'button';
         ssBtn.id = 'btnOrgAudio';
         ssBtn.className = 'ctrl-btn org-ss-audio';
-        ssBtn.dataset.tip = 'Passa all\'audio: usa microfono, casse e videocamera da questo dispositivo';
-        ssBtn.setAttribute('aria-label', 'Passa all\'audio');
-        ssBtn.innerHTML = `<div class="ctrl-icon">${SS_ICO}</div><span class="ctrl-label org-ss-label">Passa all'audio</span>`;
+        ssBtn.dataset.tip = 'Torna in chiamata: usa microfono, casse e videocamera da questo dispositivo';
+        ssBtn.setAttribute('aria-label', 'Torna in chiamata');
+        ssBtn.innerHTML = `<div class="ctrl-icon">${SS_ICO}</div><span class="ctrl-label org-ss-label">Torna in chiamata</span>`;
         ssBtn.addEventListener('click', switchToAudio);
       }
       const cc = document.querySelector('.controls-bar .controls-center');
@@ -252,7 +252,7 @@
   // 1.8.3 · da partecipante normale a secondo schermo, senza uscire e rientrare.
   // Il server chiude i producer di microfono e videocamera (lo schermo condiviso
   // resta) e avvisa gli altri; qui si spengono i dispositivi e si fa come se si
-  // fosse entrati come secondo schermo: «Passa all'audio» riporta indietro.
+  // fosse entrati come secondo schermo: «Torna in chiamata» riporta indietro.
   let toSSBusy = false;
   function switchToSecondScreen() {
     if (isSS() || !socket || toSSBusy) return;
@@ -264,7 +264,7 @@
       ssStopMedia();
       ssApply();
       try { refreshParticipants(); } catch (_) { }
-      window.showToast?.(T('Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Passa all\'audio»'), 5000);
+      window.showToast?.(T('Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»'), 5000);
       try { ssBtn?.focus(); } catch (_) { }
     });
   }
@@ -295,7 +295,7 @@
     if (!isSS()) return false;
     if (Date.now() - ssToastAt > 2500) {
       ssToastAt = Date.now();
-      window.showToast?.(T('Questo dispositivo è un secondo schermo: premi «Passa all\'audio» per usare microfono, casse e videocamera'), 4000);
+      window.showToast?.(T('Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera'), 4000);
     }
     if (ssBtn) { ssBtn.classList.remove('org-ss-nudge'); void ssBtn.offsetWidth; ssBtn.classList.add('org-ss-nudge'); }
     return true;

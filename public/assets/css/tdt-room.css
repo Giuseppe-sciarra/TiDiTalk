@@ -491,7 +491,13 @@ body.tdt-room .toast {
   box-shadow: 0 14px 34px -14px rgba(0,0,0,.7);
   border: none;
   max-width: min(560px, calc(100vw - 32px));
+  /* 1.8.5: i testi lunghi vanno a capo dentro la pillola invece di uscirne */
+  white-space: normal; overflow-wrap: anywhere; text-align: center;
+  width: max-content; box-sizing: border-box; border-radius: 22px;
 }
+/* il contenitore occupa tutta la larghezza (con left: 50% la pillola poteva
+   allargarsi solo fino a metà schermo) e centra gli avvisi */
+body.tdt-room .toast-container { left: 16px; right: 16px; transform: none; align-items: center; }
 body.tdt-room .mute-warning-banner {
   background: var(--paper); color: #17150f; border-radius: 999px;
   font: 500 14px var(--font); gap: 10px; box-shadow: 0 14px 34px -14px rgba(0,0,0,.7);

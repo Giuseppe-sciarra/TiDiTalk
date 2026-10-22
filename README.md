@@ -54,7 +54,7 @@ cloud, your branding.
   microphone and camera buttons inside it, pills for microphone, speakers and
   webcam, who is already in (only with a valid link) and **other ways to
   join**: as a **second screen** (the laptop in the meeting room with no
-  microphone, speakers or camera, so no echo; *Switch to audio* makes it a
+  microphone, speakers or camera, so no echo; *Back to the call* makes it a
   normal participant) or joining and presenting right away
 - **End the meeting for everyone**: pressing Leave, a host chooses whether to
   just leave or close the meeting for everyone, waiting room included

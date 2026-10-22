@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.8.5
+
+### Added
+- **Written answers in Questions**: under each question hosts can *Write the
+  answer*; it shows under the question for everyone (also for people who join
+  later) and the question moves to *Answered*. Whoever wrote it can edit it
+  (marked *edited*) or remove it (the question goes back to waiting). The Excel
+  download has a *Written answer* column. Only hosts can answer, checked by the
+  server
+- **Meeting in progress on the home page**: at the top of the left card, with
+  *Join* and *Join as a second screen*, no code to type again (the typical
+  case: you are already in the meeting on the laptop and open the home page on
+  the second device). The green "1 meeting in progress" line leads there
+
+### Changed
+- *Switch to audio* is now **Back to the call** (button, notices, server message)
+- *Join as a second screen* is no longer under *Join with code*
+
+### Fixed
+- Long notices in the room went out of their pill: now they wrap inside it and
+  stay centred
+
 ## 1.8.4
 
 ### Fixed

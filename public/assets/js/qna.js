@@ -10,7 +10,7 @@
  *     «Con risposta». La domanda «In risposta» sta in cima, evidenziata per tutti.
  *   • Organizzatori: «In risposta», «Risposta data», nascondi / mostra le fuori
  *     tema, scarica l'elenco per Excel (CSV UTF-8 con BOM, separatore ;).
- * Server: qnaAsk / qnaVote / qnaStatus / qnaHide → qnaUpdate (vista per persona).
+ * Server: qnaAsk / qnaVote / qnaStatus / qnaHide / qnaAnswer (1.8.5) → qnaUpdate (vista per persona).
  */
 (function () {
   const A = () => window.TDTActivities;
@@ -27,6 +27,9 @@
     undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', 15),
     dl: svg('<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>', 16),
     send: svg('<path d="M4.5 12h13M12.5 6.5L18 12l-5.5 5.5"/>', 17, 2.1),
+    pen: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>', 15),
+    reply: svg('<path d="M10 8L5 12.5 10 17"/><path d="M5.5 12.5H14a5 5 0 0 1 5 5V19"/>', 15),
+    trash: svg('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>', 15),
     mask: svg('<path d="M3 9.5c0-1.5 1.2-2.5 2.7-2.5h12.6c1.5 0 2.7 1 2.7 2.5 0 4-2.7 7-5.6 7-1.7 0-2.4-1.6-3.4-1.6s-1.7 1.6-3.4 1.6C5.7 16.5 3 13.5 3 9.5z"/><path d="M7.5 10.8h2M14.5 10.8h2"/>', 15),
     q: svg('<path d="M20 12.5a7.5 7.5 0 0 1-11.2 6.5L4 20l1.1-4.3A7.5 7.5 0 1 1 20 12.5z"/><path d="M10.3 10.2a1.9 1.9 0 1 1 2.6 1.8c-.6.3-.9.7-.9 1.3v.4M12 16.4h.01"/>', 30, 1.6),
   };
@@ -38,6 +41,7 @@
   const drawn = new Set();       // id già disegnati: l'animazione d'ingresso solo per le nuove
   let socket = null, sec$ = null, visible = false, view = 'top', showHidden = false;
   let unseen = 0, draft = '', anon = false;
+  let editing = null, editDraft = ''; // 1.8.5: risposta scritta in corso (id della domanda)
   let pendingAnon = 0; // domande anonime mie in viaggio: l'id torna dopo l'eco del server
   try { view = ['top', 'new', 'done'].includes(localStorage.getItem(LS_VIEW)) ? localStorage.getItem(LS_VIEW) : 'top'; } catch (_) { }
   try { anon = localStorage.getItem(LS_ANON) === '1'; } catch (_) { }
@@ -145,13 +149,32 @@
     let actions = '';
     if (host) {
       const b = (act, ico, label, cls = '') => `<button type="button" class="qna-act ${cls}" data-act="${act}" data-id="${esc(q.id)}">${ico}<span>${label}</span></button>`;
+      const write = !q.answer ? b('write', ICO.pen, 'Scrivi la risposta') : '';
       if (q.hidden) actions = b('show', ICO.eye, 'Mostra di nuovo');
-      else if (q.status === 'open') actions = b('answering', ICO.mic, 'In risposta', 'qna-act-main') + b('answered', ICO.check, 'Risposta data') + b('hide', ICO.eyeOff, 'Nascondi');
-      else if (q.status === 'answering') actions = b('answered', ICO.check, 'Risposta data', 'qna-act-main') + b('open', ICO.undo, 'Rimetti in attesa') + b('hide', ICO.eyeOff, 'Nascondi');
-      else actions = b('open', ICO.undo, 'Rimetti in attesa') + b('hide', ICO.eyeOff, 'Nascondi');
+      else if (q.status === 'open') actions = b('answering', ICO.mic, 'In risposta', 'qna-act-main') + write + b('answered', ICO.check, 'Risposta data') + b('hide', ICO.eyeOff, 'Nascondi');
+      else if (q.status === 'answering') actions = b('answered', ICO.check, 'Risposta data', 'qna-act-main') + write + b('open', ICO.undo, 'Rimetti in attesa') + b('hide', ICO.eyeOff, 'Nascondi');
+      else actions = write + b('open', ICO.undo, 'Rimetti in attesa') + b('hide', ICO.eyeOff, 'Nascondi');
+      if (editing === q.id) actions = '';
+    }
+    // 1.8.5: risposta scritta (la vedono tutti) e modulo per scriverla
+    let answer = '';
+    if (q.answer && editing !== q.id) {
+      const a = q.answer;
+      const own = host && a.mine;
+      answer = `<div class="qna-answer">
+        <div class="qna-answer-head">${ICO.reply}<span class="qna-answer-who" translate="no">${esc(a.mine ? T('Tu') : a.name || '')}</span><span class="qna-time">${esc(timeOf(a.at))}${a.edited ? ' · ' + esc(T('modificata')) : ''}</span></div>
+        <div class="qna-answer-text" translate="no">${esc(a.text)}</div>
+        ${own ? `<div class="qna-acts"><button type="button" class="qna-act" data-act="edit" data-id="${esc(q.id)}">${ICO.pen}<span>${esc(T('Modifica'))}</span></button><button type="button" class="qna-act" data-act="unanswer" data-id="${esc(q.id)}">${ICO.trash}<span>${esc(T('Togli la risposta'))}</span></button></div>` : ''}
+      </div>`;
+    }
+    if (host && editing === q.id) {
+      answer = `<div class="qna-answer qna-answer-form">
+        <textarea class="qna-answer-input" id="qnaAnswerInput" rows="3" maxlength="1000" placeholder="${esc(T('Scrivi la risposta: la vedranno tutti'))}" aria-label="${esc(T('Scrivi la risposta'))}"></textarea>
+        <div class="qna-acts"><button type="button" class="qna-act qna-act-main" data-act="answerSend" data-id="${esc(q.id)}">${ICO.send}<span>${esc(T('Pubblica la risposta'))}</span></button><button type="button" class="qna-act" data-act="answerCancel" data-id="${esc(q.id)}"><span>${esc(T('Annulla'))}</span></button></div>
+      </div>`;
     }
     const fresh = !drawn.has(String(q.id));
-    return `<article class="qna-q ${extraCls}${fresh ? ' is-new' : ''}${q.status === 'answering' ? ' is-live' : ''}${q.status === 'answered' ? ' is-done' : ''}${q.hidden ? ' is-hidden' : ''}${mine ? ' is-mine' : ''}" data-id="${esc(q.id)}">
+    return `<article class="qna-q ${extraCls}${fresh ? ' is-new' : ''}${q.status === 'answering' ? ' is-live' : ''}${q.status === 'answered' ? ' is-done' : ''}${q.answer ? ' has-answer' : ''}${q.hidden ? ' is-hidden' : ''}${mine ? ' is-mine' : ''}" data-id="${esc(q.id)}">
       <div class="qna-q-main">
         <div class="qna-q-head">
           <span class="qna-who${q.anonymous ? ' anon' : ''}" ${q.anonymous ? '' : 'translate="no"'}>${q.anonymous ? `<span class="qna-who-ico">${ICO.mask}</span>` : ''}${esc(who)}</span>
@@ -159,6 +182,7 @@
           ${status}${hiddenChip}
         </div>
         <div class="qna-q-text" translate="no">${esc(q.text)}</div>
+        ${answer}
         ${actions ? `<div class="qna-acts">${actions}</div>` : ''}
       </div>
       <button type="button" class="qna-vote${q.voted ? ' on' : ''}" data-act="vote" data-id="${esc(q.id)}" ${canVote ? '' : 'disabled'} aria-pressed="${q.voted ? 'true' : 'false'}" aria-label="${esc(voteLbl)} (${q.votes})" data-tip="${canVote ? esc(voteLbl) : ''}">
@@ -197,8 +221,20 @@
     }
     // conserva lo scorrimento mentre arrivano i voti
     const st = list.scrollTop;
+    const ae = document.activeElement, hadFocus = !!ae && ae.id === 'qnaAnswerInput';
+    const selS = hadFocus ? ae.selectionStart : null, selE = hadFocus ? ae.selectionEnd : null;
     list.innerHTML = html;
     list.scrollTop = st;
+    const ai = list.querySelector('#qnaAnswerInput');
+    if (ai) {
+      ai.value = editDraft;
+      ai.addEventListener('input', () => { editDraft = ai.value; });
+      ai.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); editing = null; render(); }
+        else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); sendAnswer(editing, ai.value); }
+      });
+      if (hadFocus) { ai.focus({ preventScroll: true }); ai.setSelectionRange(selS, selE); }
+    }
     qs.forEach((_, id) => drawn.add(String(id)));
     list.querySelector('#qnaHiddenToggle')?.addEventListener('click', () => { showHidden = !showHidden; render(); });
   }
@@ -218,8 +254,25 @@
       socket?.emit('qnaVote', { id, on: want }, (r) => { if (r?.error) { q.voted = !want; q.votes = Math.max(0, q.votes + (want ? -1 : 1)); render(); cb(r); } });
       return;
     }
+    if (a === 'write' || a === 'edit') { editing = id; editDraft = a === 'edit' && q.answer ? q.answer.text : ''; render(); focusAnswer(); return; }
+    if (a === 'answerCancel') { editing = null; render(); return; }
+    if (a === 'answerSend') { sendAnswer(id, sec$.querySelector('#qnaAnswerInput')?.value || ''); return; }
+    if (a === 'unanswer') { socket?.emit('qnaAnswer', { id, text: '' }, cb); return; }
     if (a === 'hide' || a === 'show') { socket?.emit('qnaHide', { id, hidden: a === 'hide' }, cb); return; }
     if (['open', 'answering', 'answered'].includes(a)) socket?.emit('qnaStatus', { id, status: a }, cb);
+  }
+
+  // 1.8.5 · risposta scritta
+  function focusAnswer() { const ai = sec$?.querySelector('#qnaAnswerInput'); if (ai) { ai.focus(); ai.setSelectionRange(ai.value.length, ai.value.length); } }
+  function sendAnswer(id, text) {
+    const t = String(text || '').trim();
+    if (!t) { focusAnswer(); return; }
+    const btn = sec$?.querySelector('[data-act="answerSend"]'); if (btn) btn.disabled = true;
+    socket?.emit('qnaAnswer', { id, text: t }, (r) => {
+      if (btn) btn.disabled = false;
+      if (r?.error) { window.showToast?.(r.error, 3000); return; }
+      editing = null; editDraft = ''; render();
+    });
   }
 
   function ask() {
@@ -253,11 +306,11 @@
     return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
   function buildCsv() {
-    const rows = [[T('Domanda'), T('Autore'), T('Voti'), T('Stato'), T('Ora')]];
+    const rows = [[T('Domanda'), T('Autore'), T('Voti'), T('Stato'), T('Risposta scritta'), T('Ora')]];
     const all = [...qs.values()].sort((a, b) => a.createdAt - b.createdAt);
     for (const q of all) {
       const st = q.hidden ? T('Nascosta') : T(STATUS_LABEL[q.status] || q.status);
-      rows.push([q.text, q.anonymous ? T('Anonimo') : (q.author || ''), q.votes, st, timeOf(q.createdAt)]);
+      rows.push([q.text, q.anonymous ? T('Anonimo') : (q.author || ''), q.votes, st, q.answer ? q.answer.text + (q.answer.name ? ' (' + q.answer.name + ')' : '') : '', timeOf(q.createdAt)]);
     }
     return '﻿' + rows.map(r => r.map(csvCell).join(';')).join('\r\n') + '\r\n';
   }

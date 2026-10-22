@@ -38,6 +38,8 @@
           <h1 class="page-title"><span id="greeting">Ciao</span>, <span data-user-name></span>.</h1>
           <p class="page-sub"><span id="todayLine" translate="no"></span><span class="home-live hidden" id="liveLine"></span></p>
         </div>
+        <!-- 1.8.5: riunione in corso, con «Entra come secondo schermo» -->
+        <div class="home-livecard hidden" id="liveCard" aria-live="polite"></div>
 
         <div class="tabs hr" id="homeTabs" role="tablist">
           <div class="tabs-pill" aria-hidden="true"></div>
@@ -87,7 +89,6 @@
               </div>
               <div class="hint">Puoi incollare anche l'intero link: prendiamo noi il codice.</div>
             </div>
-            <button type="button" class="home-ss" id="btnJoinSS" data-tip="Per usare questo dispositivo accanto a quello con cui parli: chat, sondaggi, mano, reazioni e Presenta, senza microfono, casse né videocamera"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="13" height="9.5" rx="1.6"/><path d="M6 17h6M9 13.5V17"/><rect x="17" y="8" width="4.5" height="12" rx="1.2"/><path d="M19.25 17.2h.01"/></svg><span>Entra come secondo schermo</span></button>
           </section>
 
           <!-- Recenti -->

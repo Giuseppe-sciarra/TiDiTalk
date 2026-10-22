@@ -97,7 +97,6 @@
     go(`/room/${code}`, opts);
   }
   $('#btnJoinRoom').addEventListener('click', () => joinByCode());
-  $('#btnJoinSS')?.addEventListener('click', () => joinByCode({ secondScreen: true })); // 1.8.3
   idIn.addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnJoinRoom').click(); });
   idIn.addEventListener('paste', () => setTimeout(() => { const c = codeFromInput(idIn.value); if (c && /\/room\//.test(idIn.value)) idIn.value = c; }, 0));
 
@@ -336,6 +335,7 @@
       badge.textContent = live.length; badge.classList.toggle('hidden', !live.length);
       const ll = $('#liveLine');
       if (live.length) { ll.innerHTML = `<i></i>${esc(live.length === 1 ? T('1 riunione in corso') : T('{0} riunioni in corso').replace('{0}', live.length))}`; ll.classList.remove('hidden'); } else ll.classList.add('hidden');
+      renderLive(live); // 1.8.5
       if (!list.length) { box.innerHTML = `<div class="recent-empty">${T('Nessuna riunione recente: le vedrai qui dopo la prima.')}</div>`; return; }
       box.innerHTML = list.map((r, i) => {
         const title = r.title || r.roomId.toLowerCase().replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -357,6 +357,42 @@
       box.innerHTML = `<div class="recent-empty">${esc(e.message)}</div>`;
     } finally { recentBusy = false; }
   }
+  // 1.8.5 · riunione in corso in cima alla home: «Entra» ed «Entra come secondo
+  // schermo» senza riscrivere il codice (il caso tipico: sei già in riunione
+  // dal portatile e apri la home dal secondo dispositivo)
+  function renderLive(live) {
+    const box = $('#liveCard'); if (!box) return;
+    const r = live[0];
+    $('.home-left')?.classList.toggle('has-live', !!r);
+    if (!r) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+    const title = r.title || r.roomId.toLowerCase().replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const n = r.liveCount || 0;
+    const more = live.length > 1 ? ` · <button type="button" class="hl-more" data-act="recent">${esc(T('altre {0}').replace('{0}', live.length - 1))}</button>` : '';
+    box.dataset.room = r.roomId; box.setAttribute('aria-label', T('Riunione in corso'));
+    box.innerHTML = `<span class="hl-dot" aria-hidden="true"></span>
+      <div class="hl-main">
+        <small>${esc(T('In corso'))}${n ? ` · ${n} ${n === 1 ? esc(T('persona')) : esc(T('persone'))}` : ''}${more}</small>
+        <b translate="no">${esc(title)}</b>
+      </div>
+      <div class="hl-acts">
+        <button type="button" class="hl-ss" data-act="ss" data-tip="${esc(T('Per usare questo dispositivo accanto a quello con cui parli: chat, sondaggi, mano, reazioni e Presenta, senza microfono, casse né videocamera'))}">${SS_ICO}<span>${esc(T('Entra come secondo schermo'))}</span></button>
+        <button type="button" class="btn btn-sm hl-go" data-act="go">${esc(T('Entra'))}</button>
+      </div>`;
+    box.classList.remove('hidden');
+  }
+  $('#liveCard')?.addEventListener('click', (e) => {
+    const box = $('#liveCard'); const act = e.target.closest('[data-act]')?.dataset.act;
+    if (!act || !box.dataset.room) return;
+    if (act === 'recent') { document.querySelector('#homeTabs [data-t="recent"]')?.click(); return; }
+    go(`/room/${box.dataset.room}`, act === 'ss' ? { secondScreen: true } : null);
+  });
+  // la scritta verde «● 1 riunione in corso» porta alla card
+  $('#liveLine')?.addEventListener('click', () => {
+    const box = $('#liveCard'); if (!box || box.classList.contains('hidden')) return;
+    box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash');
+    box.querySelector('.hl-go')?.focus({ preventScroll: true });
+  });
+
   $('#recentList').addEventListener('click', async (e) => {
     if (e.target.closest('.recent-more')) { recentOpen = !recentOpen; applyRecentMore(); return; }
     const card = e.target.closest('.rc'); if (!card) return;

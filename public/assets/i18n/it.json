@@ -2190,5 +2190,22 @@
   "{0} ti ha rimandato in sala d'attesa…": "{0} ti ha rimandato in sala d'attesa…",
   "Puoi fissare per tutti al massimo 3 riquadri": "Puoi fissare per tutti al massimo 3 riquadri",
   "Per te usa il tasto del microfono": "Per te usa il tasto del microfono",
-  "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa": "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa"
+  "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa": "Gli organizzatori entrano sempre: non puoi rimandarli in sala d'attesa",
+  "Riunione in corso": "Riunione in corso",
+  "altre {0}": "altre {0}",
+  "Scrivi la risposta": "Scrivi la risposta",
+  "Scrivi la risposta: la vedranno tutti": "Scrivi la risposta: la vedranno tutti",
+  "Pubblica la risposta": "Pubblica la risposta",
+  "Togli la risposta": "Togli la risposta",
+  "Modifica": "Modifica",
+  "modificata": "modificata",
+  "Risposta scritta": "Risposta scritta",
+  "Questa risposta l'ha scritta un altro organizzatore": "Questa risposta l'ha scritta un altro organizzatore",
+  "Torna in chiamata": "Torna in chiamata",
+  "Torna in chiamata: usa microfono, casse e videocamera da questo dispositivo": "Torna in chiamata: usa microfono, casse e videocamera da questo dispositivo",
+  "Sei entrato come secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Sei entrato come secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera",
+  "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»": "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»",
+  "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»": "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»",
+  "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»": "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»",
+  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera"
 }
