@@ -1,0 +1,26 @@
+Tiditalk 1.8.7 — aggiornamento dalla versione precedente
+
+Questo zip contiene solo i 12 file cambiati o nuovi, con le stesse cartelle del progetto.
+
+Come si aggiorna (a mano, se non usi gli aggiornamenti automatici):
+  1. Fai una copia della cartella di Tiditalk sul server (per sicurezza).
+  2. Copia il contenuto di questa cartella dentro quella di Tiditalk, sovrascrivendo.
+     Il tuo .env, i dati (data/) e i caricamenti non vengono toccati: qui non ci sono.
+  3. Ricostruisci e riavvia:  docker compose up -d --build
+
+Con gli aggiornamenti automatici (install-cron.sh) non serve fare niente:
+la 1.8.7 arriva da sola appena è su GitHub.
+
+File in questo aggiornamento:
+  CHANGELOG.md
+  public/assets/css/screenaudio.css
+  public/assets/i18n/catalog.js
+  public/assets/i18n/de.json
+  public/assets/i18n/en.json
+  public/assets/i18n/fr.json
+  public/assets/i18n/it.json
+  public/assets/js/org.js
+  public/assets/js/room.js
+  public/assets/js/screenaudio.js
+  public/room.html
+  server/package.json

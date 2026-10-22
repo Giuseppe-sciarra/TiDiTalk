@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.8.7
+
+The audio of what you present (a YouTube video, a DaVinci Resolve timeline).
+
+### Fixed
+- **Screen audio is captured as audio, not as a voice**: the browser is asked
+  for tab and system audio without echo cancellation, noise suppression and
+  automatic volume (they ruined music and videos), and for *Also share system
+  audio* where the browser allows it. The meeting tab itself is no longer
+  offered in the picker (it would echo)
+
+### Added
+- **Presenting without audio is no longer silent for the presenter**: if the
+  presentation starts without audio, a card explains what to do in that
+  browser: share the tab with *Also share tab audio* for YouTube and the like,
+  *Entire screen* with *Also share system audio* on Windows for an app; on a Mac
+  apps need a virtual audio device; Firefox and Safari can't share screen audio.
+  *Present again with audio* restarts the sharing in one click. A pill on *Your
+  screen* says *With audio* or *No audio* (click it for help)
+- **Use an audio device**: send any audio input as the presentation audio
+  (stereo, no voice filters), for example BlackHole on a Mac to let the others
+  hear DaVinci Resolve or another app
+
 ## 1.8.6
 
 3D face effects that recover by themselves when the browser briefly refuses 3D

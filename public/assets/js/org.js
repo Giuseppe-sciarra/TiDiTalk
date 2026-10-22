@@ -434,7 +434,7 @@
       pres.addEventListener('click', async () => {
         if (!(pj('pjName')?.value || '').trim()) { pj('pjName')?.focus(); return; }
         let st = null;
-        try { st = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }); }
+        try { st = await navigator.mediaDevices.getDisplayMedia({ video: true, ...(window.TdtScreenAudio?.captureOpts() || { audio: true }) }); }
         catch (_) { window.showToast?.(T('Nessuno schermo scelto: puoi presentare anche dopo, dalla barra'), 3500); return; }
         window._tdPendingScreen = st;
         // se si chiude la condivisione prima di entrare, si entra e basta

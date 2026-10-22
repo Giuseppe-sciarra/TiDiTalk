@@ -1,0 +1,37 @@
+/* 1.8.7 · Audio di quello che presenti (screenaudio.js) */
+body.tdt-room .sa-card {
+  position: fixed; z-index: 2350; bottom: 116px; left: 50%; transform: translateX(-50%); /* sopra la barra: in alto c'è l'avviso del microfono */
+  width: min(520px, calc(100vw - 32px)); box-sizing: border-box;
+  padding: 14px 14px 12px 16px; border-radius: 18px;
+  background: var(--ink-2); color: var(--paper); border: 1px solid var(--hair-2); box-shadow: var(--shadow-2);
+  font: 400 13.5px/1.45 var(--font); animation: sa-in .3s var(--ease) both;
+}
+@keyframes sa-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+body.tdt-room .sa-head { display: flex; align-items: center; gap: 10px; padding-right: 26px; position: relative; }
+body.tdt-room .sa-head b { font-size: 14.5px; font-weight: 600; }
+body.tdt-room .sa-ico { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--warn, #e0a33a) 18%, transparent); color: var(--warn, #e0a33a); }
+body.tdt-room .sa-x { position: absolute; top: -4px; right: -4px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: transparent; color: var(--paper-3); font-size: 20px; line-height: 1; cursor: pointer; }
+body.tdt-room .sa-x:hover { background: var(--hair-2); color: var(--paper); }
+body.tdt-room .sa-text { margin: 8px 0 0 42px; color: var(--paper-2); }
+body.tdt-room .sa-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0 42px; }
+body.tdt-room .sa-btn { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--hair-2); background: transparent; color: var(--paper); font: 600 13px/1 var(--font); cursor: pointer; white-space: nowrap; }
+body.tdt-room .sa-btn:hover { border-color: var(--accent-line); }
+body.tdt-room .sa-btn.sa-main { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+body.tdt-room .sa-btn.hidden, body.tdt-room .sa-dev.hidden { display: none; }
+body.tdt-room .sa-btn:focus-visible, body.tdt-room .sa-x:focus-visible, body.tdt-room .sa-sel:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+body.tdt-room .sa-dev { margin: 12px 0 0 42px; display: flex; flex-direction: column; gap: 6px; }
+body.tdt-room .sa-lbl { font-size: 12px; color: var(--paper-3); }
+body.tdt-room .sa-row { display: flex; gap: 8px; flex-wrap: wrap; }
+body.tdt-room .sa-sel { flex: 1 1 200px; min-width: 0; height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--hair-2); background: var(--ink-1); color: var(--paper); font: 400 13.5px var(--font); }
+body.tdt-room .sa-hint { font-size: 12px; color: var(--paper-3); }
+/* pillola sul riquadro «Il tuo schermo» */
+body.tdt-room .sa-chip {
+  position: absolute; right: 10px; bottom: 10px; z-index: 8;
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer;
+  background: rgba(16, 18, 23, .78); color: #fff; border: 1px solid rgba(255, 255, 255, .16); font: 600 12px/1 var(--font);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+body.tdt-room .sa-chip:not(.on) { color: #ffd38a; }
+body.tdt-room .sa-chip.on { cursor: default; }
+body.tdt-room .spotlight-strip .sa-chip span { display: none; }
+@media (max-width: 640px) { body.tdt-room .sa-card { bottom: 132px; } body.tdt-room .sa-text, body.tdt-room .sa-acts, body.tdt-room .sa-dev { margin-left: 0; } }

@@ -2151,7 +2151,7 @@ async function _produceScreenInner() {
     screenStream = (_pre && _pre.getVideoTracks()[0]?.readyState === 'live') ? _pre : await navigator.mediaDevices.getDisplayMedia(_isSafari ? { video: true, audio: true } : {
       // cursor:'always' → il mouse del relatore è sempre nel video condiviso
       video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 15 }, cursor: 'always' },
-      audio: true,
+      ...(window.TdtScreenAudio?.captureOpts() || { audio: true }), // 1.8.7: audio di scheda/sistema senza filtri da voce
     });
   } catch { showToast('Condivisione schermo annullata'); return; }
 
@@ -2228,6 +2228,7 @@ async function _produceScreenInner() {
   }
   document.getElementById('btnScreen').classList.add('active');
   document.dispatchEvent(new CustomEvent('td:screenshare', { detail: { active: true } }));
+  window.TdtScreenAudio?.started(screenStream, !!producers.get('screen-audio')); // 1.8.7
 
   // ⭐ FIX mute-fantasma: dopo la raffica di eventi dello screen share, riafferma
   // lo stato REALE di mic e camera. Se un 'peerMediaState' precedente è stato
@@ -2256,6 +2257,18 @@ async function _produceScreenInner() {
   sp.on('transportclose', () => stopScreenShare({ transportGone: true }));
 }
 
+// 1.8.7: audio della presentazione da un dispositivo d'ingresso (es. BlackHole sul
+// Mac per far sentire DaVinci o un programma): stesso canale dell'audio dello
+// schermo, stereo e senza i filtri pensati per la voce
+window._tdSetScreenAudioTrack = async function (track) {
+  if (!_screenTransport || !producers.has('screen')) throw new Error('Prima avvia la presentazione');
+  if (producers.has('screen-audio')) closeProducer('screen-audio');
+  const sap = await _screenTransport.produce({ track, codecOptions: { opusStereo: true, opusDtx: false }, appData: { mediaType: 'screen-audio' } });
+  producers.set('screen-audio', sap);
+  return true;
+};
+window._tdRestartScreenShare = async function () { await stopScreenShare(); await produceScreen(); };
+
 // ⭐ FIX R11: UN solo percorso di stop. Prima c'erano 3 copie divergenti
 // (pulsante, 'ended' del browser, transportclose): il pulsante ripristinava la
 // camera RAW ignorando sfondo/effetto, e il transport dedicato restava aperto.
@@ -2272,6 +2285,7 @@ async function stopScreenShare({ transportGone = false } = {}) {
     }
     try { window._tdScreenStream?.getTracks().forEach(t => t.stop()); } catch { }
     window._tdScreenStream = null;
+    window.TdtScreenAudio?.stopped(); // 1.8.7: audio da un dispositivo (es. BlackHole) e avvisi
     _closeScreenTransport();
     if (socket?.id) annotator?.detach(socket.id);
     document.querySelector('[data-peer-id="local-screen"]')?.remove();
