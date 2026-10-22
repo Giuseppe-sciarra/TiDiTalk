@@ -2988,6 +2988,34 @@ function bindControls() {
 // Ora un solo pannello a destra con l'anteprima di sé in alto e tre schede.
 // Le funzioni sono le stesse (applyBackground / applyFaceEffect / applyStyle).
 let _fxOpen = false, _fxBuilt = false, _fxSyncTimer = null, _fxTabNow = 'bg';
+// ─── 1.8.6: effetti 3D che si riprendono da soli + diagnostica verso il server ──
+let _fx3dFill = null, _fx3dOk = true, _fx3dTimer = null, _fx3dTries = 0, _fx3dSince = 0;
+/** Riga [CONN] … fx3d nel log del server: perché il 3D non è partito */
+function _fxDiag(ev, data) {
+  try {
+    const gl = (() => { try { const c = document.createElement('canvas'); const g = c.getContext('webgl'); const x = g?.getExtension('WEBGL_debug_renderer_info'); const r = x ? g.getParameter(x.UNMASKED_RENDERER_WEBGL) : (g ? g.getParameter(g.RENDERER) : 'nessun WebGL'); g?.getExtension('WEBGL_lose_context')?.loseContext(); return String(r || ''); } catch (_) { return ''; } })();
+    if (socket?.connected) socket.emit('clientFx', { ev, gl, hidden: document.hidden, ...(data || {}) });
+  } catch (_) { }
+}
+function _fx3dSchedule() {
+  if (_fx3dTimer || _fx3dOk) return;
+  if (!_fx3dSince) _fx3dSince = Date.now();
+  _fx3dTimer = setTimeout(() => { _fx3dTimer = null; _fx3dRecheck(false); }, _fx3dTries < 5 ? 3000 : 10000);
+}
+function _fx3dRecheck(manual) {
+  if (_fx3dOk) return;
+  _fx3dTries++;
+  const ok = !!window.FaceAR?.recheck?.();
+  if (ok) {
+    _fxDiag('recovered', { tries: _fx3dTries, ms: Date.now() - (_fx3dSince || Date.now()) });
+    _fx3dTries = 0; _fx3dSince = 0;
+    _fx3dFill?.();
+    if (manual || _fxOpen) showToast('Gli effetti 3D sono di nuovo disponibili', 2500);
+  } else if (_fx3dTries <= 30) {
+    if (manual) showToast('Il browser non dà ancora la grafica 3D: riprovo tra poco', 2500);
+    _fx3dSchedule();
+  }
+}
 
 function _fxBuild() {
   if (_fxBuilt) return;
@@ -3022,25 +3050,39 @@ function _fxBuild() {
     return btn;
   };
   if (grid3d) {
-    const noneBtn = mk('fx-item-emo', '🚫', 'Nessuno'); noneBtn.dataset.id = 'none';
-    noneBtn.addEventListener('click', async () => { await applyFaceEffect('none'); _fxSyncActive(); });
-    sec(null).appendChild(noneBtn);
-    const can3D = !!window.FaceAR?.supported;
-    if (!can3D) {
-      const n = document.createElement('p'); n.className = 'fx-hint';
-      n.textContent = 'Gli effetti 3D non sono disponibili in questo browser (serve la grafica WebGL 2). Restano gli effetti classici.';
-      grid3d.appendChild(n);
-    }
-    (can3D ? (window.FaceEffects?.CATALOG3D || []) : []).forEach(section => {
-      if (!section.items.length) return;
-      const g = sec(section.label);
-      section.items.forEach(eff => {
-        const btn = eff.thumb ? mkImg(eff) : mk('fx-item-emo', eff.icon || '✨', eff.label);
-        btn.dataset.id = eff.id;
-        btn.addEventListener('click', async () => { await applyFaceEffect(eff.id); _fxSyncActive(); });
-        g.appendChild(btn);
+    // 1.8.6: la scheda 3D si può riempire di nuovo: se Chrome per un momento
+    // rifiuta la grafica 3D, si riprova da soli invece di arrendersi fino al
+    // ricaricamento della pagina
+    _fx3dFill = () => {
+      grid3d.innerHTML = '';
+      const noneBtn = mk('fx-item-emo', '🚫', 'Nessuno'); noneBtn.dataset.id = 'none';
+      noneBtn.addEventListener('click', async () => { await applyFaceEffect('none'); _fxSyncActive(); });
+      sec(null).appendChild(noneBtn);
+      const can3D = !!window.FaceAR?.supported;
+      _fx3dOk = can3D;
+      if (!can3D) {
+        const n = document.createElement('div'); n.className = 'fx-hint fx-hint-3d';
+        n.innerHTML = '<span></span><button type="button" class="fx-retry-3d"></button>';
+        n.querySelector('span').textContent = 'In questo momento il browser non dà la grafica 3D (WebGL 2): riprovo da solo tra qualche secondo. Restano gli effetti classici.';
+        const rb = n.querySelector('button'); rb.textContent = 'Riprova ora';
+        rb.addEventListener('click', () => _fx3dRecheck(true));
+        grid3d.appendChild(n);
+        _fx3dSchedule();
+      }
+      (can3D ? (window.FaceEffects?.CATALOG3D || []) : []).forEach(section => {
+        if (!section.items.length) return;
+        const g = sec(section.label);
+        section.items.forEach(eff => {
+          const btn = eff.thumb ? mkImg(eff) : mk('fx-item-emo', eff.icon || '✨', eff.label);
+          btn.dataset.id = eff.id;
+          btn.addEventListener('click', async () => { await applyFaceEffect(eff.id); _fxSyncActive(); });
+          g.appendChild(btn);
+        });
       });
-    });
+      try { _fxSyncActive(); } catch (_) { }
+    };
+    _fx3dFill();
+    if (!_fx3dOk) _fxDiag('unsupported', { err: window.FaceAR?.supportInfo?.reason || '' });
   }
   // ── Classici: gli effetti viso di prima, nella loro scheda come in 1.6.0 ──
   const faceGrid = document.getElementById('effectsPickerGrid');
@@ -3097,6 +3139,7 @@ function openFxPanel(tab) {
   closeMoreMenu();
   panel.classList.remove('hidden');
   _fxOpen = true;
+  if (!_fx3dOk) _fx3dRecheck(false); // 1.8.6
   _fxTab(tab || _fxTabNow);
   loadBackgroundPresets();
   _fxSyncActive();
@@ -3300,12 +3343,42 @@ async function _ensureCameraAlive() {
 
 const applyFaceEffect = (effectId) => _mediaQueue(() => _applyFaceEffectImpl(effectId));
 // 1.7.0: l'effetto 3D non è partito (niente WebGL, file mancanti…): avviso e si torna come prima
+// 1.8.6: la prima volta si riprova da soli dopo un attimo (spesso è la grafica di
+// Chrome che per un momento non risponde); il motivo finisce nel log del server
+let _fx3dRetried = '';
 function _on3DError(err) {
   console.warn('[effetto 3D]', err);
+  const id = _currentFaceEffectId;
+  _fxDiag('error', { effect: id || '', err: err?.message || String(err || '') });
+  if (id && _fx3dRetried !== id) {
+    _fx3dRetried = id;
+    setTimeout(async () => {
+      if (_currentFaceEffectId !== id) return;          // nel frattempo ha scelto altro
+      window.FaceAR?.recheck?.();
+      try { faceEffects?.setEffect?.(id); } catch (e) { _on3DError(e); return; }
+      setTimeout(() => { if (_currentFaceEffectId === id && faceEffects?.ar) _fxDiag('retry-ok', { effect: id }); }, 3000);
+    }, 1500);
+    return;
+  }
   showToast('Effetto 3D non disponibile: ' + (err?.message || 'errore'), 4000);
   _currentFaceEffectId = null;
   try { _fxSyncActive(); } catch (_) { }
   applyFaceEffect('none');
+}
+// 1.8.6: grafica 3D persa a effetto acceso (scheda grafica ripartita): si rifà
+// l'effetto da solo appena Chrome la ridà, o dopo 2 s se non la ridà
+if (window.FaceAR) {
+  let _lostT = null;
+  window.FaceAR.onContextLost = () => {
+    _fxDiag('context-lost', { effect: _currentFaceEffectId || '' });
+    clearTimeout(_lostT);
+    _lostT = setTimeout(() => { try { faceEffects?.rebuildAR?.(); } catch (_) { } }, 2000);
+  };
+  window.FaceAR.onContextRestored = () => {
+    clearTimeout(_lostT);
+    _fxDiag('context-back', { effect: _currentFaceEffectId || '' });
+    try { faceEffects?.rebuildAR?.(); } catch (_) { }
+  };
 }
 const applyStyle = (styleId) => _mediaQueue(() => _applyStyleImpl(styleId));
 const applyBackground = (type, imageUrl) => _mediaQueue(() => _applyBackgroundImpl(type, imageUrl));

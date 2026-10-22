@@ -1203,3 +1203,8 @@ body.tdt-room .video-tile.spotlight-strip .tile-fx-btn { display: none; }
   body.tdt-room .controls-center.cc-tight .ctrl-btn-group .ctrl-btn-chevron { width: 18px !important; min-width: 18px !important; height: 32px !important; padding: 0 !important; }
 }
 :root[data-theme="light"] body.tdt-room .fx-panel .fx-preview-label { background: rgba(255, 255, 255, .8); color: #111; }
+/* 1.8.6: grafica 3D momentaneamente rifiutata dal browser: avviso con «Riprova ora» */
+body.tdt-room .fx-panel .fx-hint-3d { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--ink-3); border: 1px solid var(--hair-2); color: var(--paper-2); font-size: 12.5px; line-height: 1.4; }
+body.tdt-room .fx-panel .fx-retry-3d { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--accent-line); background: transparent; color: var(--accent-text); font: 600 12.5px/1 var(--font); cursor: pointer; }
+body.tdt-room .fx-panel .fx-retry-3d:hover { background: var(--accent-soft); }
+body.tdt-room .fx-panel .fx-retry-3d:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }

@@ -2207,5 +2207,9 @@
   "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»": "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»",
   "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»": "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»",
   "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»": "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»",
-  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera"
+  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera",
+  "In questo momento il browser non dà la grafica 3D (WebGL 2): riprovo da solo tra qualche secondo. Restano gli effetti classici.": "In questo momento il browser non dà la grafica 3D (WebGL 2): riprovo da solo tra qualche secondo. Restano gli effetti classici.",
+  "Riprova ora": "Riprova ora",
+  "Gli effetti 3D sono di nuovo disponibili": "Gli effetti 3D sono di nuovo disponibili",
+  "Il browser non dà ancora la grafica 3D: riprovo tra poco": "Il browser non dà ancora la grafica 3D: riprovo tra poco"
 }

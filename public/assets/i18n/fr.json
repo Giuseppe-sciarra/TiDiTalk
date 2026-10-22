@@ -2400,5 +2400,9 @@
   "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»": "Un second écran n'envoie ni micro ni caméra : appuyez sur « Revenir à l'appel »",
   "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»": "Pour utiliser cet appareil à côté de celui avec lequel vous parlez : le micro, les haut-parleurs et la caméra s'éteignent. Pour revenir, appuyez sur « Revenir à l'appel »",
   "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»": "C'est maintenant un second écran : le micro, les haut-parleurs et la caméra sont éteints. Pour revenir, appuyez sur « Revenir à l'appel »",
-  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Cet appareil est un second écran : appuyez sur « Revenir à l'appel » pour utiliser le micro, les haut-parleurs et la caméra"
+  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Cet appareil est un second écran : appuyez sur « Revenir à l'appel » pour utiliser le micro, les haut-parleurs et la caméra",
+  "In questo momento il browser non dà la grafica 3D (WebGL 2): riprovo da solo tra qualche secondo. Restano gli effetti classici.": "Pour le moment, le navigateur ne fournit pas les graphismes 3D (WebGL 2) : je réessaie tout seul dans quelques secondes. Les effets classiques restent disponibles.",
+  "Riprova ora": "Réessayer maintenant",
+  "Gli effetti 3D sono di nuovo disponibili": "Les effets 3D sont de nouveau disponibles",
+  "Il browser non dà ancora la grafica 3D: riprovo tra poco": "Le navigateur ne fournit toujours pas les graphismes 3D : je réessaie bientôt"
 }

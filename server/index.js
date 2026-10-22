@@ -1017,6 +1017,22 @@ io.on('connection', (socket) => {
       n: num(d.n), audio: num(d.audio), retries: num(d.retries), ms: num(d.ms),
     });
   });
+  // 1.8.6 — effetti 3D visti dal browser: grafica 3D rifiutata da Chrome,
+  // effetto non partito, grafica persa e ripresa. Finiscono nei log [CONN] come
+  // 'fx3d' (docker logs tdt-app | grep fx3d): prima non si vedeva il perché.
+  const _FX_DIAG = new Set(['unsupported', 'recovered', 'error', 'retry-ok', 'context-lost', 'context-back']);
+  socket.on('clientFx', (d) => {
+    if (!_isPlainObject(d) || !_FX_DIAG.has(d.ev) || !currentRoom || !_checkRl('mdiag', 'clientFx')) return;
+    const num = (v) => (Number.isFinite(v) ? Math.max(0, Math.min(99999, Math.round(v))) : undefined);
+    connlog.log(currentRoom.id, _diagPeer(), 'fx3d', {
+      ev: d.ev,
+      effect: _safeStr(d.effect, 60) || undefined,
+      err: _safeStr(d.err, 160) || undefined,
+      gl: _safeStr(d.gl, 120) || undefined,
+      tries: num(d.tries), ms: num(d.ms),
+      hidden: d.hidden === true ? true : undefined,
+    });
+  });
   // ⭐ 1.5.1 — rete di tutti i partecipanti (solo organizzatori), per la
   // finestra "Rete e qualità": il client la chiede ogni 2 s finché è aperta.
   socket.on('roomNetStats', async (_d, callback) => {

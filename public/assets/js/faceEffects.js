@@ -2267,22 +2267,33 @@ class FaceEffects {
     const seq = (this._arSeq = (this._arSeq || 0) + 1);
     if (!def) { if (this.ar) { try { this.ar.clearEffect(); } catch (_) { } } return; }
     if (!window.FaceAR) { console.warn('[FaceEffects] FaceAR non caricato'); this.arDef = null; return; }
+    let made = null;
     try {
       if (!this.ar) {
-        const ar = new window.FaceAR();
+        const ar = made = new window.FaceAR();
         const w = this.canvas?.width || 1280, h = this.canvas?.height || 720;
         await ar.init(w, h);
         if (seq !== this._arSeq) { ar.destroy(); return; }   // nel frattempo è cambiato
-        this.ar = ar;
+        this.ar = ar; made = null;
       }
       await this.ar.setEffect(def);
       if (seq !== this._arSeq) return;
       this.ar.render(performance.now());
     } catch (e) {
       console.error('[FaceEffects] effetto 3D', e);
+      // 1.8.6: il motore a metà va chiuso, altrimenti tiene occupata la grafica 3D
+      if (made) { try { made.destroy(); } catch (_) { } }
       this.arDef = null; this.active = null;
       this.onError?.(e);
     }
+  }
+
+  /** 1.8.6: dopo che la grafica 3D è andata persa, rifà il motore 3D con lo stesso effetto */
+  rebuildAR() {
+    const def = this.arDef;
+    try { this.ar?.destroy(); } catch (_) { }
+    this.ar = null;
+    if (def) return this._setAR(def);
   }
 
   getCurrent() { return this.active; }

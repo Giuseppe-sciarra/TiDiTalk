@@ -2400,5 +2400,9 @@
   "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»": "A second screen doesn't send microphone or camera: press “Back to the call”",
   "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»": "To use this device next to the one you talk on: microphone, speakers and camera turn off. To go back, press “Back to the call”",
   "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»": "This is now a second screen: microphone, speakers and camera are off. To go back, press “Back to the call”",
-  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "This device is a second screen: press “Back to the call” to use the microphone, speakers and camera"
+  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "This device is a second screen: press “Back to the call” to use the microphone, speakers and camera",
+  "In questo momento il browser non dà la grafica 3D (WebGL 2): riprovo da solo tra qualche secondo. Restano gli effetti classici.": "Right now the browser isn't providing 3D graphics (WebGL 2): I'll try again by myself in a few seconds. The classic effects are still available.",
+  "Riprova ora": "Try again now",
+  "Gli effetti 3D sono di nuovo disponibili": "3D effects are available again",
+  "Il browser non dà ancora la grafica 3D: riprovo tra poco": "The browser still isn't providing 3D graphics: I'll try again shortly"
 }

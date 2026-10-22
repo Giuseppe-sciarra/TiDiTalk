@@ -2400,5 +2400,9 @@
   "Un secondo schermo non trasmette microfono né videocamera: premi «Torna in chiamata»": "Ein zweiter Bildschirm sendet weder Mikrofon noch Kamera: Tippe auf „Zurück zum Anruf“",
   "Per usare questo dispositivo accanto a quello con cui parli: microfono, casse e videocamera si spengono. Per tornare premi «Torna in chiamata»": "Um dieses Gerät neben dem zu nutzen, mit dem du sprichst: Mikrofon, Lautsprecher und Kamera gehen aus. Zum Zurückkehren drücke „Zurück zum Anruf“",
   "Ora è un secondo schermo: microfono, casse e videocamera sono spenti. Per tornare premi «Torna in chiamata»": "Das ist jetzt ein zweiter Bildschirm: Mikrofon, Lautsprecher und Kamera sind aus. Zum Zurückkehren drücke „Zurück zum Anruf“",
-  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Dieses Gerät ist ein zweiter Bildschirm: Tippe auf „Zurück zum Anruf“, um Mikrofon, Lautsprecher und Kamera zu verwenden"
+  "Questo dispositivo è un secondo schermo: premi «Torna in chiamata» per usare microfono, casse e videocamera": "Dieses Gerät ist ein zweiter Bildschirm: Tippe auf „Zurück zum Anruf“, um Mikrofon, Lautsprecher und Kamera zu verwenden",
+  "In questo momento il browser non dà la grafica 3D (WebGL 2): riprovo da solo tra qualche secondo. Restano gli effetti classici.": "Der Browser stellt gerade keine 3D-Grafik bereit (WebGL 2): Ich versuche es in ein paar Sekunden von selbst erneut. Die klassischen Effekte bleiben verfügbar.",
+  "Riprova ora": "Jetzt erneut versuchen",
+  "Gli effetti 3D sono di nuovo disponibili": "3D-Effekte sind wieder verfügbar",
+  "Il browser non dà ancora la grafica 3D: riprovo tra poco": "Der Browser stellt noch keine 3D-Grafik bereit: Ich versuche es gleich noch einmal"
 }

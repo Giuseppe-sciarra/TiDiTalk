@@ -363,7 +363,20 @@
       this.width = width; this.height = height;
       this.canvas = document.createElement('canvas');
       this.canvas.width = width; this.canvas.height = height;
-      this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
+      // 1.8.6: se Chrome rifiuta la grafica 3D, un secondo tentativo dopo un attimo
+      // (prima l'effetto falliva subito e restava spento fino al ricaricamento)
+      const mkRenderer = () => new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
+      try { this.renderer = mkRenderer(); }
+      catch (e1) {
+        console.warn('[FaceAR] grafica 3D rifiutata, riprovo:', e1?.message);
+        await new Promise(r => setTimeout(r, 1200));
+        this.canvas = document.createElement('canvas'); this.canvas.width = width; this.canvas.height = height;
+        try { this.renderer = mkRenderer(); }
+        catch (e2) { FaceAR._sup = false; FaceAR._supAt = Date.now(); throw new Error('il browser non ha dato la grafica 3D (WebGL 2): ' + (e2?.message || '')); }
+      }
+      // grafica persa (scheda grafica ripartita): lo dice a chi usa l'effetto, che lo ricrea
+      this.canvas.addEventListener('webglcontextlost', () => { if (this._destroying) return; this.lost = true; try { FaceAR.onContextLost?.(this); } catch (_) { } });
+      this.canvas.addEventListener('webglcontextrestored', () => { this.lost = false; try { FaceAR.onContextRestored?.(this); } catch (_) { } });
       this.renderer.setPixelRatio(1);
       this.renderer.setSize(width, height, false);
       this.renderer.setClearColor(0x000000, 0);
@@ -732,7 +745,10 @@
     }
 
     destroy() {
-      this.clearEffect();
+      this._destroying = true;
+      try { this.clearEffect(); } catch (_) { }
+      // 1.8.6: libera subito la grafica 3D (Chrome ne tiene poche per pagina)
+      try { this.renderer?.forceContextLoss?.(); } catch (_) { }
       try { document.removeEventListener('visibilitychange', this._onVis); } catch (_) { }
       try { this.renderer?.dispose(); } catch (_) { }
       this.renderer = null; this.scene = null; this.ready = false;
@@ -752,13 +768,30 @@
     /** Calibrazione delle espressioni (unica per la pagina): .info, .raw, .neutral, .reset() */
     static get calibration() { return calibration; }
     static get libsLoaded() { return !!_libs; }
-    /** Il browser può disegnare il 3D? (WebGL 2: Chrome, Edge, Firefox, Safari 15+) */
+    /** Il browser può disegnare il 3D? (WebGL 2: Chrome, Edge, Firefox, Safari 15+)
+     *  1.8.6: un «no» non è più per sempre. Chrome può rifiutare la grafica 3D per un
+     *  momento (scheda grafica sotto sforzo, processo della grafica ripartito, cambio
+     *  di scheda grafica sui MacBook): il «no» vale 4 secondi, poi si ricontrolla. */
     static get supported() {
-      if (FaceAR._sup == null) {
-        try { const c = document.createElement('canvas'); const gl = c.getContext('webgl2'); FaceAR._sup = !!gl; gl?.getExtension('WEBGL_lose_context')?.loseContext(); }
-        catch (_) { FaceAR._sup = false; }
-      }
-      return FaceAR._sup;
+      const now = Date.now();
+      if (FaceAR._sup === true) return true;
+      if (FaceAR._sup === false && now - (FaceAR._supAt || 0) < 4000) return false;
+      return FaceAR.recheck();
+    }
+    /** Ricontrolla subito; FaceAR.supportInfo dice anche perché ha detto di no. */
+    static recheck() {
+      let ok = false, reason = '';
+      try {
+        const c = document.createElement('canvas');
+        c.addEventListener('webglcontextcreationerror', (e) => { reason = (e && e.statusMessage) || reason; }, { once: true });
+        const gl = c.getContext('webgl2');
+        ok = !!gl;
+        if (!ok) reason = reason || (c.getContext('webgl') ? 'WebGL 2 assente (c\'è solo WebGL 1)' : 'nessun contesto WebGL');
+        gl?.getExtension('WEBGL_lose_context')?.loseContext();
+      } catch (e) { ok = false; reason = String(e && e.message || e); }
+      FaceAR._sup = ok; FaceAR._supAt = Date.now();
+      FaceAR.supportInfo = { ok, reason: ok ? '' : reason, at: FaceAR._supAt };
+      return ok;
     }
   }
 

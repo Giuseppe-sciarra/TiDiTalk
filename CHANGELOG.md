@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.8.6
+
+3D face effects that recover by themselves when the browser briefly refuses 3D
+graphics.
+
+### Fixed
+- **"3D effects are not available in this browser" until reloading the page**:
+  Chrome can refuse 3D graphics (WebGL 2) for a moment, for example on older
+  MacBooks when the graphics card is busy or Chrome's graphics process restarts.
+  Tiditalk checked only once and kept that "no" until the page was reloaded.
+  Now the "no" lasts a few seconds: the Effects panel says it will try again,
+  retries by itself (and with *Try again now*) and fills the 3D tab as soon as
+  the graphics are back
+- **A 3D effect that fails to start** is tried again once by itself after a
+  moment, and the 3D engine is created a second time if the browser refuses it
+  the first time; a half-created engine is closed so it does not keep the
+  graphics busy
+- **3D graphics lost while an effect is on** (graphics card restarted): the
+  effect is rebuilt by itself
+
+### Added
+- **Diagnostics in the server log**: when the browser refuses 3D graphics, an
+  effect fails, the graphics come back or get lost, a `[CONN] … fx3d` line is
+  written with the reason and the graphics card name
+  (`docker logs tdt-app | grep fx3d`)
+
 ## 1.8.5
 
 ### Added
