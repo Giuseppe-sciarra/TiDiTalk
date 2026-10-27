@@ -68,6 +68,9 @@ Alpine and coturn.
     headbands, headphones, horns, ears and wigs were moved one by one onto the
     real head (bowler, fisherman, witch, wizard, chef, party, top hat, elf,
     bucket, cowboy, beanie, cat-ear headphones and the others)
+- **coturn updates again**: the 2026 coturn images refuse `--no-dtls` (DTLS
+  is already off unless `--dtls` is given) and stopped right after starting.
+  The compose file now passes `--no-dtls` only to coturn versions that know it
 - **Costumes and accessories**: Italy fan and Halloween witch hats now fit
   over the forehead with a dark lining (no light "lid" seen from below);
   scarves, ruffs, capes, wings, tail and the pirate's parrot follow the body;

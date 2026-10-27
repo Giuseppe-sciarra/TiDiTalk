@@ -8,8 +8,12 @@ services:
     restart: unless-stopped
     network_mode: host
     env_file: .env
+    # --no-dtls: le versioni nuove di coturn (2026) non lo accettano più, perché DTLS è già spento se non
+    # si passa --dtls; le vecchie sì e ne hanno bisogno. Si passa solo se il turnserver dell'immagine lo conosce.
     entrypoint: >
-      sh -c "turnserver -n
+      sh -c "NODTLS=;
+      turnserver --help 2>&1 | grep -qE '^ *--no-dtls' && NODTLS=--no-dtls;
+      exec turnserver -n
       --realm=$$TURN_REALM
       --listening-port=$${TURN_PORT:-3478}
       --external-ip=$$TURN_EXTERNAL_IP
@@ -21,7 +25,7 @@ services:
       --fingerprint
       --no-multicast-peers
       --no-tls
-      --no-dtls
+      $$NODTLS
       --log-file=stdout
       --simple-log"
 
