@@ -98,6 +98,32 @@ function worldRoot(THREE, g2, frame) {
   g2.add(r);
   return r;
 }
+var NeckRig = class {
+  constructor(THREE, g2, { pivot = [0, -7.5, -3.2], kp = 0.85, kpUp = 0.2, ky = 0.55, kr = 0.7 } = {}) {
+    this.root = new THREE.Group();
+    this.root.position.set(pivot[0], pivot[1], pivot[2]);
+    this.root.name = "neckRig";
+    g2.add(this.root);
+    this.inner = new THREE.Group();
+    this.inner.position.set(-pivot[0], -pivot[1], -pivot[2]);
+    this.root.add(this.inner);
+    this.k = [kp, ky, kr, kpUp];
+    this.e = new THREE.Euler();
+  }
+  add(...o) {
+    this.inner.add(...o);
+    return this;
+  }
+  update(frame) {
+    if (!frame.attached) {
+      this.root.quaternion.identity();
+      return;
+    }
+    const e = this.e.setFromQuaternion(frame.q, "YXZ");
+    e.set(-(e.x > 0 ? this.k[0] : this.k[3]) * e.x, -this.k[1] * e.y, -this.k[2] * e.z, "ZXY");
+    this.root.quaternion.setFromEuler(e);
+  }
+};
 
 // lib/expr.js
 var g = (b, k) => {
@@ -747,6 +773,7 @@ var __s0 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, 
 var __s1 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "r1": void 0, "g1": void 0, "b1": void 0, "a": void 0, "cell": void 0, "wob": void 0, "drag": void 0, "grav": void 0, "fadeIn": void 0, "fadeOut": void 0, "flicker": void 0 };
 var UP_Z = [0, 0, 1];
 var meta = { label: "Corna e coda", labelEn: "Horns & tail", labelFr: "Cornes et queue", labelDe: "H\xF6rner und Schwanz", category: "costumi", icon: "\u{1F608}" };
+var neck = false;
 var NT = 44;
 function build(THREE, h) {
   const g2 = new THREE.Group();
@@ -776,9 +803,10 @@ function build(THREE, h) {
   }
   U.tail = new DynTube(THREE, NT, 10, { r: (t) => 0.62 - t * 0.28 });
   U.tailMat = new THREE.MeshPhysicalMaterial({ color: 13111324, roughness: 0.35, clearcoat: 0.8, clearcoatRoughness: 0.2, transparent: true });
+  U.rig = new NeckRig(THREE, g2);
   const tm = new THREE.Mesh(U.tail.geo, U.tailMat);
   tm.frustumCulled = false;
-  g2.add(tm);
+  U.rig.add(tm);
   const sh = new THREE.Shape();
   sh.moveTo(0, 2.6);
   sh.bezierCurveTo(0.6, 1.6, 2, 0.9, 1.7, -0.2);
@@ -788,7 +816,7 @@ function build(THREE, h) {
   sh.quadraticCurveTo(-1, 0.2, -1.7, -0.2);
   sh.bezierCurveTo(-2, 0.9, -0.6, 1.6, 0, 2.6);
   U.spade = new THREE.Mesh(puffy(THREE, sh, { depth: 0.15, bevel: 0.32, size: 0.22, seg: 4, curveSeg: 10 }), U.tailMat);
-  g2.add(U.spade);
+  U.rig.add(U.spade);
   U.pts = new Float32Array(NT * 3);
   const world = worldRoot(THREE, g2, U.frame);
   U.world = world;
@@ -838,6 +866,7 @@ function update(g2, bs, t, h) {
   const dt = U.tick.tick(t);
   U.frame.update(dt);
   U.world.userData.sync();
+  U.rig.update(U.frame);
   const e = U.expr.update(bs, dt, h);
   let target = clamp((e.browDown - 0.35) / 0.4);
   if (!U.frame.attached && !U.showcase) {
@@ -885,5 +914,6 @@ function spawnFx(U, dt, rage) {
 export {
   build as default,
   meta,
+  neck,
   update
 };

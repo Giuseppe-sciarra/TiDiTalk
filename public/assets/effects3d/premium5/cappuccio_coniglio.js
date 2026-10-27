@@ -1123,7 +1123,7 @@ var Mats = class {
   }
 };
 var Band = class {
-  constructor({ R = 8.85, top = 12.3, y0 = 1.6, z0 = -2.6, zt = 0.9 } = {}) {
+  constructor({ R = 9.3, top = 14.9, y0 = 5, z0 = -3.2, zt = 0.9 } = {}) {
     Object.assign(this, { R, top, y0, z0, zt });
   }
   at(a, out) {
@@ -1202,7 +1202,7 @@ function buildEarband(THREE, h, spec) {
   if (spec.base) mount = spec.base(THREE, M, g2, U);
   else {
     const bandMat = spec.band.mat || M.plush(spec.band.color, spec.band.opt || {});
-    const bm = band.mesh(THREE, bandMat, { r: spec.band.r || 0.42, sx: spec.band.sx || 1.9, sy: spec.band.sy || 0.62, a0: spec.band.a0 || 1.3 });
+    const bm = band.mesh(THREE, bandMat, { r: spec.band.r || 0.42, sx: spec.band.sx || 1.9, sy: spec.band.sy || 0.62, a0: spec.band.a0 || 1.62 });
     g2.add(bm);
     U.bandMesh = bm;
   }
@@ -1307,16 +1307,27 @@ function updateEarband(g2, bs, t, h) {
 
 // fx/cappuccio_coniglio.js
 var meta = { label: "Cappuccio da coniglietto", labelEn: "Bunny hood", category: "costumi", icon: "\u{1F407}" };
+var neck = false;
 var NS = 10;
 var C = [0, 0.9, -3];
+var OV = [[0, 4.48], [15, 4.27], [27, 3.73], [38, 2.66], [47, 1.43], [56, 0.1], [64, -0.99], [74, -2.01], [84, -2.44], [95, -2.43], [107, -2.25], [119, -1.75], [130, -0.63], [139, 0.71], [148, 1.93], [155, 2.8], [162, 3.61], [170, 4.09], [180, 4.26]];
+function zOv(x, y) {
+  const th = Math.abs(Math.atan2(x / 7.8, (y + 0.5) / 10.5)) * 180 / Math.PI;
+  for (let i = 1; i < OV.length; i++) if (th <= OV[i][0]) {
+    const a = OV[i - 1], b = OV[i], t = (th - a[0]) / (b[0] - a[0]);
+    return a[1] + (b[1] - a[1]) * t;
+  }
+  return OV[OV.length - 1][1];
+}
 function hood(x, y, z) {
   const eo = sd.ellipsoid(x, y, z, C[0], C[1], C[2], 10.5, 13.3, 11);
   const ei = sd.ellipsoid(x, y, z, C[0], C[1], C[2], 9.3, 12.1, 9.8);
   let d = Math.max(eo, -ei);
   const ex = x / 7.8, ey = (y + 0.5) / 10.5, de = (Math.sqrt(ex * ex + ey * ey) - 1) * 7.8;
-  d = sd.smax(d, -Math.max(de, -(z + 2.2)), 0.9);
-  const neck = Math.sqrt(x * x + (z + 1.5) * (z + 1.5)) - 5.2;
-  d = sd.smax(d, -Math.max(neck, y + 9.5), 0.8);
+  const zLim = zOv(x, y) + 1 + 0.55 * Math.max(0, de);
+  d = sd.smax(d, -Math.min(Math.max(de, -(z + 2.2)), zLim - z), 0.9);
+  const neck2 = Math.sqrt(x * x + (z + 1.5) * (z + 1.5)) - 5.2;
+  d = sd.smax(d, -Math.max(neck2, y + 9.5), 0.8);
   return d;
 }
 function build(THREE, h) {
@@ -1398,5 +1409,6 @@ var update = updateEarband;
 export {
   build as default,
   meta,
+  neck,
   update
 };

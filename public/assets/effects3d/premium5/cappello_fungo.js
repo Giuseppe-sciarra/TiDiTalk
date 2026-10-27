@@ -1014,6 +1014,18 @@ function vcolor(THREE, geo, fn) {
   geo.setAttribute("color", new THREE.BufferAttribute(a, 3));
   return geo;
 }
+function occluder(THREE, geo) {
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true }));
+  m.renderOrder = -1;
+  return m;
+}
+function realHead(THREE, k = 1) {
+  const o = occluder(THREE, new THREE.SphereGeometry(1, 32, 20));
+  o.scale.set(7.6 * k, 10.1 * k, 9.3 * k);
+  o.position.set(0, 2.3, -4.6);
+  o.name = "realHead";
+  return o;
+}
 
 // fx/cappello_fungo.js
 var __s0 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "size": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "cell": void 0, "wob": void 0, "wf": void 0, "flicker": void 0 };
@@ -1057,10 +1069,10 @@ function build(THREE, h) {
     gl.computeVertexNormals();
   }
   vcolor(THREE, gl, (x, y, z, nx, ny, nz, o) => {
-    const r = Math.hypot(x, z) / R;
-    o[0] = 0.92 - 0.12 * r;
-    o[1] = 0.84 - 0.14 * r;
-    o[2] = 0.7 - 0.12 * r;
+    const r = Math.hypot(x, z) / R, k = 0.42 + 0.5 * r;
+    o[0] = 0.9 * k;
+    o[1] = 0.78 * k;
+    o[2] = 0.64 * k;
   });
   const gills = new THREE.Mesh(gl, M.matte(16777215, { vertexColors: true, roughness: 0.9, side: THREE.DoubleSide }));
   gills.position.y = -H * 0.07;
@@ -1111,6 +1123,7 @@ function build(THREE, h) {
   U.down = new THREE.Vector3(0, -1, 0);
   U.sq = new Spring(0, 180, 9);
   update(g2, {}, 0, h);
+  g2.add(realHead(THREE));
   return g2;
 }
 function update(g2, bs, t, h) {

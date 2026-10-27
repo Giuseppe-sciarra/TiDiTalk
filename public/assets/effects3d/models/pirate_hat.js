@@ -1,7 +1,11 @@
 // Tricorno da pirata: feltro nero spesso (falda con il bordo arrotondato e i tre lati rialzati), gallone dorato
 // intrecciato lungo il bordo, coccarda con teschio e ossa incrociate modellati sul davanti. Calza sopra la fronte e
 // regge a testa inclinata in giù; le parti dietro la testa le nasconde la testa.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js).
 import { felt, metal, plastic, tube, headOccluder, faceOccluder, afterFace, smooth, GOLD } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappello da pirata', labelEn: 'Pirate hat', category: 'costumi', icon: '🏴‍☠️' };
 
 export default function build(THREE, h) {
@@ -77,10 +81,9 @@ export default function build(THREE, h) {
   badge.rotation.x = Math.atan2(1, slope);
   badge.scale.setScalar(0.85);
   g.add(badge);
-
-  g.position.set(0, 8.6, -2.2);
-  g.rotation.x = -0.10;
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
+  g.scale.set(0.885, 0.999, 1.036);
+  g.position.set(0, 8.58, -4.78);
+  g.rotation.x = -0.076;
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(root);
+  return hatFit(THREE, h, afterFace(root), g, { rimY: -0.2, face: false });
 }

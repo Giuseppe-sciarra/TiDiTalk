@@ -1,5 +1,8 @@
 // Coroncina di fiori: ghirlanda di foglie e fiorellini pastello che cinge la testa.
+// 1.8.9: calzata sulla testa vera: ovale come una testa, più indietro e più in basso (prima davanti e ai lati restava
+// 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera (hatFit).
 import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Coroncina di fiori', labelEn: 'Flower crown', category: 'costumi', icon: '🌸' };
 
 export default function build(THREE, h) {
@@ -53,9 +56,9 @@ export default function build(THREE, h) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), h.mat(cols[(i + 2) % cols.length], { roughness: .85 }));
     b.position.set(Math.cos(a) * (R + 0.5), 0.4 * Math.sin(a * 3) + 0.55, Math.sin(a) * (R + 0.5)); g.add(b);
   }
-
-  g.position.set(0, 8.9, -2.3);
-  g.rotation.x = -0.2;
+  g.scale.set(1.023, 1.000, 1.221);
+  g.position.set(0, 8.95, -5.50);
+  g.rotation.x = -0.139;
   // occlusore "testa + capelli" dentro il cappello (solo profondità, invisibile): nell'app l'occlusore del cranio è
   // piccolo all'altezza della tesa e i capelli veri non nascondono nulla, quindi vista dal basso si vedrebbe il retro
   // della tesa/fascia attraverso la fronte. Nell'harness di sviluppo (h.preview) è marrone = capelli.
@@ -63,7 +66,6 @@ export default function build(THREE, h) {
     occ.scale.set(8.1, 5, 8.1); occ.position.set(0, -2.5, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { plug: false, dark: 0, face: false });
 }

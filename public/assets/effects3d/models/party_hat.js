@@ -1,5 +1,12 @@
 // Cappellino da festa: cono a righe colorate con pompon animato.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js);
+// tolto il fondo chiuso/disco sotto la cupola: da sotto si vedeva come un coperchio (anche il fondo del cono, ora aperto).
+// Con la calotta del cranio vero del motore: un po' più su e più indietro, meno inclinato (prima il bordo entrava nella
+// testa dietro e sul lato sinistro, e il motore non poteva accendere la calotta).
 import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappellino da festa', labelEn: 'Party hat', category: 'costumi', icon: '🥳' };
 
 export default function build(THREE, h) {
@@ -21,8 +28,7 @@ export default function build(THREE, h) {
   const paper = new THREE.MeshStandardMaterial({ map: tex, roughness: .7 });
 
   const H = 17, R = 6.4;
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(R, H, 48, 1, false), paper);
-  g.add(new THREE.Mesh(new THREE.CircleGeometry(R, 48), h.mat(0xe8e0d0, { roughness: .7 })).rotateX(Math.PI / 2));
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(R, H, 48, 1, true), paper);
   cone.position.y = H / 2;
   g.add(cone);
   // bordo inferiore con un orlo bianco
@@ -48,16 +54,16 @@ export default function build(THREE, h) {
   // della tesa/fascia attraverso la fronte. Nell'harness di sviluppo (h.preview) è marrone = capelli.
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
     occ.scale.set(6.6, 5, 6.6); occ.position.set(0, -2.0, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
-  g.position.set(0, 9.2, -2.0);
-  g.rotation.x = -0.18;
-  g.rotation.z = 0.12;
+  g.scale.set(0.940, 1.000, 1.060);
+  g.position.set(0, 10.90, -4.80);   // il bordo appoggia sulla calotta del cranio vero tutto intorno (dietro non entra)
+  g.rotation.x = -0.080;
+  g.rotation.z = 0.06;
   outer.add(g);
   outer.userData.pom = pom;
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(outer); root.userData = outer.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: 0.0, face: false });
 }
 
 export function update(g, bs, t) {

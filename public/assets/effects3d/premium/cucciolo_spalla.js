@@ -1421,6 +1421,8 @@ function PETS(THREE, H, K, C, P) {
   return Q;
 }
 export const meta = { label: 'Cucciolo sulla spalla', labelEn: 'Puppy on your shoulder', labelFr: 'Chiot sur l\'épaule', labelDe: 'Welpe auf der Schulter', category: 'divertenti', icon: '🐕', shot: { dist: 105, target: [-6, -6, 0] } };
+// 1.8.9: le parti al collo/sul busto le tiene già il NeckRig (o il rig del torso) di questo effetto: niente correzione del collo del motore (sarebbe doppia)
+export const neck = false;
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), C = CREATURE(THREE, h, K), P = PRESETS(THREE, h, K, C), Q = PETS(THREE, h, K, C, P);
@@ -1455,8 +1457,20 @@ export default async function build(THREE, h) {
     look: [0.5, 0.3], lookBias: (t) => 0.45 + 0.35 * Math.sin(t * 0.23),
     rigOpt2: null,
   });
-  pet.root.position.set(-15.2, -3.4, -1.4); pet.root.rotation.y = 0.35;
-  const g = new THREE.Group(); g.add(pet.root); g.userData.pet = pet;
+  pet.root.position.set(-15.2, -4.9, -1.6); pet.root.rotation.y = 0.35;   // 1.8.9: zampe appena sotto il bordo del busto (y ≈ −16,5): seduto sulla spalla, prima sospeso sopra
+  // 1.8.9: sulla spalla = sul busto. Il motore dà solo la posa della testa: il gruppo ha il perno alla base
+  // del cranio e ruota all'inverso di gran parte della posa (testa china 85 %, all'indietro 20 %, imbardata
+  // 55 %, rollio 70 %): chinando o inclinando la testa il cucciolo resta sulla spalla invece di volare via.
+  const rig = new THREE.Group(); rig.position.set(0, -7.5, -3.2); const rin = new THREE.Group(); rin.position.set(0, 7.5, 3.2); rig.add(rin);
+  rin.add(pet.root);
+  const g = new THREE.Group(); g.add(rig); g.userData.pet = pet;
+  g.userData.rig = { rig, e: new THREE.Euler(), q: new THREE.Quaternion(), p: new THREE.Vector3(), s: new THREE.Vector3() };
   return g;
 }
-export function update(g, bs, t) { const p = g.userData.pet; if (p) p.update(bs, t, !!g.userData.snap); g.userData.snap = false; }
+function neckRig(g) {
+  const R = g.userData.rig; if (!R) return; const P = g.parent;
+  if (!P) { R.rig.quaternion.identity(); return; }
+  P.matrix.decompose(R.p, R.q, R.s); const e = R.e.setFromQuaternion(R.q, 'YXZ');
+  e.set(-(e.x > 0 ? 0.85 : 0.2) * e.x, -0.55 * e.y, -0.7 * e.z, 'ZXY'); R.rig.quaternion.setFromEuler(e);
+}
+export function update(g, bs, t) { neckRig(g); const p = g.userData.pet; if (p) p.update(bs, t, !!g.userData.snap); g.userData.snap = false; }

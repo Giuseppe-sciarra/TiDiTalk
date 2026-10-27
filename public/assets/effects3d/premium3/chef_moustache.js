@@ -123,6 +123,58 @@ function hatOccluder(THREE, scale = [8, 10.2, 9.3], center = [0, 2.3, -4.4]) {
   o.name = "hatOccluder";
   return o;
 }
+var FASCIA = { y: 7, z: -4.8, rx: 8.5, rz: 9.8, tilt: 0.2 };
+function hatPlug(THREE, rx, rz, y = 0, h = 2.5) {
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, h, 40, 1), new THREE.MeshBasicMaterial({ colorWrite: false }));
+  o.scale.set(rx, 1, rz);
+  o.position.y = y + h / 2;
+  o.renderOrder = -1;
+  o.name = "hatPlug";
+  return o;
+}
+var NeckRig = class {
+  constructor(THREE, g2, { pivot = [0, -7.5, -3.2], kp = 0.85, kpUp = 0.2, ky = 0.55, kr = 0.7 } = {}) {
+    this.root = new THREE.Group();
+    this.root.position.set(pivot[0], pivot[1], pivot[2]);
+    this.root.name = "neckRig";
+    g2.add(this.root);
+    this.inner = new THREE.Group();
+    this.inner.position.set(-pivot[0], -pivot[1], -pivot[2]);
+    this.root.add(this.inner);
+    this.k = [kp, ky, kr, kpUp];
+    this.e = new THREE.Euler();
+  }
+  add(...o) {
+    this.inner.add(...o);
+    return this;
+  }
+  update(frame) {
+    if (!frame.attached) {
+      this.root.quaternion.identity();
+      return;
+    }
+    const e = this.e.setFromQuaternion(frame.q, "YXZ");
+    e.set(-(e.x > 0 ? this.k[0] : this.k[3]) * e.x, -this.k[1] * e.y, -this.k[2] * e.z, "ZXY");
+    this.root.quaternion.setFromEuler(e);
+  }
+};
+function neckOccluder(THREE, { r0 = 5.3, r1 = 6.2, y0 = -8.5, y1 = -19, z = -2.4, back = true } = {}) {
+  const m = new THREE.MeshBasicMaterial({ colorWrite: false });
+  const g2 = new THREE.Group();
+  g2.name = "neckOccluder";
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, y0 - y1, 32, 1), m);
+  o.position.set(0, (y0 + y1) / 2, z);
+  o.scale.z = 0.92;
+  o.renderOrder = -1;
+  g2.add(o);
+  if (back) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(20, y0 - y1 + 2, 11), m);
+    b.position.set(0, (y0 + y1) / 2 - 1, z - 0.9 - 5.5);
+    b.renderOrder = -1;
+    g2.add(b);
+  }
+  return g2;
+}
 
 // lib/expr.js
 var g = (b, k) => {
@@ -987,12 +1039,14 @@ var __s0 = { "x": void 0, "y": void 0, "z": void 0, "life": void 0, "size": void
 var __s1 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "cell": void 0, "spin": void 0, "drag": void 0, "fadeIn": void 0, "fadeOut": void 0 };
 var __s2 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "s": void 0, "s1": void 0, "q": void 0, "wy": void 0, "drag": void 0, "grav": void 0, "flut": void 0, "color": void 0, "grow": void 0 };
 var meta = { label: "Chef con baffi", labelEn: "Chef with moustache", labelFr: "Chef moustachu", labelDe: "Koch mit Schnurrbart", category: "costumi", icon: "\u{1F468}\u200D\u{1F373}" };
+var neck = false;
+var TK = (FASCIA.rx + 0.05) / 8.55;
 function toqueGeo(THREE) {
-  const g2 = smoothLathe(THREE, [[8.55, 0], [8.6, 3.6], [8.3, 4], [8.8, 7], [9.8, 11.5], [10.8, 14.2], [10.9, 15.6], [10.2, 17.2], [8.2, 18.5], [5, 19.3], [0, 19.6]], 96, 6);
+  const g2 = smoothLathe(THREE, [[8.55, 0], [8.6, 3.6], [8.3, 4], [8.8, 7], [9.8, 11.5], [10.8, 14.2], [10.9, 15.6], [10.2, 17.2], [8.2, 18.5], [5, 19.3], [0, 19.6]].map(([r, y]) => [r * TK, y]), 96, 6);
   const p = g2.attributes.position, n = valueNoise(4, 16);
   const col = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x), r = Math.hypot(x, z);
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x), r = Math.hypot(x, z) / TK;
     const pl = clamp((y - 4.2) / 3) * (1 - clamp((y - 15) / 3)), dome = clamp((y - 14.5) / 4);
     const c = Math.cos(a * 18), k = 1 + pl * 0.045 * c + dome * 0.06 * (n(a * 3, y * 0.6) - 0.5) * 2 * (r / 10);
     p.setX(i, x * k);
@@ -1025,12 +1079,19 @@ function build(THREE, h) {
   U.expr = new Expr(["smile", "jaw", "pucker"]);
   U.kiss = new Trigger({ on: 0.55, off: 0.3, hold: 0.15, cooldown: 0.8 });
   U.rnd = rng(141);
-  const toque = new THREE.Mesh(toqueGeo(THREE), new THREE.MeshStandardMaterial({ color: 14867663, vertexColors: true, roughness: 0.92, normalMap: feltNormal(THREE, 2, [10, 6], 2), side: THREE.DoubleSide, transparent: true }));
-  toque.position.set(0, 9, -3.4);
-  toque.rotation.set(-0.13, 0, 0.05);
-  toque.scale.set(0.98, 1, 1.02);
+  const toque = new THREE.Group();
+  toque.position.set(0, FASCIA.y, FASCIA.z);
+  toque.rotation.set(-FASCIA.tilt, 0, 0.05);
+  toque.scale.set(1, 1, FASCIA.rz / FASCIA.rx);
   g2.add(toque);
   U.toque = toque;
+  toque.add(new THREE.Mesh(toqueGeo(THREE), new THREE.MeshStandardMaterial({ color: 14867663, vertexColors: true, roughness: 0.92, normalMap: feltNormal(THREE, 2, [10, 6], 2), side: THREE.FrontSide, transparent: true })));
+  {
+    const lin = new THREE.Mesh(new THREE.CylinderGeometry(8 * TK, 8.3 * TK, 6.5, 48, 1, true), new THREE.MeshStandardMaterial({ color: 2762272, roughness: 1, side: THREE.BackSide, transparent: true }));
+    lin.position.y = 3.3;
+    toque.add(lin);
+  }
+  toque.add(hatPlug(THREE, 8.2 * TK, 8.2 * TK, -0.6, 3));
   const half = moustacheHalf(THREE);
   const hairMat = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.55, normalMap: brushedNormal(THREE, 3, [1, 6], 2.5), sheen: 0.35, sheenColor: new THREE.Color(6964776), transparent: true });
   U.mous = new THREE.Group();
@@ -1059,16 +1120,19 @@ function build(THREE, h) {
     x.fillRect(0, i * 16, 128, 8);
   }
   const cloth = new THREE.MeshStandardMaterial({ map: texFrom(THREE, cc, { repeat: [2, 2] }), roughness: 0.85, side: THREE.DoubleSide, transparent: true });
+  const rig = new NeckRig(THREE, g2);
+  U.rig = rig;
+  rig.add(neckOccluder(THREE));
   const ring = [];
   for (let i = 0; i < 40; i++) {
     const a = i / 40 * Math.PI * 2;
-    ring.push(new THREE.Vector3(Math.sin(a) * 6, -12.6 - Math.cos(a) * 0.9, -1.4 + Math.cos(a) * 5.6));
+    ring.push(new THREE.Vector3(Math.sin(a) * 6.2, -13.4 - Math.cos(a) * 0.9, -2 + Math.cos(a) * 5.9));
   }
-  g2.add(new THREE.Mesh(taperTube(THREE, new THREE.CatmullRomCurve3(ring, true), { segs: 80, radial: 10, r: () => 1, sx: 1, sy: 0.7, capStart: false, capEnd: false }), cloth));
+  rig.add(new THREE.Mesh(taperTube(THREE, new THREE.CatmullRomCurve3(ring, true), { segs: 80, radial: 10, r: () => 1, sx: 1, sy: 0.7, capStart: false, capEnd: false }), cloth));
   const knot = new THREE.Mesh(new THREE.SphereGeometry(1.25, 16, 12), cloth);
   knot.scale.set(1.2, 0.85, 0.75);
-  knot.position.set(0, -13.6, 4.4);
-  g2.add(knot);
+  knot.position.set(0, -14.4, 4.3);
+  rig.add(knot);
   const tri = new THREE.Shape();
   tri.moveTo(-1.2, 0);
   tri.quadraticCurveTo(0, 0.4, 1.2, 0);
@@ -1076,9 +1140,9 @@ function build(THREE, h) {
   tri.quadraticCurveTo(-0.6, -2.6, -1.2, 0);
   for (const sx of [-1, 1]) {
     const f = new THREE.Mesh(new THREE.ShapeGeometry(tri, 8), cloth);
-    f.position.set(sx * 0.9, -13.9, 4.6);
+    f.position.set(sx * 0.9, -14.7, 4.5);
     f.rotation.set(0.2, sx * 0.3, sx * 0.25);
-    g2.add(f);
+    rig.add(f);
   }
   const world = worldRoot(THREE, g2, U.frame);
   U.world = world;
@@ -1134,6 +1198,7 @@ function update(g2, bs, t, h) {
   const dt = U.tick.tick(t);
   U.frame.update(dt);
   U.world.userData.sync();
+  U.rig.update(U.frame);
   const e = U.expr.update(bs, dt, h);
   const lift = U.up.step(dt, e.smile);
   const talk = e.jaw;
@@ -1152,5 +1217,6 @@ function update(g2, bs, t, h) {
 export {
   build as default,
   meta,
+  neck,
   update
 };

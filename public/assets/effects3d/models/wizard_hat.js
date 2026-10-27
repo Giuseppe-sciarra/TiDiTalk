@@ -1,5 +1,10 @@
 // Cappello da mago: cono blu notte con punta piegata, tesa ondulata, stelle e luna dorate.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js);
+// tolto il fondo chiuso/disco sotto la cupola: da sotto si vedeva come un coperchio.
 import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappello da mago', labelEn: 'Wizard hat', category: 'costumi', icon: '🧙' };
 
 // tubo a raggio variabile lungo una curva (cono piegato, corna, ecc.)
@@ -49,8 +54,6 @@ export default function build(THREE, h) {
   const cone = new THREE.Mesh(tubeVar(THREE, spine, t => 8.6 * Math.pow(1 - t, 1.15) + 0.04, 56, 40), cloth);
   const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), cloth); tip.position.set(7.2, 23.4, -6.4); g.add(tip);
   g.add(cone);
-  // tappo in fondo (chiude il cono per vederlo pieno dal basso)
-  g.add(new THREE.Mesh(new THREE.CircleGeometry(8.6, 48), cloth).rotateX(Math.PI / 2));
 
   // tesa ondulata e larga
   const R0 = 7.8, R1 = 14.8;
@@ -92,9 +95,9 @@ export default function build(THREE, h) {
     const f = (rr - R0) / (R1 - R0);
     m.position.set(Math.cos(th) * rr, 0.85 + (1.2 * Math.sin(3 * th + 0.6) + 0.9) * f * f, Math.sin(th) * rr); g.add(m);
   }
-
-  g.position.set(0, 8.6, -2.2);
-  g.rotation.x = -0.1;
+  g.scale.set(0.935, 1.000, 1.089);
+  g.position.set(0, 8.35, -4.83);
+  g.rotation.x = -0.083;
   g.userData.cone = cone;
   // occlusore "testa + capelli" dentro il cappello (solo profondità, invisibile): nell'app l'occlusore del cranio è
   // piccolo all'altezza della tesa e i capelli veri non nascondono nulla, quindi vista dal basso si vedrebbe il retro
@@ -103,9 +106,8 @@ export default function build(THREE, h) {
     occ.scale.set(7.5, 6, 7.5); occ.position.set(0, -2.5, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: 0.0, face: false });
 }
 
 export function update(g, bs, t) {

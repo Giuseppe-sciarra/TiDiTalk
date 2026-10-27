@@ -1,5 +1,9 @@
 // Tocco da laurea: calotta nera, tavola quadrata con bottone e nappa dorata che pende sul lato.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js).
 import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Tocco di laurea', labelEn: 'Graduation cap', category: 'costumi', icon: '🎓' };
 
 export default function build(THREE, h) {
@@ -43,9 +47,9 @@ export default function build(THREE, h) {
   g.add(tassel);
   // anno in metallo sul cordone
   const tag = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 0.2), h.mat(0xd9c27a, { roughness: .3, metalness: .9 })); tag.position.set(15.8, 4.6, 0.75); g.add(tag);
-
-  g.position.set(0, 7.9, -2.3);
-  g.rotation.x = -0.1;
+  g.scale.set(0.913, 1.048, 1.145);
+  g.position.set(0, 6.90, -4.67);
+  g.rotation.x = -0.181;
   g.userData.tassel = tassel;
   // occlusore "testa + capelli" dentro il cappello (solo profondità, invisibile): nell'app l'occlusore del cranio è
   // piccolo all'altezza della tesa e i capelli veri non nascondono nulla, quindi vista dal basso si vedrebbe il retro
@@ -54,9 +58,8 @@ export default function build(THREE, h) {
     occ.scale.set(8.2, 6, 8.2); occ.position.set(0, -3.0, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: -1.06, face: false });
 }
 
 export function update(g, bs, t) {

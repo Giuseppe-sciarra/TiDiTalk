@@ -1,0 +1,51 @@
+/* 1.8.9 — Cerca negli effetti 3D (fxsearch.js): casella fissa in cima alla scheda «Effetti 3D» */
+body.tdt-room .fx-panel .fxs-box {
+  position: sticky; top: -4px; z-index: 3;
+  display: flex; align-items: center; gap: 8px;
+  margin: -12px -14px 10px; padding: 12px 14px 10px;
+  background: var(--ink-2);
+}
+body.tdt-room .fx-panel .fxs-box::after {
+  content: ''; position: absolute; left: 14px; right: 14px; bottom: 0; height: 1px;
+  background: var(--hair); opacity: 0; transition: opacity .2s;
+}
+body.tdt-room .fx-panel .fxs-box.fxs-on::after { opacity: 1; }
+body.tdt-room .fx-panel .fxs-ico {
+  position: absolute; left: 26px; top: 50%; margin-top: 1px; transform: translateY(-50%);
+  color: var(--paper-3); pointer-events: none;
+}
+body.tdt-room .fx-panel .fxs-input {
+  flex: 1; min-width: 0; height: 40px; box-sizing: border-box;
+  padding: 0 38px 0 38px; border-radius: 999px;
+  border: 1px solid var(--hair-2, var(--hair)); background: var(--ink-3); color: var(--paper);
+  font: 400 14px/1 var(--font); outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  -webkit-appearance: none; appearance: none;
+}
+body.tdt-room .fx-panel .fxs-input::-webkit-search-cancel-button { display: none; }
+body.tdt-room .fx-panel .fxs-input::placeholder { color: var(--paper-3); }
+body.tdt-room .fx-panel .fxs-input:hover { background: var(--ink-4); }
+body.tdt-room .fx-panel .fxs-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft, rgba(255, 255, 255, .08)); background: var(--ink-3); }
+body.tdt-room .fx-panel .fxs-x {
+  position: absolute; right: 22px; top: 50%; margin-top: 1px; transform: translateY(-50%);
+  width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--paper-2);
+  transition: background .15s, color .15s;
+}
+body.tdt-room .fx-panel .fxs-x:hover { background: var(--ink-4); color: var(--paper); }
+body.tdt-room .fx-panel .fxs-x.hidden { display: none; }
+body.tdt-room .fx-panel .fxs-hide { display: none !important; }
+body.tdt-room .fx-panel .fxs-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 26px 12px 10px; text-align: center;
+  color: var(--paper-2); font-size: 13.5px; line-height: 1.45;
+}
+body.tdt-room .fx-panel .fxs-empty b { color: var(--paper); font-weight: 600; font-size: 14px; }
+body.tdt-room .fx-panel .fxs-empty.hidden { display: none; }
+/* durante la ricerca la prima sezione trovata non ha spazio sopra in più */
+body.tdt-room .fx-panel .fxs-box.fxs-on ~ #effects3dPickerGrid .fx-h:not(.fxs-hide) { margin-top: 4px; }
+body.tdt-room .fx-panel .fxs-box.fxs-on ~ #effects3dPickerGrid .fx-h:not(.fxs-hide) ~ .fx-h:not(.fxs-hide) { margin-top: 14px; }
+@media (max-width: 640px) {
+  body.tdt-room .fx-panel .fxs-input { height: 44px; font-size: 16px; } /* 16px: iOS non ingrandisce la pagina */
+}

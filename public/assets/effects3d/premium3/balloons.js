@@ -926,7 +926,7 @@ var DynTube = class {
 var __s0 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "cell": void 0, "spin": void 0, "drag": void 0, "grav": void 0, "fadeIn": void 0, "fadeOut": void 0 };
 var __s1 = { "x": void 0, "y": void 0, "z": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "rot": void 0, "spin": void 0, "cell": void 0, "fadeIn": void 0, "fadeOut": void 0 };
 var meta = { label: "Palloncini", labelEn: "Balloons", labelFr: "Ballons", labelDe: "Luftballons", category: "divertenti", icon: "\u{1F388}" };
-var BOW = [6.6, 9.4, 0.6];
+var BOW = [7.58, 9.97, 1.23];
 var DEFS = [
   { dir: [-0.5, 1, 0.3], len: 7.2, kind: "latex", color: 14948143 },
   { dir: [0.28, 1, -0.05], len: 8.4, kind: "latex", color: 1288647 },

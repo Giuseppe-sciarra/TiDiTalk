@@ -1,6 +1,9 @@
 // Cappello torta di compleanno: torta a due piani calzata sui capelli, glassa rosa che cola, codette colorate, ciliegia e
 // tre candeline a righe con fiammelle che tremolano (si spengono per un attimo se soffi: mouthPucker / mouthFunnel).
+// 1.8.9: appoggiata sulla testa vera (prima il fondo stava dentro la testa e da sotto si vedeva l'interno rosa come un
+// coperchio): riempitivo invisibile con la forma della testa vera, tappo sull'apertura e interno scuro (hatFit).
 import { afterFace, faceOccluder, finish, headOccluder, plastic } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappello torta', labelEn: 'Cake hat', category: 'costumi', icon: '🎂' };
 
 export default function build(THREE, h) {
@@ -64,16 +67,16 @@ export default function build(THREE, h) {
     const glow = new THREE.Mesh(new THREE.SphereGeometry(1.1, 14, 10), new THREE.MeshBasicMaterial({ color: 0xffb347, transparent: true, opacity: .22, blending: THREE.AdditiveBlending, depthWrite: false })); glow.position.y = 0.6; fl.add(glow);
     g.add(fl); flames.push(fl);
   }
-  g.position.set(0, 9.6, -2.6);
-  g.rotation.x = -0.12;
+  g.scale.set(0.999, 1.000, 1.083);
+  g.position.set(0, 9.60, -3.60);
+  g.rotation.x = -0.050;
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
     occ.scale.set(8.4, 5, 8.4); occ.position.set(0, -2.0, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   g.userData.flames = flames;
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: 0.0, band: 1.0, face: false });
 }
 
 export function update(g, bs, t) {

@@ -1046,7 +1046,7 @@ function build(THREE, h) {
     const bow = makeBow(THREE, mat, { size: 1.4, tailLen: 0.01, knotMat: knotM });
     bow.tails.forEach((tp) => tp.visible = false);
     const root = new THREE.Group();
-    root.position.set(s * 7.4, 8.4, -0.6);
+    root.position.set(s * 8.9, 8.95, 0);
     root.rotation.set(-0.15, s * 0.55, -s * 0.3);
     root.add(bow.group);
     g2.add(root);

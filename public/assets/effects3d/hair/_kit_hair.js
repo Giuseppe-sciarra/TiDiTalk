@@ -18,8 +18,25 @@ export function headR(th, ph) {
   return (a(t0, p0) * (1 - ft) + a(t0 + 1, p0) * ft) * (1 - fp) + (a(t0, p0 + 1) * (1 - ft) + a(t0 + 1, p0 + 1) * ft) * fp;
 }
 export function dirOf(th, ph) { const s = Math.sin(ph); return [s * Math.sin(th), Math.cos(ph), s * Math.cos(th)]; }
+// 1.8.9: calotta del cranio vero del motore (HEAD.cranium in faceAR.js). Su una testa vera, in cima e sopra la fronte,
+// il cranio è più alto e più avanti del profilo qui sopra (la cima arriva a y ≈ 13,3, il profilo a 10,5): una cuffia
+// corta fatta sul profilo resta "dentro la testa" e il motore non può accendere la calotta. useCranium(m) (per
+// effetto, prima di costruire; useCranium(0) dopo) fa in modo che headPt non scenda mai sotto la calotta + m cm,
+// con un raccordo morbido: dove i capelli sono già fuori non cambia niente.
+export const CRANIUM = { c: [0, 5.6, -4.8], r: [7.7, 7.7, 8.7] };
+let CRM = 0;
+export function useCranium(m = 0) { CRM = m || 0; }
+// distanza da HC alla superficie della calotta nella direzione unitaria d (HC sta dentro la calotta)
+export function craniumR(d) {
+  const C = CRANIUM.c, R = CRANIUM.r;
+  const q = [(HC[0] - C[0]) / R[0], (HC[1] - C[1]) / R[1], (HC[2] - C[2]) / R[2]], u = [d[0] / R[0], d[1] / R[1], d[2] / R[2]];
+  const a = u[0] * u[0] + u[1] * u[1] + u[2] * u[2], b = q[0] * u[0] + q[1] * u[1] + q[2] * u[2], c = q[0] * q[0] + q[1] * q[1] + q[2] * q[2] - 1;
+  return (-b + Math.sqrt(b * b - a * c)) / a;
+}
 export function headPt(THREE, th, ph, off) {
-  const d = dirOf(th, ph), r = headR(th, ph) + (off || 0);
+  const d = dirOf(th, ph);
+  let r = headR(th, ph) + (off || 0);
+  if (CRM) { const rc = craniumR(d) + CRM, k = 0.5; r = (r + rc + Math.sqrt((r - rc) * (r - rc) + k * k)) / 2; }
   return new THREE.Vector3(HC[0] + d[0] * r, HC[1] + d[1] * r, HC[2] + d[2] * r);
 }
 // φ tale che il punto sulla superficie abbia altezza y (bisezione, y decresce con φ)

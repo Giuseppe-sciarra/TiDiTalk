@@ -1,7 +1,11 @@
 // Corona reale: fascia d'oro con bordi a cordone, punte a fiordaliso stilizzato con le estremità arrotondate e una
 // perla in cima, gemme a cabochon incastonate in castoni con le griffe, velluto rosso imbottito dentro.
 // Sta sopra la testa (anche calva e grande) e non scende sulla fronte.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js).
 import { metal, gem, felt, tube, softExtrude, headOccluder, faceOccluder, afterFace, plugOccluder, GOLD } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Corona', labelEn: 'Crown', category: 'costumi', icon: '👑' };
 
 export default function build(THREE, h) {
@@ -53,11 +57,11 @@ export default function build(THREE, h) {
 
   // interno chiuso: da sotto non si vede la parte posteriore della corona attraverso lo spazio sopra la testa
   g.add(plugOccluder(THREE, h, R - 0.3, -3.5, 1.2));
-  g.position.set(0, 9.4, -2.4);
-  g.rotation.x = -0.16;
+  g.scale.set(0.876, 0.999, 0.996);
+  g.position.set(0, 8.28, -5.40);
+  g.rotation.x = -0.208;
   // occlusore testa (spazio del viso): copre anche le teste grandi inclinate in giù
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   // le punte dietro, a testa inclinata in su, finiscono dietro la fronte: disegnate dopo il viso (che le nasconde)
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(root);
+  return hatFit(THREE, h, afterFace(root), g, { rimY: 0.0, face: false });
 }

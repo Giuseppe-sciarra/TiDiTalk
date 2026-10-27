@@ -1,7 +1,11 @@
 // Cappellino da baseball: cupola morbida a 6 spicchi di cotone (trama, cuciture doppie in rilievo), bottone rivestito,
 // occhielli ricamati, visiera curva con bordo arrotondato e sottovisiera verde, fascia interna. Calza sopra le orecchie,
 // la visiera resta sopra le sopracciglia anche a testa inclinata in giù.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js).
 import { cloth, tube, headOccluder, smooth } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappellino da baseball', labelEn: 'Baseball cap', category: 'accessori', icon: '🧢' };
 
 export default function build(THREE, h) {
@@ -78,11 +82,9 @@ export default function build(THREE, h) {
     for (let i = 0; i <= 48; i++) { const a = Math.PI + i / 48 * Math.PI; const x = Math.cos(a) * kx, z = 7.5 - Math.sin(a) * kz; if (Math.hypot(x, z) < 8.7) continue; pts.push(V(x, 0.36 + bend(x, z), z - 8.5)); }
     if (pts.length > 3) { const m = new THREE.Mesh(tube(THREE, pts, 0.035, { segs: 60, rad: 4, cap: false }), thread); m.position.copy(visor.position); m.rotation.copy(visor.rotation); g.add(m); }
   }
-
-  g.scale.set(1.05, 1.08, 1.05);     // un po' più grande della testa nuda: deve stare sopra i capelli veri
-  g.position.set(0, 7.9, -2.5);
-  g.rotation.x = -0.08;
-  // occlusore testa + capelli (spazio del viso): copre anche le teste grandi inclinate in giù
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
-  return root;
+  g.scale.set(0.948, 1.168, 1.156);
+  g.position.set(0, 6.42, -4.00);
+  g.rotation.x = -0.168;
+  // riempitivo con la forma della testa vera, tappo sull'apertura e fodera scura (1.8.9)
+  return hatFit(THREE, h, root, g, { rimY: -1.4 });
 }

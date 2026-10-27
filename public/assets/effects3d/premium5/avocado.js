@@ -1032,7 +1032,7 @@ function build(THREE, h) {
   U.expr = new Expr(["smile", "jaw", "browUp"]);
   U.rnd = rng(61);
   const root = new THREE.Group();
-  root.position.set(0, 16.9, -1.6);
+  root.position.set(0, 19.5, -1.6);
   root.rotation.set(-0.12, 0, -0.08);
   g2.add(root);
   U.root = root;

@@ -1424,12 +1424,15 @@ export const meta = { label: 'Musetto da cagnolino', labelEn: 'Puppy face', labe
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), C = CREATURE(THREE, h, K), L = LENS(THREE, h, K, C);
+  // 1.8.9: orecchie sul cranio vero del motore (HEAD.cranium: centro (0, 5,6, −4,8), raggi 7,7 × 7,7 × 8,7), non
+  // sull'ellissoide di prima (cima 10,4): sulle teste vere stavano 3 cm dentro la testa e il motore spegneva la calotta
+  L.capPoint = (dir, hair = 1.6) => { const SK = [0, 5.6, -4.8], SR = [7.7, 7.7, 8.7]; const l = Math.hypot(dir[0] / SR[0], dir[1] / SR[1], dir[2] / SR[2]); const d = [dir[0] / l, dir[1] / l, dir[2] / l], dl = Math.hypot(...d); return [SK[0] + d[0] + d[0] / dl * hair, SK[1] + d[1] + d[1] / dl * hair, SK[2] + d[2] + d[2] / dl * hair]; };
   const g = new THREE.Group();
   const brown = [0.5, 0.33, 0.2];
   const ctx = await L.build(g, {
     seed: 3, earBack: 0.15, earPerk: 0.1, twitch: 0.1,
     // floppy ears rooted on the top of the head, hanging beside it down to the cheekbones
-    ears: { kind: 'floppy', L: 12.5, W: 3.0, T: 0.8, D: 1.1, innerSide: -1, mirror: true, up: 0.25, outX: 3.4, hang: 1.2, fwd: 0.4, dir: [0.68, 1.0, -0.2], hair: 1.2, rot: [0.0, -0.6, 0.18],
+    ears: { kind: 'floppy', L: 12.5, W: 3.0, T: 0.8, D: 1.1, innerSide: -1, mirror: true, up: 0.25, outX: 3.4, hang: 1.2, fwd: 0.4, dir: [0.68, 1.0, -0.2], hair: 2.0, rot: [0.0, -0.6, 0.18],
       out: brown, inn: [0.42, 0.28, 0.2], tuft: [0.58, 0.4, 0.26], tip: [0.3, 0.19, 0.11], tipFrom: 0.55, tipK: 0.8, furOut: 1,
       fur: { shells: 12, len: 1.2, rep: [3, 8], root: 0.55, tip: 1.08 },
       morphs: [{ name: 'lift', ctrl: [[0, -0.9, 0], [0.7, 1.0, 0], [2.6, 1.6, 0.1], [4.6, 0.8, 0.4], [5.8, -2.2, 0.8], [6.2, -6.0, 1.1], [6.0, -9.6, 1.3]] }] },

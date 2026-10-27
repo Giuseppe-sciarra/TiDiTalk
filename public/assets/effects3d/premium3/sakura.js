@@ -964,7 +964,7 @@ function build(THREE, h) {
   U.rnd = rng(251);
   U.trig = new Trigger({ on: 0.55, off: 0.3, cooldown: 1.2 });
   const sprig = new THREE.Group();
-  sprig.position.set(6.2, 7.4, 1.6);
+  sprig.position.set(7.11, 7.66, 2.34);
   sprig.rotation.set(-0.35, -0.5, -0.55);
   sprig.scale.setScalar(1.45);
   g2.add(sprig);

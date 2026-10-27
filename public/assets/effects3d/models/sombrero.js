@@ -1,5 +1,10 @@
 // Sombrero di paglia: tesa larghissima con bordo rialzato, corona alta con incavo, fascia a zig-zag colorata e pon-pon.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js);
+// tolto il fondo chiuso/disco sotto la cupola: da sotto si vedeva come un coperchio.
 import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Sombrero', labelEn: 'Sombrero', category: 'costumi', icon: '🪇' };
 
 export default function build(THREE, h) {
@@ -19,7 +24,7 @@ export default function build(THREE, h) {
   const lathe = (pts, seg = 96) => new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg);
 
   // corona: alta, leggermente conica, con un incavo in cima
-  const crownGeo = lathe([[0, 0], [8.4, 0], [8.5, 3], [8.0, 7], [7.3, 10.5], [6.4, 12.8], [5.2, 13.6], [3.0, 13.2], [0, 12.6]]);
+  const crownGeo = lathe([[8.4, 0], [8.5, 3], [8.0, 7], [7.3, 10.5], [6.4, 12.8], [5.2, 13.6], [3.0, 13.2], [0, 12.6]]);
   g.add(new THREE.Mesh(crownGeo, straw));
 
   // tesa larghissima che si incurva verso l'alto al bordo, con onde leggere
@@ -63,9 +68,9 @@ export default function build(THREE, h) {
     const pom = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), h.mat(pomCols[i % 4], { roughness: .9 }));
     pom.position.set(Math.cos(th) * (R1 - 0.5), 2.6 + 0.35 * Math.sin(6 * th), Math.sin(th) * (R1 - 0.5)); g.add(pom);
   }
-
-  g.position.set(0, 8.6, -2.2);
-  g.rotation.x = -0.12;
+  g.scale.set(0.961, 1.009, 1.115);
+  g.position.set(0, 7.60, -4.85);
+  g.rotation.x = -0.146;
   // occlusore "testa + capelli" dentro il cappello (solo profondità, invisibile): nell'app l'occlusore del cranio è
   // piccolo all'altezza della tesa e i capelli veri non nascondono nulla, quindi vista dal basso si vedrebbe il retro
   // della tesa/fascia attraverso la fronte. Nell'harness di sviluppo (h.preview) è marrone = capelli.
@@ -73,7 +78,6 @@ export default function build(THREE, h) {
     occ.scale.set(7.6, 6, 7.6); occ.position.set(0, -2.5, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: 0.0, face: false });
 }

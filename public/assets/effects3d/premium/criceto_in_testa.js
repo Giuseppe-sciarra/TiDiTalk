@@ -1475,7 +1475,7 @@ export default async function build(THREE, h) {
   // the seed: striped shell, held in the paws
   const sg = K.vc(new THREE.SphereGeometry(1, 16, 10)); { const p = sg.attributes.position, cl = sg.attributes.color, a = new THREE.Color(), b = new THREE.Color(); a.setRGB(0.12, 0.11, 0.1, THREE.SRGBColorSpace); b.setRGB(0.82, 0.8, 0.74, THREE.SRGBColorSpace); for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i); const st = Math.abs(Math.sin(Math.atan2(x, p.getZ(i)) * 3)) > 0.82 ? b : a; cl.setXYZ(i, st.r, st.g, st.b); p.setXYZ(i, x * 1.2, y * 2.6 * (1 - 0.25 * Math.max(0, y)), p.getZ(i) * 0.75); } sg.computeVertexNormals(); }
   const seed = new THREE.Mesh(sg, K.std([1, 1, 1], { roughness: 0.45 })); const seed0 = [0, -12.4, 9.6]; seed.position.set(...seed0); seed.rotation.x = 0.4; pet.inner.add(seed);
-  pet.root.position.set(0, 19.0, -2.4);
+  pet.root.position.set(0, 19.7, -2.4);   // 1.8.9: +0,7 cm, sui capelli sopra il cranio vero (prima seduto sulla calotta nuda)
   const g = new THREE.Group(); g.add(pet.root); g.userData.pet = pet;
   K.finish(g);
   return g;

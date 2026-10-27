@@ -1000,7 +1000,7 @@ var __s0 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, 
 var meta = { label: "Uccellino canterino", labelEn: "Singing birdie", category: "divertenti", icon: "\u{1F426}" };
 var SPOTS = [[-2.6, -2.4, 0.35], [0.2, -1.6, 0], [2.8, -2.6, -0.4], [0.9, -3.4, 0.6]];
 var NC = [[1, 0.45, 0.6], [0.4, 0.7, 1], [1, 0.75, 0.2], [0.55, 0.85, 0.35], [0.75, 0.5, 1]];
-var topY = (x, z) => 1.5 + 8.9 * Math.sqrt(Math.max(0, 1 - (x / 7.6) ** 2 - ((z + 3.8) / 7.7) ** 2)) + 1.5;
+var topY = (x, z) => 5.6 + 7.7 * Math.sqrt(Math.max(0, 1 - (x / 7.7) ** 2 - ((z + 4.8) / 8.7) ** 2)) + 0.8;
 function build(THREE, h) {
   const g2 = new THREE.Group();
   const U = g2.userData = {};

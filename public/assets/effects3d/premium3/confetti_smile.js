@@ -958,32 +958,32 @@ function build(THREE, h) {
   U.trig = new Trigger({ on: 0.55, off: 0.3, cooldown: 1 });
   U.rnd = rng(11);
   const band = [];
-  const C = new THREE.Vector3(0, 1.5, -2.6), RX = 8.55, RY = 11;
+  const C = new THREE.Vector3(0, 5.6, -2.6), RX = 9.2, RY = 9.2;
   for (let i = 0; i <= 40; i++) {
-    const a = -Math.PI * 0.47 + i / 40 * Math.PI * 0.94;
+    const a = -1.88 + i / 40 * 3.76;
     band.push(new THREE.Vector3(Math.sin(a) * RX, C.y + Math.cos(a) * RY, C.z - Math.cos(a) * 0.9));
   }
   const bandGeo = taperTube(THREE, new THREE.CatmullRomCurve3(band), { segs: 80, radial: 10, r: () => 0.42, sx: 1.9, sy: 0.55 });
-  const bandMat = new THREE.MeshPhysicalMaterial({ color: 15217515, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.3, sheen: 0.6, sheenColor: new THREE.Color(16756936) });
+  const bandMat = new THREE.MeshPhysicalMaterial({ color: 15217515, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.3, sheen: 0.6, sheenColor: new THREE.Color(16756936), transparent: true });
   g2.add(new THREE.Mesh(bandGeo, bandMat));
   const ptex = popperTexture(THREE);
   const coneGeo = smoothLathe(THREE, [[0, -0.2], [0.42, -0.15], [0.55, 0.3], [1, 2.6], [1.55, 5], [1.72, 5.6], [1.62, 5.7]], 36, 5);
-  const coneMat = new THREE.MeshStandardMaterial({ map: ptex, roughness: 0.3, metalness: 0.55, side: THREE.DoubleSide });
+  const coneMat = new THREE.MeshStandardMaterial({ map: ptex, roughness: 0.3, metalness: 0.55, side: THREE.DoubleSide, transparent: true });
   const rimGeo = new THREE.TorusGeometry(1.66, 0.17, 10, 40);
   rimGeo.rotateX(Math.PI / 2);
   rimGeo.translate(0, 5.62, 0);
-  const rimMat = new THREE.MeshStandardMaterial({ color: 16765773, roughness: 0.25, metalness: 0.8 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 16765773, roughness: 0.25, metalness: 0.8, transparent: true });
   const capGeo = new THREE.CircleGeometry(1.55, 32);
   capGeo.rotateX(-Math.PI / 2);
   capGeo.translate(0, 5.45, 0);
-  const capMat = new THREE.MeshStandardMaterial({ color: 16774368, roughness: 0.8, side: THREE.DoubleSide });
+  const capMat = new THREE.MeshStandardMaterial({ color: 16774368, roughness: 0.8, side: THREE.DoubleSide, transparent: true });
   const tasselGeo = new THREE.ConeGeometry(0.5, 1.4, 12, 1, true);
   tasselGeo.translate(0, 0.7, 0);
-  const tasselMat = new THREE.MeshStandardMaterial({ color: 16732043, roughness: 0.7, side: THREE.DoubleSide });
+  const tasselMat = new THREE.MeshStandardMaterial({ color: 16732043, roughness: 0.7, side: THREE.DoubleSide, transparent: true });
   const stringGeo = taperTube(THREE, new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.3, -0.8, 0.2), new THREE.Vector3(-0.2, -1.6, 0.3), new THREE.Vector3(0.1, -2.3, 0.1)]), { segs: 20, radial: 5, r: () => 0.07 });
   const ringGeo = new THREE.TorusGeometry(0.32, 0.08, 6, 16);
   ringGeo.translate(0.1, -2.6, 0.1);
-  const stringMat = new THREE.MeshStandardMaterial({ color: 16117990, roughness: 0.6 });
+  const stringMat = new THREE.MeshStandardMaterial({ color: 16117990, roughness: 0.6, transparent: true });
   U.poppers = [];
   for (const side of [-1, 1]) {
     const a = side * 0.72;
@@ -1003,6 +1003,7 @@ function build(THREE, h) {
     const str = new THREE.Group();
     str.add(new THREE.Mesh(stringGeo, stringMat), new THREE.Mesh(ringGeo, stringMat));
     str.position.y = -0.1;
+    str.rotation.z = side * 1.25;
     body.add(str);
     g2.add(pivot);
     U.poppers.push({ pivot, body, tassel, str, axis, mouth: new THREE.Vector3(0, 5.7, 0), spring: new Spring(1, 260, 9), wob: new Spring(0, 90, 5), side });
@@ -1117,7 +1118,7 @@ function update(g2, bs, t, h) {
     const op = (P.tassel.userData.open || 0) * Math.exp(-dt * 1.5);
     P.tassel.userData.open = op;
     P.tassel.scale.set(0.85 + op * 1.6, 0.85 - op * 0.5, 0.85 + op * 1.6);
-    P.str.rotation.z = Math.sin(t * 2.1 + P.side) * 0.25 + w;
+    P.str.rotation.z = P.side * 1.25 + Math.sin(t * 2.1 + P.side) * 0.25 + w;
   }
   const down = U.down;
   for (const s of U.systems) s.update(dt, down);

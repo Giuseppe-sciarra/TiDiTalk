@@ -1424,6 +1424,9 @@ export const meta = { label: 'Musetto da orsetto', labelEn: 'Teddy face', labelF
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), C = CREATURE(THREE, h, K), L = LENS(THREE, h, K, C);
+  // 1.8.9: orecchie sul cranio vero del motore (HEAD.cranium: centro (0, 5,6, −4,8), raggi 7,7 × 7,7 × 8,7), non
+  // sull'ellissoide di prima (cima 10,4): sulle teste vere stavano 3 cm dentro la testa e il motore spegneva la calotta
+  L.capPoint = (dir, hair = 1.6) => { const SK = [0, 5.6, -4.8], SR = [7.7, 7.7, 8.7]; const l = Math.hypot(dir[0] / SR[0], dir[1] / SR[1], dir[2] / SR[2]); const d = [dir[0] / l, dir[1] / l, dir[2] / l], dl = Math.hypot(...d); return [SK[0] + d[0] + d[0] / dl * hair, SK[1] + d[1] + d[1] / dl * hair, SK[2] + d[2] + d[2] / dl * hair]; };
   const g = new THREE.Group();
   const blush = [1, -1].map(sd => ({ c: [sd * 4.4, -0.8, 3.5], r: 1.3, ry: 0.9, col: [0.92, 0.5, 0.48], a: 0.3, edge: 0 }));
   const ctx = await L.build(g, {

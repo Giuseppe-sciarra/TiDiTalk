@@ -1424,13 +1424,16 @@ export const meta = { label: 'Musetto da gattino', labelEn: 'Kitty face', labelF
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), C = CREATURE(THREE, h, K), L = LENS(THREE, h, K, C);
+  // 1.8.9: orecchie sul cranio vero del motore (HEAD.cranium: centro (0, 5,6, −4,8), raggi 7,7 × 7,7 × 8,7), non
+  // sull'ellissoide di prima (cima 10,4): sulle teste vere stavano 3 cm dentro la testa e il motore spegneva la calotta
+  L.capPoint = (dir, hair = 1.6) => { const SK = [0, 5.6, -4.8], SR = [7.7, 7.7, 8.7]; const l = Math.hypot(dir[0] / SR[0], dir[1] / SR[1], dir[2] / SR[2]); const d = [dir[0] / l, dir[1] / l, dir[2] / l], dl = Math.hypot(...d); return [SK[0] + d[0] + d[0] / dl * hair, SK[1] + d[1] + d[1] / dl * hair, SK[2] + d[2] + d[2] / dl * hair]; };
   const g = new THREE.Group();
   const fur = [0.56, 0.44, 0.33];
   const dots = [];
   for (const sd of [1, -1]) for (const [x, y] of [[2.9, -2.0], [3.45, -2.45], [2.95, -2.75]]) dots.push({ c: [sd * x, y, 4.4], r: 0.13, col: [0.2, 0.14, 0.12], a: 0.85, edge: 0.0 });
   const ctx = await L.build(g, {
     seed: 4,
-    ears: { kind: 'pointy', L: 6.6, W: 3.5, T: 0.6, D: 1.0, back: 0.4, rho: 0.15, dir: [0.52, 1.0, 0.2], hair: 1.6, rot: [-0.12, 0.25, -0.32],
+    ears: { kind: 'pointy', L: 6.6, W: 3.5, T: 0.6, D: 1.0, back: 0.4, rho: 0.15, dir: [0.52, 1.0, 0.2], hair: 2.2, rot: [-0.12, 0.25, -0.32],
       out: fur, inn: [0.82, 0.5, 0.5], tuft: [0.8, 0.72, 0.62], tip: [0.32, 0.24, 0.18], tipFrom: 0.75, tipK: 0.7,
       fur: { shells: 9, len: 0.6, rep: [4, 6], root: 0.6, tip: 1.08 } },
     nose: { kind: 'cat', w: 1.3, h: 0.92, d: 0.8, col: [0.88, 0.48, 0.54], off: [0, 0.22, 0.32], rx: 0.2 },

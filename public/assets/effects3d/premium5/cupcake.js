@@ -855,7 +855,7 @@ function build(THREE, h) {
   U.expr = new Expr(["smile", "jaw"]);
   U.rnd = rng(51);
   const root = new THREE.Group();
-  root.position.set(0, 11.3, -2.4);
+  root.position.set(0, 13.4, -2.4);
   root.rotation.set(0.18, 0, 0.06);
   g2.add(root);
   U.root = root;

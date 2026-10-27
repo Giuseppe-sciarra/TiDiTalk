@@ -993,7 +993,7 @@ var Mats = class {
   }
 };
 var Band = class {
-  constructor({ R = 8.85, top = 12.3, y0 = 1.6, z0 = -2.6, zt = 0.9 } = {}) {
+  constructor({ R = 9.3, top = 14.9, y0 = 5, z0 = -3.2, zt = 0.9 } = {}) {
     Object.assign(this, { R, top, y0, z0, zt });
   }
   at(a, out) {
@@ -1028,8 +1028,8 @@ function build(THREE, h) {
   U.tick = new Ticker();
   U.expr = new Expr(["smile", "browUp", "frown"]);
   U.rnd = rng(71);
-  const band = new Band({ top: 12.2 });
-  g2.add(band.mesh(THREE, M.plush(15784399), { r: 0.44, a0: 1.3 }));
+  const band = new Band();
+  g2.add(band.mesh(THREE, M.plush(15784399), { r: 0.44, a0: 1.62 }));
   const fur = M.plush(16777215, { vertexColors: true, side: THREE.DoubleSide });
   const pink = M.plush(15899570, { side: THREE.DoubleSide, sheenRoughness: 0.55 });
   U.ears = [];

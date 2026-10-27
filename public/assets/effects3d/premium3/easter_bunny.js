@@ -506,11 +506,11 @@ function build(THREE, h) {
   const satin = new THREE.MeshPhysicalMaterial({ color: 16033730, roughness: 0.35, clearcoat: 0.5, sheen: 0.8, sheenColor: new THREE.Color(16766692), transparent: true });
   const band = [];
   for (let i = 0; i <= 40; i++) {
-    const a = -Math.PI * 0.47 + i / 40 * Math.PI * 0.94;
-    band.push(new THREE.Vector3(Math.sin(a) * 8.6, 1.5 + Math.cos(a) * 11, -2.6 - Math.cos(a) * 0.8));
+    const a = -1.88 + i / 40 * 3.76;
+    band.push(new THREE.Vector3(Math.sin(a) * 9.2, 5.6 + Math.cos(a) * 9.2, -2.6 - Math.cos(a) * 0.8));
   }
   g2.add(new THREE.Mesh(taperTube(THREE, new THREE.CatmullRomCurve3(band), { segs: 80, radial: 10, r: () => 0.5, sx: 1.9, sy: 0.6 }), satin));
-  const bandAt = (a, out = new THREE.Vector3()) => out.set(Math.sin(a) * 8.6, 1.5 + Math.cos(a) * 11, -2.6 - Math.cos(a) * 0.8);
+  const bandAt = (a, out = new THREE.Vector3()) => out.set(Math.sin(a) * 9.2, 5.6 + Math.cos(a) * 9.2, -2.6 - Math.cos(a) * 0.8);
   const fur = new THREE.MeshStandardMaterial({ color: 14273984, vertexColors: true, roughness: 0.95, normalMap: furNormal(THREE, 7, [2, 4], 4), normalScale: new THREE.Vector2(0.8, 0.8), side: THREE.DoubleSide, transparent: true });
   const pink = new THREE.MeshStandardMaterial({ color: 15633062, roughness: 0.75, side: THREE.DoubleSide, transparent: true });
   U.ears = [];

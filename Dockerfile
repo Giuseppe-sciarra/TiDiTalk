@@ -28,6 +28,11 @@ RUN npx esbuild \
 # Runtime stage
 FROM node:22-alpine
 
+# 1.8.9: Node con la correzione della falla Brotli (CVE-2026-111497, ottobre 2026:
+# 22.23.4 / 24.22.1 / 26.12.1). Docker tiene in cache l'immagine node:22-alpine
+# scaricata la prima volta: se è quella vecchia la build si ferma qui e dice cosa fare.
+RUN node -e "const [a,b,c]=process.versions.node.split('.').map(Number); const min={22:[23,4],24:[22,1],26:[12,1]}[a]; if (min && (b<min[0] || (b===min[0] && c<min[1]))) { console.error('\n  Node '+process.versions.node+' ha la falla Brotli (CVE-2026-111497).\n  Ricostruisci scaricando la nuova immagine di Node:  docker compose build --pull\n'); process.exit(1); }"
+
 RUN apk add --no-cache \
     python3 make g++ gcc linux-headers udev libstdc++
 

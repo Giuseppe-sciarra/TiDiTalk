@@ -1,7 +1,9 @@
 // Ram horns — CC-BY-4.0, Vezonia
 // Modello: ram_horns.glb (ottimizzato: <25k triangoli, texture ≤512 px, niente Draco/meshopt).
+// 1.8.9: le basi delle corna stavano 2 cm davanti e sopra la fronte (girando la testa si vedevano sospese): ora più in
+// basso e più indietro, appoggiate sulla testa vera.
 export const meta = {"label": "Corna d'ariete", "labelEn": "Ram horns", "category": "costumi", "icon": "🐏"};
-const P = {"c": [0.0, 5.19326, -3.75243], "s": 1.353, "p": [0.0, 17.2, 0.0], "r": [0, 0, 0]};   // c = centro del modello (unità del file), s = scala → cm, p = posizione sulla testa canonica, r = rotazione (gradi)
+const P = {"c": [0.0, 5.19326, -3.75243], "s": 1.353, "p": [0.0, 15.45, -0.5], "r": [0, 0, 0]};   // c = centro del modello (unità del file), s = scala → cm, p = posizione sulla testa canonica, r = rotazione (gradi)
 const O = {"color": [0.6, 0.5, 0.4], "rough": 0.7, "env": 0.6};
 
 export default async function build(THREE, h) {

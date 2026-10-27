@@ -15,6 +15,7 @@ Face Landmarker (posizione 3D della testa + 52 espressioni). Il motore è `publi
 | `premium3/` | effetti divertenti e a tema fatti con più cura (procedurali) |
 | `premium4/` | animaletti kawaii "da pupazzo" e amichetti in testa o sulla spalla (procedurali) |
 | `premium5/` | accessori carini ed effetti kawaii sul viso vero (procedurali) |
+| `premium6/` | cappelli, cerchietti, occhiali e berretti nuovi (1.8.9), calzati sulla testa vera (procedurali) |
 | `glb/`    | modelli gratuiti (CC0 / CC-BY / Apache-2.0) già ottimizzati — crediti in `glb/CREDITS.md` |
 | `thumbs/` | miniature del pannello (generate) |
 | `catalog.js` | catalogo per il pannello (generato) |
@@ -36,6 +37,18 @@ Face Landmarker (posizione 3D della testa + 52 espressioni). Il motore è `publi
    mascella) vanno fatte con materiali `transparent: true` (anche con `opacity: 1`), altrimenti si vedono
    sopra il viso. Per le parti dietro la nuca un occlusore proprio (mesh con `colorWrite: false`) va bene;
    nelle miniature gli occlusori dell'effetto vengono spenti, perché lì c'è il manichino.
+   Cappelli, caschi e cerchietti (1.8.9): l'ellissoide di sempre del motore è piccolo; una testa vera, calva, arriva a
+   y ≈ 13–14,5 e dietro a z ≈ −13,5. Il motore ha la calotta del cranio vero (`HEAD.cranium` in faceAR.js: centro
+   (0, 5,6, -4,8), raggi (7,7, 7,7, 8,7)) e la accende solo se nasconde meno del 4 % della superficie esterna
+   dell'effetto (`export const cranium = true|false` per deciderlo). Si calza FUORI dalla calotta: `REAL_HEAD` in
+   `glb/_glbhead.js` (stessa forma) più la fronte del viso canonico. La fascia
+   è ovale come una testa (scala per asse; `ovalize` in `models/_kit_acc.js` la rende ovale solo in basso) e la tocca
+   tutto intorno, davanti 2,5–3,5 cm sopra le sopracciglia. `hatFit(THREE, h, radice, gruppoDelCappello, { rimY })`
+   aggiunge il riempitivo con la forma della testa vera, un tappo invisibile sull'apertura della fascia e la fodera
+   scura dentro la cupola: da sotto l'interno non si vede mai come un "coperchio". Niente dischi visibili che chiudono
+   il fondo della cupola. Le parrucche corte fatte con `hair/_kit_hair.js` chiamano `useCranium(m)` prima di costruire:
+   la cuffia non scende mai sotto la calotta + m cm. Berretti e cuffie morbide seguono la calotta 0,5–1,5 cm fuori
+   (non 4–6 cm come quando erano fatti per capelli voluminosi).
 2. Rigenera catalogo e miniature: `python3 tools/build-effects3d.py`
 3. Le etichette nuove vanno tradotte in `i18n.json` (fr/de) e nelle traduzioni dell'app.
 

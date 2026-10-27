@@ -971,7 +971,7 @@ function build(THREE, h) {
   const knotM = M.satin(14827387);
   const bow = makeBow(THREE, mat, { size: 2.25, tailLen: 1.5, knotMat: knotM });
   const root = new THREE.Group();
-  root.position.set(3, 11.15, -1.3);
+  root.position.set(4.57, 14.05, 0.13);
   root.rotation.set(-0.42, 0.22, -0.38);
   root.add(bow.group);
   g2.add(root);
@@ -1022,7 +1022,7 @@ function update(g2, bs, t, h) {
   }
   const b = U.boing.step(dt, 0);
   U.root.scale.set(1 + b * 0.08 + U.perk * 0.05, 1 - b * 0.1 + U.perk * 0.06, 1);
-  U.root.position.y = 11.15 + Math.max(0, b) * 0.6 + U.perk * 0.4;
+  U.root.position.y = 14.05 + Math.max(0, b) * 0.6 + U.perk * 0.4;
   U.root.updateMatrix();
   for (const S of U.sw) {
     const s = S.side;

@@ -1,4 +1,5 @@
 // Tiara d'argento: cerchietto sottile, archetti ornamentali crescenti verso il centro e gemme azzurre.
+// 1.8.9: appoggiata sulla testa vera: prima davanti e ai lati restava ~2 cm sopra la testa.
 import { finish } from './_kit_acc.js';
 export const meta = { label: 'Tiara', labelEn: 'Tiara', category: 'costumi', icon: '💎' };
 
@@ -47,7 +48,8 @@ export default function build(THREE, h) {
     p.position.set(Math.cos(a) * (R + 0.15), -0.35, Math.sin(a) * (R + 0.15)); g.add(p);
   }
 
-  g.position.set(0, 8.8, -2.2);
-  g.rotation.x = -0.22;
+  g.scale.set(0.885, 1.000, 1.006);
+  g.position.set(0, 8.80, -6.00);
+  g.rotation.x = -0.292;
   return finish(THREE, g);
 }

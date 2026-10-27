@@ -1,5 +1,10 @@
 // Berretto da capitano: calotta bianca ampia e rialzata davanti, fascia nera, visiera lucida, cordone e stemma dorati.
-import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js);
+// la fascia è ovale solo in basso (ovalize): la calotta larga resta tonda.
+import { finish, headOccluder, faceOccluder, afterFace, ovalize } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Berretto da capitano', labelEn: "Captain's cap", category: 'costumi', icon: '⚓' };
 
 export default function build(THREE, h) {
@@ -65,17 +70,17 @@ export default function build(THREE, h) {
   }
   badge.position.set(0, 4.9, 9.1); badge.rotation.x = -0.35; badge.scale.setScalar(0.95);
   g.add(badge);
-
-  g.position.set(0, 7.9, -2.3);
-  g.rotation.x = -0.08;
+  ovalize(THREE, g, 0.754, 0.99, 8.9, 11.0);
+  g.scale.set(1.052, 1.032, 0.970);
+  g.position.set(0, 10.90, -3.82);
+  g.rotation.x = 0.066;
   // occlusore "testa + capelli" dentro il cappello (solo profondità, invisibile): nell'app l'occlusore del cranio è
   // piccolo all'altezza della tesa e i capelli veri non nascondono nulla, quindi vista dal basso si vedrebbe il retro
   // della tesa/fascia attraverso la fronte. Nell'harness di sviluppo (h.preview) è marrone = capelli.
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
-    occ.scale.set(8.1, 6, 8.1); occ.position.set(0, -3.2, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
+    occ.scale.set(8.1 * 0.754, 6, 8.1 * 0.99); occ.position.set(0, -3.2, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }   // (ovale come la fascia)
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: -1.22, face: false });
 }

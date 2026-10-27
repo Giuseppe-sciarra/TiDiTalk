@@ -1029,6 +1029,9 @@ function KPETS(THREE, H, K, W) {
 }
 function KW_PET_UPDATE(g, bs, t) { const p = g.userData.pet; if (p) p.update(bs || {}, t, !!g.userData.snap); g.userData.snap = false; }
 export const meta = { label: 'Paperella in testa', labelEn: 'Duckling on your head', category: 'divertenti', icon: '🦆', shot: { dist: 105, target: [0, 8, 0] } };
+// 1.8.9: il corpo è fatto per affondare un po' nei capelli: la parte affondata la nasconde la calotta del cranio vero,
+// che qui si accende sempre (senza, il motore la spegnerebbe e la pancia si vedrebbe sopra la fronte)
+export const cranium = true;
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), W = KAWAII(THREE, h, K), Q = KPETS(THREE, h, K, W);
@@ -1064,7 +1067,8 @@ export default async function build(THREE, h) {
     const wg = W.ell([1.6, 3.8, 2.6], yel2, { matOpt: { finish: 'gloss' } }); wg.position.set(sd * 0.6, -2.8, 0); wg.rotation.z = sd * 0.25; piv.add(wg); wings.push(piv);
     const ft = W.ell([2.6, 0.9, 3.0], ora, { matOpt: { finish: 'gloss' } }); ft.position.set(sd * 4.4, -16.6, 5.4); pet.inner.add(ft);
   }
-  pet.root.position.set(0, 11.8, -0.6); pet.root.rotation.x = 0.06;
+  // 1.8.9: 2,9 cm più su (la testa vera arriva 2,9 cm sopra l'ellissoide di prima): affonda nei capelli come prima
+  pet.root.position.set(0, 14.7, -0.6); pet.root.rotation.x = 0.06;
   g.add(pet.root); g.userData.pet = pet;
   return g;
 }

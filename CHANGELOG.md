@@ -1,5 +1,78 @@
 # Changelog
 
+## 1.8.9
+
+Hats, headbands and costumes sit on the real head in real calls, 19 new 3D
+effects (411 in all), a search box for the 3D effects, the fix for Node's
+Brotli flaw, and a nightly automatic update that now also brings new Node,
+Alpine and coturn.
+
+### Added
+- **19 new 3D effects**, made on the measured real head: fedora (tips itself
+  when you raise your brows), straw boater, flat cap, Robin Hood hat with a
+  swinging feather, Nordic pom-pom beanie, Christmas stocking cap with a bell,
+  earmuffs with frosty breath, alien antennae, New Year 2027 crown with
+  confetti, holly headband, 80s sweatband, ski goggles on the forehead that
+  drop onto your eyes, swim cap and goggles with bubbles, Saturn rings, a
+  sleepy panda on your head that wakes up, mirrored aviators that slide down
+  your nose, hippie shades, retro cat-eye glasses, googly-eye glasses
+- **Search the 3D effects**: a box at the top of the 3D effects tab filters as
+  you type, in every language of the app (Italian, English, French, German),
+  by section ("masks", "costumes"…) or just "animals". Partial words work
+  ("kitt" finds kittens); several words must all match. Esc or × clears it,
+  Enter jumps to the first result
+- **Nightly automatic update, rebuilt**:
+  `aggiorna-tutto.sh`, scheduled by `installa-aggiornamento.sh` every night at
+  05:00 Italian time (systemd timer, cron as a fallback). Every night it
+  downloads the latest `node:22-alpine`, so security fixes in Node and Alpine
+  actually arrive (before, the image downloaded the first time stayed forever);
+  updates coturn when a new image is out, with its own check and rollback;
+  rebuilds by itself after a patch, when Dockerfile or code differ from the
+  last successful build; computes the npm updates in a throwaway container
+  that only gets `package.json` and the lock file; holds back a dependency
+  that has an upper limit (e.g. `"mediasoup": ">=3.14 <4"`); after the
+  restart the app must answer and must not restart by itself for 20 seconds,
+  otherwise everything goes back as it was. The email says what happened (app,
+  Node, coturn) and gives the exact command to go back. Postponing during
+  meetings, `--force`, realigning old versions inside the image and the
+  major/minor/patch table all stay. `auto-update.sh` and `install-cron.sh`
+  still work and hand over to the new names; the new installer removes the
+  old 08:00 schedule
+
+### Security
+- **Node's Brotli flaw (CVE-2026-111497, October 2026)**: the server no longer
+  accepts compressed request bodies (gzip, deflate, brotli: no Tiditalk client
+  sends them), so the flaw can't be reached whatever the Node version. The
+  Dockerfile stops the build with a clear message if the Node image is still
+  an affected one (fixed in 22.23.4 / 24.22.1 / 26.12.1) and tells you to
+  rebuild with `docker compose build --pull`. The nightly report also lists
+  the Node version
+
+### Fixed
+- **Hats and headbands sit on the real head in real calls**. With a webcam a
+  bit below the face, hats floated above the head and you could see inside
+  them. The causes, rebuilt from real call screenshots:
+  - the head the effects are drawn against stopped at the hairline: now it
+    has the real skull (3–4 cm taller and longer), so the inside of hats and
+    the back of bands and brims no longer show;
+  - the head rotation from MediaPipe was off by 5–10° with a beard, a hand in
+    front of the mouth or a turned head: now it is refined on the points of
+    the upper face, on webcams only;
+  - scarves, collars and capes followed the whole tilt of the head: now they
+    bend less than the head, like a real neck;
+  - many hats had their crown about 5 cm in front of the real axis of the head
+    and some effects were fitted on thick hair: hats, caps, helmets,
+    headbands, headphones, horns, ears and wigs were moved one by one onto the
+    real head (bowler, fisherman, witch, wizard, chef, party, top hat, elf,
+    bucket, cowboy, beanie, cat-ear headphones and the others)
+- **Costumes and accessories**: Italy fan and Halloween witch hats now fit
+  over the forehead with a dark lining (no light "lid" seen from below);
+  scarves, ruffs, capes, wings, tail and the pirate's parrot follow the body;
+  the starry and bunny hoods frame the face instead of sticking out in front
+  of the cheeks; the far side of the Venetian mask hides when you turn; the
+  puppy and hamster stay on your shoulder when you tilt your head; mushroom,
+  strawberry, froggy and teddy hats and the sleepy zzz got dark linings
+
 ## 1.8.8
 
 175 new 3D face effects (392 in all): animals with real fur, kawaii animals,

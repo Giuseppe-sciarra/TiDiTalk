@@ -1,4 +1,5 @@
 // Cerchietto da unicorno: corno a spirale con sfumatura pastello, fiorellini alla base e orecchiette bianche.
+// 1.8.9: il cerchietto segue la calotta del cranio vero del motore (appoggia sulla testa vera, calva o con i capelli).
 import { finish } from './_kit_acc.js';
 export const meta = { label: 'Corno da unicorno', labelEn: 'Unicorn horn', category: 'costumi', icon: '🦄' };
 
@@ -11,7 +12,11 @@ export default function build(THREE, h) {
   const band = [];
   // cerchietto sopra i CAPELLI veri (che sporgono 2–4 cm oltre il cranio): arco largo 8.6, colmo a y≈13.8;
   // sezione schiacciata (larga 1.1 cm in profondità, spessa 0.7) come un cerchietto vero
-  for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI; band.push(new THREE.Vector3(Math.cos(a) * 8.6, 1.0 + Math.sin(a) * 12.8, -3.0)); }
+  // 1.8.9: l'arco segue la calotta del cranio vero (HEAD.cranium del motore) 4,5 mm fuori: sopra un cerchio di raggio
+  // 7,98 attorno a (0, 5,6), ai lati scende dritto fino a y = 1 (prima a metà altezza entrava di ~4 mm nella testa vera)
+  band.push(new THREE.Vector3(7.9, 1.0, -3.0), new THREE.Vector3(7.98, 3.3, -3.0));
+  for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI; band.push(new THREE.Vector3(Math.cos(a) * 7.98, 5.6 + Math.sin(a) * 7.98, -3.0)); }
+  band.push(new THREE.Vector3(-7.98, 3.3, -3.0), new THREE.Vector3(-7.9, 1.0, -3.0));
   g.add(new THREE.Mesh((() => { const tg = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band), 72, 0.35, 10); const p = tg.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, -3.0 + (p.getZ(i) + 3.0) * 1.6); tg.computeVertexNormals(); return tg; })(), h.mat(0xd99ac4, { roughness: .5 })));
 
   // corno: cono con scanalatura a spirale e colori per vertice (rosa → lilla → azzurro)

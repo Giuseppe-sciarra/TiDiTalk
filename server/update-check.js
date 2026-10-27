@@ -11,7 +11,7 @@
 
    Config .env:
      UPDATE_CHECK=1          → attiva la SOLA segnalazione (default: spento,
-                              perché ora aggiorna da solo auto-update.sh)
+                              perché ora aggiorna da solo aggiorna-tutto.sh)
      UPDATE_CHECK_HOUR=2     → ora locale del check (default 2)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -103,7 +103,7 @@ async function runCheckAndNotify() {
 
 /** Programma il check ogni notte all'ora configurata (default 02:00 locale). */
 function schedule() {
-  // Con l'aggiornamento automatico (auto-update.sh + cron) questa segnalazione
+  // Con l'aggiornamento automatico (aggiorna-tutto.sh, ogni notte) questa segnalazione
   // è solo rumore: di default è spenta, si riaccende con UPDATE_CHECK=1.
   if (process.env.UPDATE_CHECK !== '1') { console.log('[update-check] segnalazione disattivata (UPDATE_CHECK != 1)'); return; }
   const hour = Number(process.env.UPDATE_CHECK_HOUR ?? 2);

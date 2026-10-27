@@ -1,7 +1,13 @@
 // Tiditalk AR, effetto "elvis" — la geometria comune di capelli e barbe sta in _kit_hair.js
-import { TAU, fin, hairMat, hairShade, lockAt, rgb, shortCap, surfGeo, tintSpec } from './_kit_hair.js';
+// 1.8.9: calzato fuori dalla calotta del cranio vero del motore (useCranium): prima la cuffia corta e la base del
+// secondo rotolo stavano dentro la testa vera in cima.
+import { TAU, fin, hairMat, hairShade, lockAt, rgb, shortCap, surfGeo, tintSpec, useCranium } from './_kit_hair.js';
+// La calotta del cranio vero resta accesa (cranium = true): l'unica parte dentro la calotta è il fondo del secondo rotolo,
+// che sta già almeno 0,5 cm sotto la cuffia e non si vede comunque.
+export const cranium = true;
 export const meta = { label: 'Ciuffo rock anni 50', labelEn: 'Rockabilly pompadour', category: 'capelli', icon: '🎸' };
-export default function build(THREE, h) {
+export default function build(THREE, h) { useCranium(0.25); try { return make(THREE, h); } finally { useCranium(0); } }
+function make(THREE, h) {
   const g = new THREE.Group();
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   // nero vero: riflesso blu-nero contenuto (un riflesso grigio su video vero lo fa sembrare grigio)

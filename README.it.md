@@ -146,13 +146,14 @@ tuo marchio.
   o una tua immagine), stili colore ed effetti
   viso (MediaPipe) in un **pannello laterale con anteprima**, da Altro o dal
   pulsante sul proprio riquadro
-- **392 effetti viso 3D come Meet** (personaggi che copiano le tue espressioni,
+- **411 effetti viso 3D come Meet** (personaggi che copiano le tue espressioni,
   animali col pelo vero e animaletti kawaii, costumi, accessori carini, effetti
   divertenti e di Halloween che reagiscono a sorriso, bocca e sopracciglia,
   parrucche, barbe, cappelli, occhiali, maschere dipinte, scene con la faccia in
   una cornice) che seguono la testa in 3D: MediaPipe Face Landmarker in un Web
-  Worker + three.js, tutto servito in locale. Gli effetti 2D classici restano
-  nella loro scheda
+  Worker + three.js, tutto servito in locale. Una casella in cima trova un
+  effetto per nome in tutte le lingue dell'app, per sezione o semplicemente
+  «animali». Gli effetti 2D classici restano nella loro scheda
 - **Finestra Impostazioni della chiamata** a sezioni: dispositivi audio e
   video, regole della stanza (organizzatori), qualità registrazione, aspetto,
   scorciatoie, info
@@ -217,8 +218,8 @@ bash setup-backgrounds.sh
 docker compose up -d --build
 docker compose logs -f app
 
-# 4. Aggiornamenti automatici ogni giorno
-bash install-cron.sh
+# 4. Aggiornamenti automatici ogni notte (alle 05:00)
+bash installa-aggiornamento.sh
 ```
 
 `SERVER_SECRET` si genera con:
@@ -276,53 +277,66 @@ lettura nel pannello.
 ### Automatici (consigliato)
 
 ```bash
-bash install-cron.sh           # ogni giorno alle 08:00 (ora locale del server)
-bash install-cron.sh 6         # ...o a un'altra ora
-bash install-cron.sh --status  # è pianificato? quando gira? ultimo esito
-bash install-cron.sh --remove  # per toglierlo
+bash installa-aggiornamento.sh            # ogni notte alle 05:00, ora italiana
+bash installa-aggiornamento.sh 4:30       # ...o a un'altra ora
+bash installa-aggiornamento.sh --status   # è pianificato? quando gira? ultimo esito
+bash installa-aggiornamento.sh --remove   # per toglierlo
 ```
 
-`install-cron.sh` installa un **timer systemd** (persistente: se all'ora
-stabilita il server era spento, l'aggiornamento parte appena si riaccende).
-Senza systemd ripiega su cron e controlla che il servizio cron sia attivo.
-L'ora è quella locale del server: se serve, imposta prima il fuso:
+`installa-aggiornamento.sh` installa un **timer systemd** (persistente: se
+all'ora stabilita il server era spento, l'aggiornamento parte appena si
+riaccende) con l'ora italiana, anche se il container è in UTC. Senza systemd
+ripiega su cron (`/etc/cron.d`). Toglie da solo la pianificazione vecchia di
+`install-cron.sh` (fino alla 1.8.8, ogni mattina alle 08:00), così non girano
+in due. `install-cron.sh` e `auto-update.sh` restano e passano tutto ai nomi
+nuovi.
 
-```bash
-timedatectl set-timezone Europe/Rome && bash install-cron.sh
-```
-
-Ogni esecuzione di `auto-update.sh`:
+Ogni notte `aggiorna-tutto.sh`:
 
 1. se c'è una riunione in corso rimanda (3 volte da 15 minuti, poi procede);
-2. porta **tutte** le dipendenze all'ultima versione, major comprese, e
-   riallinea anche le versioni che nell'immagine sono più vecchie che su npm;
-3. ricostruisce l'immagine e riavvia il servizio;
-4. se entro 3 minuti il servizio non risponde, ripristina `package.json`, lock
-   file e immagine precedenti — **rollback automatico**;
-5. manda a `UPDATE_NOTIFY_EMAIL` la tabella di cosa è cambiato, con etichetta
-   **major / minor / patch** e i comandi pronti per tornare indietro;
-6. fa pulizia di Docker in modo sicuro: tiene le ultime `UPDATE_KEEP_ROLLBACK`
+2. scarica l'ultima immagine di base `node:22-alpine`: così arrivano le
+   correzioni di sicurezza di Node e di Alpine (come quella di Brotli di
+   ottobre 2026), che prima non arrivavano mai;
+3. porta **tutte** le dipendenze di `server/package.json` all'ultima versione,
+   major comprese, con il `package-lock.json`. Il calcolo gira in un container
+   usa e getta dove entrano solo quei due file. Una dipendenza con un limite
+   (es. `"mediasoup": ">=3.14 <4"`) resta com'è: è il modo per bloccarne una;
+4. ricostruisce l'app (sempre con `--pull`) se è cambiato qualcosa: immagine
+   di base, librerie, versioni nell'immagine più vecchie che su npm, oppure
+   Dockerfile e codice diversi dall'ultima build riuscita (per esempio dopo
+   aver copiato una patch);
+5. la prova: `/api/health` deve rispondere e il container non deve ripartire
+   da solo per 20 secondi. Se no ripristina `package.json`, lock file e
+   immagine precedenti — **rollback automatico**;
+6. aggiorna **coturn** se è uscita un'immagine nuova, con lo stesso controllo e
+   ritorno all'immagine di prima se non resta su;
+7. manda il riepilogo: tabella di cosa è cambiato con etichetta
+   **major / minor / patch**, cosa è successo (app, Node, coturn) e il comando
+   esatto per tornare indietro;
+8. fa pulizia di Docker in modo sicuro: tiene le ultime `UPDATE_KEEP_ROLLBACK`
    immagini di rollback (default 5), toglie container fermi, immagini senza tag
    e cache di build più vecchia di 7 giorni. Non usa mai `prune -a`.
 
-Backup: `backups/` (ultimi 10). Log: `logs/auto-update.log`.
+Backup: `backups/` (ultimi 10). Log: `logs/aggiorna-tutto.log` (e
+`logs/build.log`, `logs/npm-risoluzione.log`).
 
 | Variabile | Default | Significato |
 |-----------|---------|-------------|
-| `UPDATE_NOTIFY_EMAIL` | — | dove arriva il riepilogo |
-| `UPDATE_MAIL_ALWAYS` | `0` | `1` = email anche quando non cambia niente |
+| `UPDATE_NOTIFY_EMAIL` (o `AGG_MAIL_A`) | — | dove arriva il riepilogo |
+| `UPDATE_MAIL_ALWAYS` (o `AGG_MAIL_SEMPRE`) | `0` | `1` = email anche quando non cambia niente |
 | `UPDATE_SKIP_IF_BUSY` | `1` | rimanda se ci sono persone collegate |
 | `UPDATE_BUSY_RETRIES` / `UPDATE_BUSY_WAIT` | `3` / `900` | quante volte / ogni quanti secondi |
-| `UPDATE_KEEP_ROLLBACK` | `5` | immagini di rollback da tenere |
+| `UPDATE_KEEP_ROLLBACK` (o `AGG_TIENI_ROLLBACK`) | `5` | immagini di rollback da tenere |
 | `UPDATE_CHECK` | `0` | vecchia email "aggiornamenti disponibili", senza aggiornare |
 
 ### A mano
 
 ```bash
-bash auto-update.sh --dry-run      # mostra cosa cambierebbe, senza toccare niente
-bash auto-update.sh                # aggiorna adesso
-docker compose up -d --build app   # dopo modifiche a server/ o public/assets/i18n
-docker compose restart app         # dopo modifiche a CSS/JS/HTML (montati live)
+bash aggiorna-tutto.sh --dry-run    # mostra cosa cambierebbe, senza toccare niente
+bash aggiorna-tutto.sh              # aggiorna adesso
+bash aggiorna-tutto.sh --force      # aggiorna adesso anche con riunioni in corso
+docker compose build --pull app && docker compose up -d app   # dopo modifiche a server/, public/assets/i18n o al Dockerfile
+docker compose restart app          # dopo modifiche a CSS/JS/HTML (montati live)
 ```
 
 ---
@@ -370,7 +384,7 @@ Mentre disegni: `P` penna, `E` evidenziatore, `A` freccia, `R` riquadro,
 - **Eco** — di solito casse senza cuffie, o due dispositivi nella stessa stanza.
 - **Gli inviti non arrivano** — Impostazioni → Sistema mostra lo stato SMTP e ha
   il pulsante per l'email di prova.
-- **Gli aggiornamenti non partono** — `bash install-cron.sh --status`.
+- **Gli aggiornamenti non partono** — `bash installa-aggiornamento.sh --status`.
 - **Non senti gli altri** — ▾ delle casse → *Fai un suono di prova*. Se non
   senti nemmeno quello, il browser ha perso l'uscita audio: *Ricollega
   l'audio*, e se non basta chiudi e riapri il browser. Con le cuffie

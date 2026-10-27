@@ -930,7 +930,7 @@ function build(THREE, h) {
   world.add(U.maple.mesh, U.oak.mesh);
   U.cols = PAL.map((c) => new THREE.Color(c));
   U.stuck = [];
-  const SP = [[-4.2, 10.6, 1.8, 0.9, -0.6, 0.5, 0, 1.25], [3.6, 10.9, -0.6, -0.4, 0.5, -0.4, 1, 1.05], [6.8, 8.2, 1.4, 0.5, 0.9, -0.9, 0, 1]];
+  const SP = [[-4.45, 10.9, 2.1, 0.9, -0.6, 0.5, 0, 1.25], [4.3, 11.93, 0.04, -0.4, 0.5, -0.4, 1, 1.05], [6.8, 8.2, 1.4, 0.5, 0.9, -0.9, 0, 1]];
   for (const [x, y, z, rx, ry, rz, oak, s] of SP) {
     const m = new THREE.Mesh(oak ? oakG : mapleG, (oak ? mO : mM).clone());
     m.material.color.set(oak ? PAL[2] : PAL[x < 0 ? 0 : 4]);

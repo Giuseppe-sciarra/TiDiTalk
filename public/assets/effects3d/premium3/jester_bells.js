@@ -127,6 +127,49 @@ function hatOccluder(THREE, scale = [8, 10.2, 9.3], center = [0, 2.3, -4.4]) {
   o.name = "hatOccluder";
   return o;
 }
+var NeckRig = class {
+  constructor(THREE, g2, { pivot = [0, -7.5, -3.2], kp = 0.85, kpUp = 0.2, ky = 0.55, kr = 0.7 } = {}) {
+    this.root = new THREE.Group();
+    this.root.position.set(pivot[0], pivot[1], pivot[2]);
+    this.root.name = "neckRig";
+    g2.add(this.root);
+    this.inner = new THREE.Group();
+    this.inner.position.set(-pivot[0], -pivot[1], -pivot[2]);
+    this.root.add(this.inner);
+    this.k = [kp, ky, kr, kpUp];
+    this.e = new THREE.Euler();
+  }
+  add(...o) {
+    this.inner.add(...o);
+    return this;
+  }
+  update(frame) {
+    if (!frame.attached) {
+      this.root.quaternion.identity();
+      return;
+    }
+    const e = this.e.setFromQuaternion(frame.q, "YXZ");
+    e.set(-(e.x > 0 ? this.k[0] : this.k[3]) * e.x, -this.k[1] * e.y, -this.k[2] * e.z, "ZXY");
+    this.root.quaternion.setFromEuler(e);
+  }
+};
+function neckOccluder(THREE, { r0 = 5.3, r1 = 6.2, y0 = -8.5, y1 = -19, z = -2.4, back = true } = {}) {
+  const m = new THREE.MeshBasicMaterial({ colorWrite: false });
+  const g2 = new THREE.Group();
+  g2.name = "neckOccluder";
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, y0 - y1, 32, 1), m);
+  o.position.set(0, (y0 + y1) / 2, z);
+  o.scale.z = 0.92;
+  o.renderOrder = -1;
+  g2.add(o);
+  if (back) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(20, y0 - y1 + 2, 11), m);
+    b.position.set(0, (y0 + y1) / 2 - 1, z - 0.9 - 5.5);
+    b.renderOrder = -1;
+    g2.add(b);
+  }
+  return g2;
+}
 
 // lib/expr.js
 var g = (b, k) => {
@@ -872,6 +915,7 @@ var __s3 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, 
 var __s4 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "rot": void 0, "cell": void 0, "fadeIn": void 0, "fadeOut": void 0 };
 var __s5 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "rot": void 0, "spin": void 0, "cell": void 0, "wob": void 0, "wf": void 0, "fadeIn": void 0, "fadeOut": void 0 };
 var meta = { label: "Giullare con sonagli", labelEn: "Jingle-bell jester", labelFr: "Bouffon \xE0 grelots", labelDe: "Narr mit Schellen", category: "costumi", icon: "\u{1F0CF}" };
+var neck = false;
 var CR = "#8e1129";
 var PU = "#43206d";
 var MU = "#d59a1d";
@@ -1153,9 +1197,12 @@ function build(THREE, h) {
     });
   }
   const col = collarGeo(THREE, 12, 5.2, 4.4, 0.95);
+  const rig = new NeckRig(THREE, g2);
+  U.rig = rig;
+  rig.add(neckOccluder(THREE));
   const collar = new THREE.Group();
-  collar.position.set(0, -11, -1.2);
-  g2.add(collar);
+  collar.position.set(0, -12, -1.6);
+  rig.add(collar);
   collar.add(new THREE.Mesh(col.dags, satin({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.55 })));
   collar.add(new THREE.Mesh(col.balls, gold));
   const neckband = new THREE.Mesh(new THREE.TorusGeometry(5.25, 0.55, 10, 64), satin({ color: MU, roughness: 0.45 }));
@@ -1227,6 +1274,7 @@ function update(g2, bs, t, h) {
   const dt = U.tick.tick(t);
   U.frame.update(dt);
   U.world.userData.sync();
+  U.rig.update(U.frame);
   const e = U.expr.update(bs, dt, h);
   const T = U.T;
   U.perk += (smooth(0.25, 0.8, e.browUp) - U.perk) * Math.min(1, dt * 7);
@@ -1346,5 +1394,6 @@ function update(g2, bs, t, h) {
 export {
   build as default,
   meta,
+  neck,
   update
 };

@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   FaceAR — effetti viso 3D (1.7.0, calibrazione delle espressioni 1.8.0)
+   FaceAR — effetti viso 3D (1.7.0, calibrazione delle espressioni 1.8.0, testa vera 1.8.9)
    ───────────────────────────────────────────────────────────────────────────
    Motore nuovo per gli effetti "come Meet": cappelli, occhiali, parrucche,
    personaggi animati e maschere dipinte sulla pelle.
@@ -26,6 +26,7 @@
   const FOV_DEG = 63;              // camera "metrica" di MediaPipe Face Geometry (verticale)
   let _libs = null;                // { THREE, GLTFLoader, RoomEnvironment, BufferGeometryUtils, vision }
   let _facemesh = null;            // { pos, uv, idx } del modello canonico (468 punti)
+  let PNP_IDS = null;              // punti usati per rifinire la posa (parte alta del viso, vedi _refinePose)
 
   async function loadLibs() {
     if (_libs) return _libs;
@@ -321,6 +322,27 @@
     lostHide: 400,              // ms di posa tenuta dopo aver perso il viso
     stale: 2500,                // ms: un risultato più vecchio di così non vale (PC lenti: ~0,5 s)
   };
+  /* ── La testa vera intorno al viso (1.8.9) ──────────────────────────────────
+     Misure sulle chiamate vere riportate nello spazio canonico di MediaPipe (cm):
+     il cranio vero arriva a y ≈ 13–14,5 (una testa calva: 13,8–14,5) e dietro a
+     z ≈ −13,5 (lunghezza della testa ~19 cm dalla glabella); l'ellissoide di
+     sempre finisce a y 10,4 e z −11,3, cioè all'attaccatura dei capelli: da
+     sotto (webcam bassa) si vedeva l'interno dei cappelli e la parte di tese e
+     fasce dietro la testa passava davanti. HEAD.cranium è la calotta che manca:
+     sopra le sopracciglia e dietro, mai davanti al viso (≥ 0,8 cm dietro ai 468
+     punti del modello, più indietro dell'ellissoide di prima intorno agli occhi).
+     Gli accessori aderenti regolati sull'ellissoide piccolo (fiocchi, cerchietti,
+     bandane, parrucche corte) ci finirebbero dentro: la calotta si accende per
+     effetto (vedi _fitEffect) solo se nasconde meno di HEAD.lost della loro
+     superficie che guarda la camera; un effetto può deciderlo da sé con
+     export const cranium = true | false. */
+  const HEAD = {
+    cranium: { c: [0, 5.6, -4.8], r: [7.7, 7.7, 8.7] },   // cima y 13,3, nuca z −13,5, larga ±7,7
+    lost: 0.04,
+  };
+  // parti al collo: quanta inclinazione della testa si toglie, fino a quanti radianti, intorno a quale punto (cm)
+  const NECK = { damp: 0.6, max: 0.6, pivot: [0, -5, -4], below: -8.5 };
+
   // la misura b è coerente con a? (spostamento ammesso che cresce col tempo fra le due)
   function poseCoherent(a, b, maxDt) {
     const dt = Math.min(Math.max((b.ts - a.ts) / 1000, 0.016), maxDt || 1.0);
@@ -412,10 +434,15 @@
       this.faceMesh = new THREE.Mesh(geo, this.faceMat);
       this.faceMesh.renderOrder = -2; this.faceMesh.frustumCulled = false;
       this.scene.add(this.faceMesh);
-      // cranio: solo profondità, dietro al viso
+      // cranio: solo profondità, dietro al viso (1.8.9: vedi HEAD — l'ellissoide di prima più la calotta vera)
       this.skull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true }));
       this.skull.scale.set(7.4, 8.9, 7.5); this.skull.position.set(0, 1.5, -3.8);
       this.skull.renderOrder = -3;
+      // calotta del cranio vero (HEAD.cranium): accesa solo per gli effetti che la reggono (vedi _fitEffect)
+      this.cranium = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), this.skull.material);
+      this.cranium.scale.set(...HEAD.cranium.r); this.cranium.position.set(...HEAD.cranium.c);
+      this.cranium.renderOrder = -3; this.cranium.visible = false;
+      this.faceGroup.add(this.cranium);
       this.faceGroup.add(this.skull);
       // collo e spalle (solo profondità): i capelli lunghi e il retro delle
       // parrucche passano DIETRO al corpo invece di coprire il collo e il petto
@@ -512,7 +539,7 @@
       } else {
         const mod = await import(`${FX}/${def.path}`);
         const g = await mod.default(THREE, h);
-        eff.group = g; eff.hideHead = !!mod.hideHead;
+        eff.group = g; eff.hideHead = !!mod.hideHead; eff.neck = mod.neck; eff.cranium = mod.cranium;
         if (mod.update) eff.update = (bs, t) => mod.update(g, bs, t, h);
         this.faceGroup.add(g);
       }
@@ -603,6 +630,13 @@
       const { THREE } = _libs;
       for (let i = 0; i < 16; i++) if (!Number.isFinite(data[i])) return null;
       const m = new THREE.Matrix4().fromArray(data);
+      // 1.8.9: posa rifinita sui punti 2D (vedi _refinePose); se non converge resta quella di MediaPipe
+      if (lms && lms.length >= 468 * 3 && _facemesh && FaceAR.options.refinePose) {
+        // solo se la camera da 63° spiega i punti almeno quanto una più stretta (webcam, telefoni);
+        // con una camera stretta (foto, viso vicinissimo) MediaPipe è già giusto e resta il suo
+        const r = this._fovPick(m.elements, lms) === FOV_DEG ? this._refinePose(m.elements, lms, FOV_DEG) : null;
+        if (r) { const mr = new THREE.Matrix4().fromArray(r); if (this._rotDiff(m, mr) < 0.45) m.copy(mr); }
+      }
       const p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
       m.decompose(p, q, sc);
       if (!(p.z < POSE.zNear && p.z > POSE.zFar)) return null;
@@ -616,6 +650,122 @@
         if (k && (k < 0.6 || k > 1.65)) return null;
       }
       return { m, p, q, s: sc, ts };
+    }
+    /* Posa rifinita sui punti 2D (1.8.9). La matrice di MediaPipe viene da un
+       confronto 3D-3D che usa anche la profondità stimata di ogni punto: sulle
+       chiamate vere sbaglia l'imbardata di 5–10° a testa girata (35° invece di
+       45°) e con una mano davanti alla bocca si sposta tutta (13°). Qui si parte
+       da quella e la si corregge minimizzando l'errore di riproiezione del
+       modello rigido sui punti della parte alta del viso (occhi, sopracciglia,
+       naso, fronte, tempie, guance: niente bocca né mento, che si muovono col
+       sorriso e spariscono dietro una mano), con pesi robusti (Huber): 5–6
+       passi di Gauss-Newton su 140 punti, meno di 0,2 ms.
+       M: elementi 4x4 per colonne (three.js), lms: punti normalizzati. Ritorna
+       la matrice nuova (Float64Array 16) o null se non converge o è peggio. */
+    _refinePose(M, lms, fovDeg) {
+      const cp = _facemesh.pos;
+      if (!PNP_IDS) { PNP_IDS = []; const lips = new Set(FaceAR.CONTOURS.LIPS_OUTER.concat(FaceAR.CONTOURS.LIPS_INNER)); for (let i = 0, k = 0; i < 468; i++) if (cp[i * 3 + 1] > -1.6 && !lips.has(i) && (k++ & 1) === 0) PNP_IDS.push(i); }
+      const fov = fovDeg || FOV_DEG, A = this._aspect() || 16 / 9, f = 1 / (2 * Math.tan(fov * Math.PI / 360));
+      // stato: R (3x3 per righe), t (con un'altra apertura la testa si vede uguale se cambia solo la distanza z)
+      const s = Math.hypot(M[0], M[1], M[2]) || 1, kz = Math.tan(FOV_DEG * Math.PI / 360) / Math.tan(fov * Math.PI / 360);
+      const R = [M[0] / s, M[4] / s, M[8] / s, M[1] / s, M[5] / s, M[9] / s, M[2] / s, M[6] / s, M[10] / s];
+      const t = [M[12], M[13], M[14] * kz];        // stessa posizione e grandezza a schermo: cambia solo la distanza
+      const n = PNP_IDS.length, H = new Float64Array(36), g = new Float64Array(6), d = new Float64Array(6);
+      const err = (R, t) => {     // errore medio (unità: altezza del fotogramma)
+        let e = 0, c = 0;
+        for (let k = 0; k < n; k++) {
+          const i = PNP_IDS[k], x = cp[i * 3], y = cp[i * 3 + 1], z = cp[i * 3 + 2];
+          const Px = R[0] * x + R[1] * y + R[2] * z + t[0], Py = R[3] * x + R[4] * y + R[5] * z + t[1], Z = -(R[6] * x + R[7] * y + R[8] * z + t[2]);
+          if (!(Z > 1)) return Infinity;
+          const ra = A / 2 + f * Px / Z - A * lms[i * 3], rb = 0.5 - f * Py / Z - lms[i * 3 + 1];
+          e += Math.hypot(ra, rb); c++;
+        }
+        return e / c;
+      };
+      const e0 = err(R, t);
+      if (!Number.isFinite(e0)) return null;
+      const HUB = 0.008;   // ~6 px su 720: oltre, il punto pesa meno (mano davanti, barba, ombre)
+      let e = e0;
+      for (let it = 0; it < 6; it++) {
+        H.fill(0); g.fill(0);
+        for (let k = 0; k < n; k++) {
+          const i = PNP_IDS[k], x = cp[i * 3], y = cp[i * 3 + 1], z = cp[i * 3 + 2];
+          const qx = R[0] * x + R[1] * y + R[2] * z, qy = R[3] * x + R[4] * y + R[5] * z, qz = R[6] * x + R[7] * y + R[8] * z;
+          const Px = qx + t[0], Py = qy + t[1], Pz = qz + t[2], Z = -Pz;
+          if (!(Z > 1)) return null;
+          const ra = A / 2 + f * Px / Z - A * lms[i * 3], rb = 0.5 - f * Py / Z - lms[i * 3 + 1];
+          const rr = Math.hypot(ra, rb), w = rr > HUB ? HUB / rr : 1;
+          // d(residuo)/dP
+          const ax = f / Z, az = f * Px / (Z * Z), by = -f / Z, bz = -f * Py / (Z * Z);
+          // dP/d(omega) = -[q]x  → righe: [0, qz, -qy], [-qz, 0, qx], [qy, -qx, 0]
+          const Ja = [ax * 0 + az * qy, ax * qz + az * -qx, ax * -qy + az * 0, ax, 0, az];
+          const Jb = [by * -qz + bz * qy, 0 + bz * -qx, by * qx + 0, 0, by, bz];
+          for (let r = 0; r < 6; r++) {
+            g[r] += w * (Ja[r] * ra + Jb[r] * rb);
+            for (let c = 0; c <= r; c++) H[r * 6 + c] += w * (Ja[r] * Ja[c] + Jb[r] * Jb[c]);
+          }
+        }
+        for (let r = 0; r < 6; r++) { H[r * 6 + r] *= 1.0001; H[r * 6 + r] += 1e-9; for (let c = 0; c < r; c++) H[c * 6 + r] = H[r * 6 + c]; }
+        // risolve H d = -g (eliminazione di Gauss con pivot)
+        const a = Array.from(H), b = Array.from(g, v => -v);
+        for (let c = 0; c < 6; c++) {
+          let p = c; for (let r = c + 1; r < 6; r++) if (Math.abs(a[r * 6 + c]) > Math.abs(a[p * 6 + c])) p = r;
+          if (Math.abs(a[p * 6 + c]) < 1e-14) return null;
+          if (p !== c) { for (let k = 0; k < 6; k++) { const tmp = a[c * 6 + k]; a[c * 6 + k] = a[p * 6 + k]; a[p * 6 + k] = tmp; } const tb = b[c]; b[c] = b[p]; b[p] = tb; }
+          for (let r = c + 1; r < 6; r++) { const m = a[r * 6 + c] / a[c * 6 + c]; for (let k = c; k < 6; k++) a[r * 6 + k] -= m * a[c * 6 + k]; b[r] -= m * b[c]; }
+        }
+        for (let r = 5; r >= 0; r--) { let v = b[r]; for (let k = r + 1; k < 6; k++) v -= a[r * 6 + k] * d[k]; d[r] = v / a[r * 6 + r]; }
+        // aggiornamento: R ← exp([ω]x)·R (Rodrigues), t ← t + δt
+        const wx = d[0], wy = d[1], wz = d[2], th = Math.hypot(wx, wy, wz);
+        if (!Number.isFinite(th) || th > 0.5) return null;
+        const ux = th > 1e-12 ? wx / th : 0, uy = th > 1e-12 ? wy / th : 0, uz = th > 1e-12 ? wz / th : 0, cs = Math.cos(th), sn = Math.sin(th), vc = 1 - cs;
+        const E = [cs + ux * ux * vc, ux * uy * vc - uz * sn, ux * uz * vc + uy * sn,
+          uy * ux * vc + uz * sn, cs + uy * uy * vc, uy * uz * vc - ux * sn,
+          uz * ux * vc - uy * sn, uz * uy * vc + ux * sn, cs + uz * uz * vc];
+        const R2 = new Array(9);
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) R2[r * 3 + c] = E[r * 3] * R[c] + E[r * 3 + 1] * R[3 + c] + E[r * 3 + 2] * R[6 + c];
+        const t2 = [t[0] + d[3], t[1] + d[4], t[2] + d[5]];
+        const e2 = err(R2, t2);
+        if (!(e2 <= e * 1.0005)) break;            // non migliora più
+        for (let k = 0; k < 9; k++) R[k] = R2[k]; t[0] = t2[0]; t[1] = t2[1]; t[2] = t2[2]; e = e2;
+        if (th < 1e-5 && Math.hypot(d[3], d[4], d[5]) < 1e-3) break;
+      }
+      if (!(e < e0) && fovDeg === FOV_DEG) return null;
+      const out = new Float64Array(16);
+      out[0] = R[0]; out[1] = R[3]; out[2] = R[6]; out[3] = 0;
+      out[4] = R[1]; out[5] = R[4]; out[6] = R[7]; out[7] = 0;
+      out[8] = R[2]; out[9] = R[5]; out[10] = R[8]; out[11] = 0;
+      // posizione riportata alla camera da 63° con cui si disegna: la testa resta della stessa grandezza a schermo
+      out[12] = t[0]; out[13] = t[1]; out[14] = t[2] / kz; out[15] = 1;
+      this._pnpErr = [e0, e];
+      out.err = e;
+      return out;
+    }
+    /* Quale apertura spiega meglio i punti? Con le webcam (viso a 40–70 cm) l'errore cambia
+       poco con l'apertura e 63° va bene; con un obiettivo stretto (foto, viso vicinissimo)
+       l'errore dice chiaramente 25–35° (es. 8,3 px a 63°, 4,1 a 25°) e lì la posa rifinita a
+       63° storcerebbe l'inclinazione (anche 15°), mentre quella di MediaPipe è giusta (a 25°
+       le due coincidono entro 2°). Ogni 8 misure si provano 25/35/45/63° e si tiene la
+       mediana delle ultime scelte (63° vince se le altre non sono meglio di almeno l'8%).
+       Si disegna sempre con la camera da 63°. */
+    _fovPick(M, lms) {
+      this._fovN = (this._fovN || 0) + 1;
+      if (this._fovEst && this._fovN % 8 !== 1) return this._fovEst;
+      let best = FOV_DEG, be = Infinity;
+      for (const f of [25, 35, 45, FOV_DEG]) {
+        const r = this._refinePose(M, lms, f); if (!r) continue;
+        const e = r.err * (f === FOV_DEG ? 0.92 : 1);
+        if (e < be) { be = e; best = f; }
+      }
+      const h = this._fovHist || (this._fovHist = []); h.push(best); if (h.length > 7) h.shift();
+      const sorted = h.slice().sort((a, b) => a - b);
+      return (this._fovEst = sorted[sorted.length >> 1]);
+    }
+    // angolo (rad) fra le rotazioni di due matrici
+    _rotDiff(a, b) {
+      const A = a.elements, B = b.elements, sa = Math.hypot(A[0], A[1], A[2]) || 1, sb = Math.hypot(B[0], B[1], B[2]) || 1;
+      let tr = 0; for (let c = 0; c < 3; c++) for (let r = 0; r < 3; r++) tr += A[c * 4 + r] * B[c * 4 + r];
+      return Math.acos(Math.max(-1, Math.min(1, (tr / (sa * sb) - 1) / 2)));
     }
     _consistency(M, lms) {
       const cp = _facemesh.pos, tanH = Math.tan(FOV_DEG * Math.PI / 360), tanW = tanH * (this._aspect() || 16 / 9);
@@ -689,6 +839,94 @@
       this.faceMesh.geometry.computeVertexNormals();
     }
 
+    /* Parti al collo (1.8.9): sciarpe, colletti, papillon seguivano tutta l'inclinazione della
+       testa intorno al centro del viso: a testa china (16° in giù) la sciarpa girava indietro
+       e in su, verso il mento e la bocca, invece di restare intorno al collo.
+       Il collo si piega meno della testa: alle parti che stanno tutte sotto il mento
+       (y < −8,5 cm nello spazio canonico) si toglie NECK.damp dell'inclinazione avanti/indietro,
+       ruotando intorno all'attaccatura del collo (NECK.pivot). L'imbardata e il resto restano.
+       La correzione vale solo al momento del disegno (onBeforeRender/onAfterRender), quindi
+       non tocca niente di quello che l'effetto calcola da sé. Un effetto può spegnerla con
+       export const neck = false. Non si applica se nella zona del collo c'è anche una parte
+       che scende dalla testa (cappucci, parrucche lunghe): resterebbero staccate. */
+    _fitEffect(eff) {
+      const { THREE } = _libs;
+      const fit = eff.fit = { neck: [], cranium: false, lost: 0 };
+      const g = eff.group;
+      if (!g || eff.hideHead) return;
+      this.faceGroup.updateMatrixWorld(true);
+      const inv = new THREE.Matrix4().copy(this.faceGroup.matrixWorld).invert(), m = new THREE.Matrix4(), nm = new THREE.Matrix3();
+      const v = new THREE.Vector3(), n = new THREE.Vector3();
+      const C = HEAD.cranium, inCr = (p) => ((p.x - C.c[0]) / C.r[0]) ** 2 + ((p.y - C.c[1]) / C.r[1]) ** 2 + ((p.z - C.c[2]) / C.r[2]) ** 2 < 1;
+      const inOld = (p) => (p.x / 7.4) ** 2 + ((p.y - 1.5) / 8.9) ** 2 + ((p.z + 3.8) / 7.5) ** 2 < 1;
+      const items = []; let tot = 0, lost = 0;
+      g.traverse((o) => {
+        if (!(o.isMesh || o.isLine || o.isSprite) || o.isInstancedMesh) return;
+        const geo = o.geometry, pos = geo && geo.attributes && geo.attributes.position; if (!pos || !pos.count) return;
+        let vis = o.visible; for (let p = o.parent; p && p !== this.faceGroup; p = p.parent) if (!p.visible) vis = false;
+        const mats = [].concat(o.material), occ = mats.every(mt => mt && mt.colorWrite === false);
+        const two = mats.some(mt => mt && mt.side === THREE.DoubleSide), nor = !two && o.isMesh && !o.isSkinnedMesh ? geo.attributes.normal : null;
+        m.multiplyMatrices(inv, o.matrixWorld); nm.getNormalMatrix(m);
+        const cnt = pos.count, step = Math.max(1, Math.floor(cnt / 160)), ys = [];
+        for (let i = 0; i < cnt; i += step) {
+          v.fromBufferAttribute(pos, i); if (o.isSkinnedMesh && o.applyBoneTransform) o.applyBoneTransform(i, v); v.applyMatrix4(m);
+          if (!Number.isFinite(v.y)) continue;
+          ys.push(v.y);
+          if (!vis || occ || !o.isMesh) continue;
+          // superficie che si vede dalla camera (davanti, sopra o sotto): normale verso l'esterno della
+          // testa e verso avanti (le pareti dietro la testa non contano), o materiale a due facce
+          let out = true;
+          if (nor) { n.fromBufferAttribute(nor, i).applyMatrix3(nm).normalize(); out = n.z > 0.15 && n.x * (v.x - C.c[0]) + n.y * (v.y - C.c[1]) + n.z * (v.z - C.c[2]) > 0; }
+          else out = v.z > C.c[2];
+          if (!out) continue;
+          tot++; if (inCr(v) && !inOld(v)) lost++;
+        }
+        if (!ys.length) return;
+        ys.sort((a, b) => a - b);
+        items.push({ o, lo: ys[Math.floor(0.1 * (ys.length - 1))], hi: ys[Math.floor(0.9 * (ys.length - 1))], occ });
+      });
+      // la calotta vera nasconde l'interno dei cappelli e il retro di fasce e tese; gli accessori
+      // aderenti fatti sull'ellissoide piccolo (fiocchi, cerchietti, parrucche corte) ci finirebbero
+      // dentro: si accende solo se nasconde meno di HEAD.lost della loro superficie esterna
+      fit.lost = tot ? lost / tot : 0;
+      fit.cranium = eff.cranium != null ? !!eff.cranium : fit.lost < HEAD.lost;
+      if (eff.neck === false) return;
+      const neck = items.filter(it => it.hi <= NECK.below);
+      if (!neck.length) return;
+      // qualcosa d'altro (non occlusore) scende nella zona del collo? allora niente correzione
+      if (items.some(it => !it.occ && it.hi > NECK.below && it.lo < NECK.below)) return;
+      for (const it of neck) this._hookDraw(it.o, 'neck');
+      fit.neck = neck.map(it => it.o);
+    }
+    // correzione applicata solo mentre l'oggetto si disegna (la matrice si ripristina subito dopo)
+    _hookDraw(o, kind) {
+      const self = this, b0 = o.onBeforeRender, a0 = o.onAfterRender;
+      o.onBeforeRender = function (r, sc, cam, geo, mat, grp) {
+        b0.call(this, r, sc, cam, geo, mat, grp);
+        const X = self._drawX && self._drawX[kind];
+        if (X) { this.matrixWorld.premultiply(X.m); this.__tdX = X; }
+      };
+      o.onAfterRender = function (r, sc, cam, geo, mat, grp) {
+        if (this.__tdX) { this.matrixWorld.premultiply(this.__tdX.mi); this.__tdX = null; }
+        a0.call(this, r, sc, cam, geo, mat, grp);
+      };
+    }
+    _neckFrame() {
+      const fit = this.effect.fit;
+      if (!fit || !fit.neck.length) { if (this._drawX) this._drawX.neck = null; return; }
+      const { THREE } = _libs;
+      const X = (this._drawX || (this._drawX = {})).neck || (this._drawX.neck = { m: new THREE.Matrix4(), mi: new THREE.Matrix4(), l: new THREE.Matrix4(), t: new THREE.Matrix4() });
+      const a = -NECK.damp * Math.max(-NECK.max, Math.min(NECK.max, this.pose.pitch || 0));
+      const P = NECK.pivot;
+      // locale (testa): T(pivot)·Rx(a)·T(−pivot); mondo: H·locale·H⁻¹
+      X.l.makeRotationX(a);
+      X.t.makeTranslation(P[0], P[1], P[2]); X.l.premultiply(X.t);
+      X.t.makeTranslation(-P[0], -P[1], -P[2]); X.l.multiply(X.t);
+      X.m.copy(this.faceGroup.matrix).multiply(X.l).multiply(X.t.copy(this.faceGroup.matrix).invert());
+      X.mi.copy(X.m).invert();
+      this._drawX.neck = X;
+    }
+
     render(nowMs) {
       if (!this.ready) return;
       const t = (nowMs - this._t0) / 1000;
@@ -717,6 +955,9 @@
       this.faceGroup.visible = vis && !!this.effect;
       this.faceMesh.visible = vis && !!this.effect && (!this.effect.hideHead || this.effect.def.type === 'paint');
       if (this.effect?.update) { try { this.effect.update(this.bs, t); } catch (e) { if (!this._updErr) { this._updErr = true; console.warn('[FaceAR] update', e); } } }
+      if (this.effect && this._smooth) { if (!this.effect.fit) this._fitEffect(this.effect); this._neckFrame(); }
+      this.cranium.visible = this.skull.visible && !!(this.effect && this.effect.fit && this.effect.fit.cranium);
+      if (this.cranium.material !== this.skull.material) this.cranium.material = this.skull.material;   // (i banchi di prova colorano lo skull)
       this.renderer.render(this.scene, this.camera);
       this._fpsN++; if (nowMs - this._fpsT > 1000) { this.fps = this._fpsN; this._fpsN = 0; this._fpsT = nowMs; }
     }
@@ -795,6 +1036,8 @@
     }
   }
 
+  /** Opzioni del motore (per le prove: si possono spegnere dalla console). */
+  FaceAR.options = { refinePose: true };
   FaceAR.ANCHORS = { noseTip: 1, forehead: 10, chin: 152, earL: 234, earR: 454, eyeLOuter: 33, eyeROuter: 263, eyeLInner: 133, eyeRInner: 362,
     lipTop: 13, lipBottom: 14, mouthL: 61, mouthR: 291, noseBridge: 168, browL: 105, browR: 334, cheekL: 50, cheekR: 280, templeL: 127, templeR: 356 };
   FaceAR.CONTOURS = {

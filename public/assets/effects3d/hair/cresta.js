@@ -1,7 +1,10 @@
 // Tiditalk AR, effetto "cresta" — la geometria comune di capelli e barbe sta in _kit_hair.js
-import { D2R, HC, addHair, fin, headPtDir, mixc, rgb, shortCap, smooth, surfGeo } from './_kit_hair.js';
+// 1.8.9: calzata fuori dalla calotta del cranio vero del motore (useCranium): prima i lati rasati, fatti sul profilo
+// piccolo della testa, in cima e sopra la fronte stavano dentro la testa vera.
+import { D2R, HC, addHair, fin, headPtDir, mixc, rgb, shortCap, smooth, surfGeo, useCranium } from './_kit_hair.js';
 export const meta = { label: 'Cresta punk', labelEn: 'Mohawk', category: 'capelli', icon: '🤘' };
-export default function build(THREE, h) {
+export default function build(THREE, h) { useCranium(0.25); try { return make(THREE, h); } finally { useCranium(0); } }
+function make(THREE, h) {
   const g = new THREE.Group();
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   const cBase = rgb(THREE, 0x3c0640), cMid = rgb(THREE, 0xd8127a), cTip = rgb(THREE, 0xffc21a);

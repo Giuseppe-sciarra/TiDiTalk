@@ -51,7 +51,7 @@ export default function build(THREE, h) {
   for (const s of [-1, 1]) { const w = new THREE.Mesh(new THREE.SphereGeometry(1.2, 14, 10), h.mat(0xe8b012, { roughness: 1 })); w.scale.set(0.45, 1.0, 0.8); w.position.set(s * 2.5, 0.1, 0.2); w.rotation.z = s * 0.35; chick.add(w); wings.push(w); }
   chick.position.y = 2.6; chick.scale.setScalar(1.1);    // esce bene dal nido: dalla camera (all'altezza degli occhi) il bordo non lo copre
   nest.add(chick);
-  nest.position.set(0, 12.0, -3.0); nest.rotation.x = 0.12;
+  nest.position.set(0, 13.2, -3.0); nest.rotation.x = 0.12;   // 1.8.9: 1,2 cm più su, il fondo appoggia sulla calotta del cranio vero (prima ci entrava)
   g.add(nest);
   // occlusore "testa + capelli" sotto il nido (solo profondità)
   const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));

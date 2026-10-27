@@ -1029,6 +1029,9 @@ function KPETS(THREE, H, K, W) {
 }
 function KW_PET_UPDATE(g, bs, t) { const p = g.userData.pet; if (p) p.update(bs || {}, t, !!g.userData.snap); g.userData.snap = false; }
 export const meta = { label: 'Ranocchia in testa', labelEn: 'Froggy on your head', category: 'divertenti', icon: '🐸', shot: { dist: 105, target: [0, 8, 0] } };
+// 1.8.9: il corpo è fatto per affondare un po' nei capelli: la parte affondata la nasconde la calotta del cranio vero,
+// che qui si accende sempre (senza, il motore la spegnerebbe e la pancia si vedrebbe sopra la fronte)
+export const cranium = true;
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), W = KAWAII(THREE, h, K), Q = KPETS(THREE, h, K, W);
@@ -1050,9 +1053,10 @@ export default async function build(THREE, h) {
     extra: (st, e, t, snap) => {
       // happy hop when you smile or open your mouth
       const hop = snap ? 0 : Math.max(0, Math.sin(t * 7.5)) * (K.sst(0.35, 0.9, e.smile) * 1.4 + K.sst(0.5, 1, e.jaw) * 0.8);
-      st.root.position.y = 11.6 + hop; st.inner.scale.y = 0.35 * (1 - hop * 0.03);
+      st.root.position.y = 14.5 + hop; st.inner.scale.y = 0.35 * (1 - hop * 0.03);
     } });
-  pet.root.position.set(0, 11.6, -0.8); pet.root.rotation.x = 0.08;
+  // 1.8.9: 2,9 cm più su (la testa vera arriva 2,9 cm sopra l'ellissoide di prima): affonda nei capelli come prima
+  pet.root.position.set(0, 14.5, -0.8); pet.root.rotation.x = 0.08;
   g.add(pet.root); g.userData.pet = pet;
   return g;
 }

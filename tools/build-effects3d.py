@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Costruisce il catalogo degli effetti viso 3D e le miniature.
 
-Legge i moduli in public/assets/effects3d/{chars,models,hair,glb,premium,premium2,premium3,paints}/*.js (export const meta),
+Legge i moduli in public/assets/effects3d/{chars,models,hair,glb,premium…premium6,paints}/*.js (export const meta),
 renderizza una miniatura per ognuno con three.js (Chromium headless via Playwright) e scrive:
   public/assets/effects3d/catalog.js      (window.FaceEffects3D: sezioni + indice per id)
   public/assets/effects3d/thumbs/<id>.webp
@@ -29,9 +29,9 @@ SECTIONS = [
     ('capelli', 'Capelli'), ('barba', 'Barba'), ('accessori', 'Accessori'), ('maschere', 'Maschere'),
 ]
 FOLDERS = [('chars', 'model'), ('models', 'model'), ('hair', 'model'), ('glb', 'model'),
-           ('premium', 'model'), ('premium2', 'model'), ('premium3', 'model'), ('premium4', 'model'), ('premium5', 'model'),
+           ('premium', 'model'), ('premium2', 'model'), ('premium3', 'model'), ('premium4', 'model'), ('premium5', 'model'), ('premium6', 'model'),
            ('paints', 'paint')]
-PREFIX = {'chars': 'char', 'models': 'acc', 'hair': 'hair', 'glb': 'cc', 'premium': 'pa', 'premium2': 'pc', 'premium3': 'pf', 'premium4': 'pk', 'premium5': 'pq', 'paints': 'paint'}
+PREFIX = {'chars': 'char', 'models': 'acc', 'hair': 'hair', 'glb': 'cc', 'premium': 'pa', 'premium2': 'pc', 'premium3': 'pf', 'premium4': 'pk', 'premium5': 'pq', 'premium6': 'pw', 'paints': 'paint'}
 
 def read_meta(path):
     """Importa il modulo in node e restituisce meta (+ hideHead)."""
@@ -53,7 +53,7 @@ for folder, typ in FOLDERS:
             'id': f'3d-{PREFIX[folder]}-{fid}', 'type': typ, 'path': f'{folder}/{f}', 'folder': folder,
             'label': m.get('label', fid), 'labelEn': m.get('labelEn', m.get('label', fid)),
             'labelFr': m.get('labelFr'), 'labelDe': m.get('labelDe'),
-            'category': m.get('category') or {'chars': 'personaggi', 'premium': 'personaggi', 'premium2': 'costumi', 'premium3': 'divertenti', 'premium4': 'personaggi', 'premium5': 'accessori',
+            'category': m.get('category') or {'chars': 'personaggi', 'premium': 'personaggi', 'premium2': 'costumi', 'premium3': 'divertenti', 'premium4': 'personaggi', 'premium5': 'accessori', 'premium6': 'accessori',
                                               'hair': 'capelli', 'paints': 'maschere'}.get(folder, 'accessori'),
             'order': m.get('order', 50),
             'icon': m.get('icon', '✨'), 'hideHead': info['hideHead'], 'animated': info['hasUpdate'],

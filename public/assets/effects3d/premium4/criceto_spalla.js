@@ -1029,6 +1029,8 @@ function KPETS(THREE, H, K, W) {
 }
 function KW_PET_UPDATE(g, bs, t) { const p = g.userData.pet; if (p) p.update(bs || {}, t, !!g.userData.snap); g.userData.snap = false; }
 export const meta = { label: 'Criceto sulla spalla', labelEn: 'Hamster on your shoulder', category: 'divertenti', icon: '🐹', shot: { dist: 100, target: [-8, -4, 0] } };
+// 1.8.9: le parti al collo/sul busto le tiene già il NeckRig (o il rig del torso) di questo effetto: niente correzione del collo del motore (sarebbe doppia)
+export const neck = false;
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), W = KAWAII(THREE, h, K), Q = KPETS(THREE, h, K, W);
@@ -1051,10 +1053,21 @@ export default async function build(THREE, h) {
     body: { w: 1.1, color: (x, y, z, info, o) => { K.setC(o, tan); K.mixIn(o, white, B(x, y, z, [0, -9.5, 6], [7.5, 7, 4.5], 0.4)); } } });
   // a sunflower seed in its paws (when you smile it nibbles faster)
   const seed = W.ell([0.9, 1.6, 0.55], [0.28, 0.24, 0.22], { matOpt: { finish: 'gloss' } }); seed.position.set(0, -7.0, 7.4); seed.rotation.z = 0.5; pet.inner.add(seed);
-  pet.root.position.set(-14.4, -9.6, 0.2); pet.root.rotation.y = 0.5;
+  pet.root.position.set(-14.4, -11.2, 0.0); pet.root.rotation.y = 0.5;   // 1.8.9: zampe appena sotto il bordo del busto (y ≈ −16,4): seduto sulla spalla, prima sospeso sopra
   pet.update0 = pet.update;
   pet.update = (bs, t, snap) => { const e = pet.update0(bs, t, snap); seed.position.y = -7.0 + (snap ? 0 : Math.max(0, Math.sin(t * (4 + e.smile * 10))) * 0.35); return e; };
-  g.add(pet.root); g.userData.pet = pet;
+  // 1.8.9: sulla spalla = sul busto. Il motore dà solo la posa della testa: il gruppo ha il perno alla base
+  // del cranio e ruota all'inverso di gran parte della posa (testa china 85 %, all'indietro 20 %, imbardata
+  // 55 %, rollio 70 %): chinando o inclinando la testa il criceto resta sulla spalla invece di volare via.
+  const rig = new THREE.Group(); rig.position.set(0, -7.5, -3.2); const rin = new THREE.Group(); rin.position.set(0, 7.5, 3.2); rig.add(rin);
+  rin.add(pet.root); g.add(rig); g.userData.pet = pet;
+  g.userData.rig = { rig, e: new THREE.Euler(), q: new THREE.Quaternion(), p: new THREE.Vector3(), s: new THREE.Vector3() };
   return g;
 }
-export function update(g, bs, t) { KW_PET_UPDATE(g, bs, t); }
+function neckRig(g) {
+  const R = g.userData.rig; if (!R) return; const P = g.parent;
+  if (!P) { R.rig.quaternion.identity(); return; }
+  P.matrix.decompose(R.p, R.q, R.s); const e = R.e.setFromQuaternion(R.q, 'YXZ');
+  e.set(-(e.x > 0 ? 0.85 : 0.2) * e.x, -0.55 * e.y, -0.7 * e.z, 'ZXY'); R.rig.quaternion.setFromEuler(e);
+}
+export function update(g, bs, t) { neckRig(g); KW_PET_UPDATE(g, bs, t); }

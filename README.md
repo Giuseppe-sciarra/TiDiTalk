@@ -138,12 +138,14 @@ cloud, your branding.
   illustrations, or your own image), color styles and face
   effects (MediaPipe) in a **side panel with a live preview**, opened from More
   or from the button on your own tile
-- **392 3D face effects like Meet** (characters that copy your expressions,
+- **411 3D face effects like Meet** (characters that copy your expressions,
   animals with real fur and kawaii animals, costumes, cute accessories, fun and
   Halloween effects that react to your smile, mouth and eyebrows, wigs, beards,
   hats, glasses, painted masks, scenes with your face in a frame)
   that follow the head in 3D: MediaPipe Face Landmarker in a Web Worker +
-  three.js, all served locally. The classic 2D effects stay in their own tab
+  three.js, all served locally. A search box at the top finds an effect by
+  name in any of the app's languages, by section, or just "animals". The
+  classic 2D effects stay in their own tab
 - **Call settings window** with sections: audio & video devices, room rules
   (hosts), recording quality, appearance, shortcuts, info
 - Microphone popup with **live mic and speaker levels** and a switch for
@@ -207,8 +209,8 @@ bash setup-backgrounds.sh
 docker compose up -d --build
 docker compose logs -f app
 
-# 4. Daily automatic updates
-bash install-cron.sh
+# 4. Nightly automatic updates (at 05:00)
+bash installa-aggiornamento.sh
 ```
 
 Generate `SERVER_SECRET` with:
@@ -264,53 +266,64 @@ Passwords can also be bcrypt hashes (`$2b$...`; inside a compose env file write
 ### Automatic (recommended)
 
 ```bash
-bash install-cron.sh           # every day at 08:00 (server local time)
-bash install-cron.sh 6         # ...or at another hour
-bash install-cron.sh --status  # is it scheduled? next run? last result
-bash install-cron.sh --remove  # stop it
+bash installa-aggiornamento.sh            # every night at 05:00, Italian time
+bash installa-aggiornamento.sh 4:30       # ...or at another time
+bash installa-aggiornamento.sh --status   # is it scheduled? next run? last result
+bash installa-aggiornamento.sh --remove   # stop it
 ```
 
-`install-cron.sh` installs a **systemd timer** (persistent: if the server was
-off at the scheduled time, the update runs as soon as it's back). Without
-systemd it falls back to cron and checks that the cron service is running.
-The hour is the server's local time — set the timezone first if needed:
+`installa-aggiornamento.sh` installs a **systemd timer** (persistent: if the
+server was off at the scheduled time, the update runs as soon as it's back) on
+Italian time, even when the container runs in UTC. Without systemd it falls
+back to cron (`/etc/cron.d`). It removes the old `install-cron.sh` schedule
+(up to 1.8.8, every morning at 08:00) by itself, so the two never run
+together. `install-cron.sh` and `auto-update.sh` are still there and hand
+everything over to the new names.
 
-```bash
-timedatectl set-timezone Europe/Rome && bash install-cron.sh
-```
-
-Every run of `auto-update.sh`:
+Every night `aggiorna-tutto.sh`:
 
 1. postpones if a meeting is in progress (3 × 15 minutes, then proceeds);
-2. upgrades **every** dependency to its latest version, majors included, and
-   also realigns versions that are older inside the image than on npm;
-3. rebuilds the image and restarts the service;
-4. if the service doesn't answer within 3 minutes, restores the previous
-   `package.json`, lock file and image — **automatic rollback**;
-5. emails `UPDATE_NOTIFY_EMAIL` a table of what changed, tagged
-   **major / minor / patch**, with ready-to-paste rollback commands;
-6. cleans Docker safely: keeps the last `UPDATE_KEEP_ROLLBACK` rollback images
+2. downloads the latest `node:22-alpine` base image, so security fixes in Node
+   and Alpine (like the Brotli one of October 2026) actually arrive;
+3. upgrades **every** dependency in `server/package.json` to its latest
+   version, majors included, together with `package-lock.json`. This runs in a
+   throwaway container that only gets those two files. A dependency with an
+   upper limit (e.g. `"mediasoup": ">=3.14 <4"`) stays as it is: that's how you
+   hold one back;
+4. rebuilds the app (always with `--pull`) when something changed: base image,
+   dependencies, versions inside the image older than on npm, or Dockerfile and
+   code different from the last successful build (e.g. after copying a patch);
+5. tests it: `/api/health` must answer and the container must not restart by
+   itself for 20 seconds. Otherwise it restores the previous `package.json`,
+   lock file and image — **automatic rollback**;
+6. updates **coturn** when a new image is out, with the same check and a
+   return to the previous image if it doesn't stay up;
+7. sends the report: a table of what changed, tagged **major / minor /
+   patch**, what happened (app, Node, coturn) and the exact command to go back;
+8. cleans Docker safely: keeps the last `UPDATE_KEEP_ROLLBACK` rollback images
    (default 5), removes stopped containers, untagged images and build cache
    older than 7 days. It never runs `prune -a`.
 
-Backups: `backups/` (last 10). Log: `logs/auto-update.log`.
+Backups: `backups/` (last 10). Log: `logs/aggiorna-tutto.log` (plus
+`logs/build.log`, `logs/npm-risoluzione.log`).
 
 | Variable | Default | Meaning |
 |----------|---------|---------|
-| `UPDATE_NOTIFY_EMAIL` | — | where the report goes |
-| `UPDATE_MAIL_ALWAYS` | `0` | `1` = email even when nothing changed |
+| `UPDATE_NOTIFY_EMAIL` (or `AGG_MAIL_A`) | — | where the report goes |
+| `UPDATE_MAIL_ALWAYS` (or `AGG_MAIL_SEMPRE`) | `0` | `1` = email even when nothing changed |
 | `UPDATE_SKIP_IF_BUSY` | `1` | postpone while people are connected |
 | `UPDATE_BUSY_RETRIES` / `UPDATE_BUSY_WAIT` | `3` / `900` | how many times / every how many seconds |
-| `UPDATE_KEEP_ROLLBACK` | `5` | rollback images to keep |
+| `UPDATE_KEEP_ROLLBACK` (or `AGG_TIENI_ROLLBACK`) | `5` | rollback images to keep |
 | `UPDATE_CHECK` | `0` | old "updates available" email, without updating |
 
 ### Manual
 
 ```bash
-bash auto-update.sh --dry-run      # show what would change, touch nothing
-bash auto-update.sh                # update now
-docker compose up -d --build app   # after changing anything in server/ or public/assets/i18n
-docker compose restart app         # after changing CSS/JS/HTML (mounted live)
+bash aggiorna-tutto.sh --dry-run    # show what would change, touch nothing
+bash aggiorna-tutto.sh              # update now
+bash aggiorna-tutto.sh --force      # update now even during meetings
+docker compose build --pull app && docker compose up -d app   # after changing server/, public/assets/i18n or the Dockerfile
+docker compose restart app          # after changing CSS/JS/HTML (mounted live)
 ```
 
 ---
@@ -357,7 +370,7 @@ While drawing: `P` pen, `E` highlighter, `A` arrow, `R` rectangle, `O` circle,
 - **Echo** — usually speakers without headphones, or two devices in the same room.
 - **Invitations not delivered** — Settings → System shows the SMTP status and
   has a test button.
-- **Updates not happening** — `bash install-cron.sh --status`.
+- **Updates not happening** — `bash installa-aggiornamento.sh --status`.
 - **You can't hear the others** — speakers ▾ → *Play a test sound*. If you
   can't hear even that, the browser has lost its audio output: *Reconnect the
   audio*, and if that doesn't help close and reopen the browser. With

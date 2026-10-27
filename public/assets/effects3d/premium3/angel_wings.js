@@ -98,6 +98,32 @@ function worldRoot(THREE, g2, frame) {
   g2.add(r);
   return r;
 }
+var NeckRig = class {
+  constructor(THREE, g2, { pivot = [0, -7.5, -3.2], kp = 0.85, kpUp = 0.2, ky = 0.55, kr = 0.7 } = {}) {
+    this.root = new THREE.Group();
+    this.root.position.set(pivot[0], pivot[1], pivot[2]);
+    this.root.name = "neckRig";
+    g2.add(this.root);
+    this.inner = new THREE.Group();
+    this.inner.position.set(-pivot[0], -pivot[1], -pivot[2]);
+    this.root.add(this.inner);
+    this.k = [kp, ky, kr, kpUp];
+    this.e = new THREE.Euler();
+  }
+  add(...o) {
+    this.inner.add(...o);
+    return this;
+  }
+  update(frame) {
+    if (!frame.attached) {
+      this.root.quaternion.identity();
+      return;
+    }
+    const e = this.e.setFromQuaternion(frame.q, "YXZ");
+    e.set(-(e.x > 0 ? this.k[0] : this.k[3]) * e.x, -this.k[1] * e.y, -this.k[2] * e.z, "ZXY");
+    this.root.quaternion.setFromEuler(e);
+  }
+};
 
 // lib/expr.js
 var g = (b, k) => {
@@ -827,6 +853,7 @@ var __s0 = { "x": void 0, "y": void 0, "z": void 0, "vy": void 0, "life": void 0
 var __s1 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "life": void 0, "s": void 0, "q": void 0, "wx": void 0, "wy": void 0, "wz": void 0, "drag": void 0, "grav": void 0, "flut": void 0, "color": void 0, "grow": void 0 };
 var __k2 = [1, 1, 1];
 var meta = { label: "Angioletto", labelEn: "Little angel", labelFr: "Petit ange", labelDe: "Engelchen", category: "costumi", icon: "\u{1F607}" };
+var neck = false;
 function featherGeo(THREE, L, W, curl = 0.12) {
   const s = new THREE.Shape();
   s.moveTo(0, 0);
@@ -958,12 +985,14 @@ function build(THREE, h) {
   U.glowMat = glowMat;
   const tex = featherTex(THREE);
   U.wings = [];
+  const rig = new NeckRig(THREE, g2);
+  U.rig = rig;
   for (const sx of [-1, 1]) {
     const W = buildWing(THREE, sx, tex, U.rnd);
     const root = new THREE.Group();
     root.position.set(sx * 5.5, -12.5, -9);
     root.add(W.wing);
-    g2.add(root);
+    rig.add(root);
     root.rotation.set(0, sx * -0.3, sx * -0.12);
     U.wings.push({ root, outer: W.outerG, sx });
   }
@@ -971,7 +1000,7 @@ function build(THREE, h) {
   occ.scale.set(18, 4.2, 7.5);
   occ.position.set(0, -14.8, -3);
   occ.renderOrder = -1;
-  g2.add(occ);
+  rig.add(occ);
   const world = worldRoot(THREE, g2, U.frame);
   U.world = world;
   const atlas = makeAtlas(THREE, ["spark", "glow", "dot", "star"]);
@@ -994,6 +1023,7 @@ function update(g2, bs, t, h) {
   const dt = U.tick.tick(t);
   U.frame.update(dt);
   U.world.userData.sync();
+  U.rig.update(U.frame);
   const e = U.expr.update(bs, dt, h), s = e.smile;
   U.speed = damp(U.speed, 1 + s * 1.6, 3, dt);
   U.flap += dt * U.speed * 4.4;
@@ -1031,5 +1061,6 @@ function update(g2, bs, t, h) {
 export {
   build as default,
   meta,
+  neck,
   update
 };

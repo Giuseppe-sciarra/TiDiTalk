@@ -1,5 +1,10 @@
 // Cappello da strega: cono nero con la punta ricurva, tesa larga, fascia viola con fibbia dorata.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js);
+// tolto il fondo chiuso/disco sotto la cupola: da sotto si vedeva come un coperchio.
 import { afterFace, cloth as fabric, faceOccluder, finish, headOccluder } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappello da strega', labelEn: 'Witch hat', category: 'costumi', icon: '🧙‍♀️' };
 
 function tubeVar(THREE, pts, rFn, segs = 48, radial = 32) {
@@ -29,7 +34,6 @@ export default function build(THREE, h) {
   const spine = [[0, 0, 0], [0, 8, 0], [0.2, 14, -0.2], [0.4, 19, -1.2], [0.3, 22.5, -3.5], [-0.5, 23.8, -6.5], [-1.6, 23.0, -9.5]];
   g.add(new THREE.Mesh(tubeVar(THREE, spine, t => 8.5 * Math.pow(1 - t, 1.1) + 0.04, 60, 40), cloth));
   const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), cloth); tip.position.set(-1.6, 23.0, -9.5); g.add(tip);
-  g.add(new THREE.Mesh(new THREE.CircleGeometry(8.5, 48), cloth).rotateX(Math.PI / 2));
 
   // tesa larga, leggermente ondulata, bordo arrotondato
   const R0 = 7.8, R1 = 16;
@@ -51,9 +55,9 @@ export default function build(THREE, h) {
   const buckle = new THREE.Mesh(new THREE.ExtrudeGeometry(sq, { depth: 0.35, bevelEnabled: true, bevelSize: .08, bevelThickness: .08, bevelSegments: 2 }), gold);
   buckle.position.set(0, 1.95, 8.45); buckle.lookAt(0, 2.2, 20);
   const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.6, 0.22), gold); tongue.position.set(0.4, 1.95, 8.75); g.add(buckle, tongue);
-
-  g.position.set(0, 8.6, -2.2);
-  g.rotation.x = -0.1;
+  g.scale.set(0.935, 1.000, 1.089);
+  g.position.set(0, 8.35, -4.83);
+  g.rotation.x = -0.083;
   // occlusore "testa + capelli" dentro il cappello (solo profondità, invisibile): nell'app l'occlusore del cranio è
   // piccolo all'altezza della tesa e i capelli veri non nascondono nulla, quindi vista dal basso si vedrebbe il retro
   // della tesa/fascia attraverso la fronte. Nell'harness di sviluppo (h.preview) è marrone = capelli.
@@ -61,7 +65,6 @@ export default function build(THREE, h) {
     occ.scale.set(7.5, 6, 7.5); occ.position.set(0, -2.5, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: 0.0, face: false });
 }

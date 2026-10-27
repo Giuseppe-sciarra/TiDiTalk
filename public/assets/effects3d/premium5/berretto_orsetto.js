@@ -899,7 +899,7 @@ var Mats = class {
   }
 };
 var Band = class {
-  constructor({ R = 8.85, top = 12.3, y0 = 1.6, z0 = -2.6, zt = 0.9 } = {}) {
+  constructor({ R = 9.3, top = 14.9, y0 = 5, z0 = -3.2, zt = 0.9 } = {}) {
     Object.assign(this, { R, top, y0, z0, zt });
   }
   at(a, out) {
@@ -978,7 +978,7 @@ function buildEarband(THREE, h, spec) {
   if (spec.base) mount = spec.base(THREE, M, g2, U);
   else {
     const bandMat = spec.band.mat || M.plush(spec.band.color, spec.band.opt || {});
-    const bm = band.mesh(THREE, bandMat, { r: spec.band.r || 0.42, sx: spec.band.sx || 1.9, sy: spec.band.sy || 0.62, a0: spec.band.a0 || 1.3 });
+    const bm = band.mesh(THREE, bandMat, { r: spec.band.r || 0.42, sx: spec.band.sx || 1.9, sy: spec.band.sy || 0.62, a0: spec.band.a0 || 1.62 });
     g2.add(bm);
     U.bandMesh = bm;
   }
@@ -1082,8 +1082,12 @@ function updateEarband(g2, bs, t, h) {
 }
 
 // lib/hat.js
-var Dome = class {
-  constructor({ rx = 9.3, ry = 10.6, rz = 9.4, c = [0, 2.4, -3.6], tilt = 0.36, thetaMax = 1.37 } = {}) {
+var Dome = class _Dome {
+  // 1.8.9: calotta calzata FUORI dal cranio vero del motore (HEAD.cranium: centro (0, 5,6, −4,8), raggi 7,7 × 7,7 × 8,7)
+  // con 0,6–1 cm di margine per i capelli: cima a y 14, bordo sulla fronte (y 7,8, z 4,4) e sulla nuca (z −14,7).
+  // Prima (centro (0, 2,4, −3,6), cima 12,3) stava dentro la testa vera: il motore spegneva la calotta e da sotto
+  // si vedeva l'interno.
+  constructor({ rx = 8.9, ry = 11, rz = 10.1, c = [0, 3.7, -4.8], tilt = 0.32, thetaMax = 1.48 } = {}) {
     Object.assign(this, { rx, ry, rz, c, tilt, thetaMax });
   }
   // punto della calotta: theta dal polo, phi intorno (0 = davanti, +π/2 = +X)
@@ -1124,6 +1128,22 @@ var Dome = class {
     g2.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     g2.setIndex(idx);
     g2.computeVertexNormals();
+    return g2;
+  }
+  // 1.8.9: fodera scura (solo facce interne) appena dentro la calotta + testa vera (solo profondità):
+  // dalla webcam bassa, fra il bordo e la testa, si vede l'ombra dentro il cappello e non un
+  // "coperchio" chiaro. La calotta esterna va con side: FrontSide.
+  lining(THREE, { color = 1972501, k = 0.975, thetaMax = this.thetaMax - 0.01 } = {}) {
+    const d = new _Dome({ rx: this.rx * k, ry: this.ry * k, rz: this.rz * k, c: this.c, tilt: this.tilt, thetaMax });
+    const g2 = new THREE.Group();
+    g2.name = "lining";
+    g2.add(new THREE.Mesh(d.geo(THREE, { ws: 48, hs: 16 }), new THREE.MeshStandardMaterial({ color, roughness: 1, side: THREE.BackSide, transparent: true })));
+    const o = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true }));
+    o.scale.set(7.6, 10.1, 9.3);
+    o.position.set(0, 2.3, -4.6);
+    o.renderOrder = -1;
+    o.name = "realHead";
+    g2.add(o);
     return g2;
   }
   // tubo chiuso lungo il bordo (risvolto): r(phi) raggio del tubo, off spinge in fuori
@@ -1183,8 +1203,8 @@ function build(THREE, h) {
     seed: 91,
     base(THREE2, M, g2, U) {
       const K = knitMats(THREE2, "#8c5a38");
-      const knit = new THREE2.MeshStandardMaterial({ map: K.map, normalMap: K.nrm, normalScale: new THREE2.Vector2(0.9, 0.9), roughness: 0.95, envMapIntensity: 0.5, transparent: true, side: THREE2.DoubleSide });
-      g2.add(new THREE2.Mesh(dome.geo(THREE2, { ws: 64, hs: 24 }), knit));
+      const knit = new THREE2.MeshStandardMaterial({ map: K.map, normalMap: K.nrm, normalScale: new THREE2.Vector2(0.9, 0.9), roughness: 0.95, envMapIntensity: 0.5, transparent: true, side: THREE2.FrontSide });
+      g2.add(new THREE2.Mesh(dome.geo(THREE2, { ws: 64, hs: 24 }), knit), dome.lining(THREE2, { color: 2759184 }));
       const K2 = knitMats(THREE2, "#7d4f31", { rep: [60, 2] });
       const rib = new THREE2.MeshStandardMaterial({ map: K2.map, normalMap: K2.ribN, normalScale: new THREE2.Vector2(1.2, 1.2), roughness: 0.95, envMapIntensity: 0.5, transparent: true });
       g2.add(new THREE2.Mesh(dome.rim(THREE2, { r: 1.35, off: 0.55, sy: 1.25, rib: 1, theta: dome.thetaMax - 0.03 }), rib));

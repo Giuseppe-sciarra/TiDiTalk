@@ -1,4 +1,5 @@
 // Fiocco gigante sulla testa: nastro rosso a pois crema su cerchietto, due anse gonfie, nodo centrale e code tagliate a V.
+// 1.8.9: il cerchietto segue la calotta del cranio vero del motore (appoggia sulla testa vera, calva o con i capelli).
 import { finish } from './_kit_acc.js';
 export const meta = { label: 'Fiocco', labelEn: 'Hair bow', category: 'accessori', icon: '🎀' };
 
@@ -12,7 +13,11 @@ export default function build(THREE, h) {
 
   // cerchietto sopra i capelli (colmo a y≈13.8)
   const band = [];
-  for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI; band.push(new THREE.Vector3(Math.cos(a) * 8.6, 1.0 + Math.sin(a) * 12.8, -3.0)); }
+  // 1.8.9: l'arco segue la calotta del cranio vero (HEAD.cranium del motore) 4,5 mm fuori: sopra un cerchio di raggio
+  // 7,98 attorno a (0, 5,6), ai lati scende dritto fino a y = 1 (prima a metà altezza entrava di ~4 mm nella testa vera)
+  band.push(new THREE.Vector3(7.9, 1.0, -3.0), new THREE.Vector3(7.98, 3.3, -3.0));
+  for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI; band.push(new THREE.Vector3(Math.cos(a) * 7.98, 5.6 + Math.sin(a) * 7.98, -3.0)); }
+  band.push(new THREE.Vector3(-7.98, 3.3, -3.0), new THREE.Vector3(-7.9, 1.0, -3.0));
   const tg = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band), 72, 0.33, 10);
   { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, -3.0 + (p.getZ(i) + 3.0) * 1.6); tg.computeVertexNormals(); }
   g.add(new THREE.Mesh(tg, h.mat(0x9e1529, { roughness: .45 })));
@@ -37,9 +42,9 @@ export default function build(THREE, h) {
   // code a V
   const tail = new THREE.Shape(); tail.moveTo(-0.9, 0); tail.lineTo(0.9, 0); tail.lineTo(1.4, -4.2); tail.lineTo(0.6, -3.5); tail.lineTo(-0.2, -4.4); tail.closePath();
   const tgeo = new THREE.ExtrudeGeometry(tail, { depth: 0.12, bevelEnabled: false });
-  for (const s of [-1, 1]) { const m = new THREE.Mesh(tgeo, satin); m.position.set(s * 0.3, -0.6, -0.4); m.rotation.z = s * 0.45; m.scale.x = s; bow.add(m); }
+  for (const s of [-1, 1]) { const m = new THREE.Mesh(tgeo, satin); m.position.set(s * 0.3, -0.6, -0.4); m.rotation.set(-0.75, 0, s * 0.45); m.scale.x = s; bow.add(m); }   // code in avanti: scendono sopra la testa, non dentro
   // sul colmo del cerchietto, un po' in avanti e inclinato verso la camera
-  bow.position.set(0, 14.4, -1.8); bow.rotation.x = -0.3; bow.scale.setScalar(1.25);
+  bow.position.set(0, 15.4, -1.8); bow.rotation.x = -0.2; bow.scale.setScalar(1.25);   // 1.8.9: appoggiato sopra l'archetto (prima i lati scendevano dentro la testa vera)
   g.add(bow);
   g.userData.bow = bow;
   return finish(THREE, g);

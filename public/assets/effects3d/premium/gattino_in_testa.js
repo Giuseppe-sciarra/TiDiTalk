@@ -1458,7 +1458,7 @@ export default async function build(THREE, h) {
     tailWag: (t, e) => Math.sin(t * (1.3 + e.smile * 2.0)) * (0.65 + 0.35 * e.smile),
     look: [0.6, 0.35],
   });
-  pet.root.position.set(0, 23.6, -2.2);
+  pet.root.position.set(0, 24.3, -2.2);   // 1.8.9: +0,7 cm, sui capelli sopra il cranio vero (prima seduto sulla calotta nuda)
   const g = new THREE.Group(); g.add(pet.root); g.userData.pet = pet;
   return g;
 }

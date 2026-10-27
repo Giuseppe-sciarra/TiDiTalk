@@ -189,7 +189,11 @@ if (_corsOrigins.length > 0) {
   console.warn('[CORS] CORS_ORIGINS non configurato — CORS aperto (ok solo in sviluppo)');
   app.use(cors());
 }
-app.use(express.json());
+// 1.8.9: niente corpi compressi (gzip/deflate/brotli). Nessun client di Tiditalk li
+// manda, e decomprimere dati di chiunque è la strada della falla Brotli di Node
+// (CVE-2026-111497, ottobre 2026): con inflate:false body-parser li rifiuta (415)
+// senza aprirli, qualunque sia la versione di Node.
+app.use(express.json({ inflate: false }));
 
 // Serve mediasoup-client dal bundle compilato in build
 app.get('/assets/js/mediasoup-client.min.js', (req, res) => {
@@ -605,7 +609,7 @@ app.get('/api/connlog', authMiddleware, (req, res) => {
 });
 
 // Pubblico (no auth): solo dati non sensibili
-// ── Stato del servizio (usato da auto-update.sh e da eventuali monitor) ──────
+// ── Stato del servizio (usato da aggiorna-tutto.sh e da eventuali monitor) ──────
 // Nessun dato sensibile: solo se è vivo, da quanto, quante stanze e quante
 // persone collegate in questo momento (serve a NON aggiornare durante una call).
 app.get('/api/health', (req, res) => {
@@ -685,7 +689,7 @@ const ALLOWED_UPLOAD_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp']);
 // ⭐ FIX: `type: '*/*'` NON basta — se il browser manda il file senza header
 // Content-Type (succede con fetch + ArrayBuffer) body-parser salta il parsing e
 // il body arriva vuoto. Con `type: () => true` il corpo viene sempre letto.
-app.post('/api/upload/:kind', authMiddleware, express.raw({ type: () => true, limit: '8mb' }), (req, res) => {
+app.post('/api/upload/:kind', authMiddleware, express.raw({ type: () => true, limit: '8mb', inflate: false }), (req, res) => {
   const { kind } = req.params;  // 'logo' | 'favicon' | 'background' | 'byebg' (sfondo pagina fine chiamata) | 'contact' (foto contatto)
   if (!['logo', 'favicon', 'background', 'byebg', 'contact', 'byelogo'].includes(kind)) return res.status(400).json({ error: 'kind non valido' });
   if (kind !== 'background' && req.user.role !== 'admin') return res.status(403).json({ error: 'Serve un account amministratore' });

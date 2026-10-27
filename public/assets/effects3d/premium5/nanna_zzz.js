@@ -1078,8 +1078,12 @@ function zShape(THREE, s = 1) {
 }
 
 // lib/hat.js
-var Dome = class {
-  constructor({ rx = 9.3, ry = 10.6, rz = 9.4, c = [0, 2.4, -3.6], tilt = 0.36, thetaMax = 1.37 } = {}) {
+var Dome = class _Dome {
+  // 1.8.9: calotta calzata FUORI dal cranio vero del motore (HEAD.cranium: centro (0, 5,6, −4,8), raggi 7,7 × 7,7 × 8,7)
+  // con 0,6–1 cm di margine per i capelli: cima a y 14, bordo sulla fronte (y 7,8, z 4,4) e sulla nuca (z −14,7).
+  // Prima (centro (0, 2,4, −3,6), cima 12,3) stava dentro la testa vera: il motore spegneva la calotta e da sotto
+  // si vedeva l'interno.
+  constructor({ rx = 8.9, ry = 11, rz = 10.1, c = [0, 3.7, -4.8], tilt = 0.32, thetaMax = 1.48 } = {}) {
     Object.assign(this, { rx, ry, rz, c, tilt, thetaMax });
   }
   // punto della calotta: theta dal polo, phi intorno (0 = davanti, +π/2 = +X)
@@ -1120,6 +1124,22 @@ var Dome = class {
     g2.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     g2.setIndex(idx);
     g2.computeVertexNormals();
+    return g2;
+  }
+  // 1.8.9: fodera scura (solo facce interne) appena dentro la calotta + testa vera (solo profondità):
+  // dalla webcam bassa, fra il bordo e la testa, si vede l'ombra dentro il cappello e non un
+  // "coperchio" chiaro. La calotta esterna va con side: FrontSide.
+  lining(THREE, { color = 1972501, k = 0.975, thetaMax = this.thetaMax - 0.01 } = {}) {
+    const d = new _Dome({ rx: this.rx * k, ry: this.ry * k, rz: this.rz * k, c: this.c, tilt: this.tilt, thetaMax });
+    const g2 = new THREE.Group();
+    g2.name = "lining";
+    g2.add(new THREE.Mesh(d.geo(THREE, { ws: 48, hs: 16 }), new THREE.MeshStandardMaterial({ color, roughness: 1, side: THREE.BackSide, transparent: true })));
+    const o = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true }));
+    o.scale.set(7.6, 10.1, 9.3);
+    o.position.set(0, 2.3, -4.6);
+    o.renderOrder = -1;
+    o.name = "realHead";
+    g2.add(o);
     return g2;
   }
   // tubo chiuso lungo il bordo (risvolto): r(phi) raggio del tubo, off spinge in fuori
@@ -1211,9 +1231,9 @@ function build(THREE, h) {
   U.tick = new Ticker();
   U.expr = new Expr(["eyesClosed", "smile"]);
   U.rnd = rng(17);
-  const dome = new Dome({ rx: 9.3, ry: 10.4, rz: 9.4, c: [0, 2.4, -3.7], tilt: 0.36, thetaMax: 1.37 });
+  const dome = new Dome();
   const cloth = M.plush(16777215, { map: starTex(THREE), normalMap: null, side: THREE.DoubleSide, sheen: 0.4 });
-  g2.add(new THREE.Mesh(dome.geo(THREE, { ws: 60, hs: 22, thetaMax: 1.37 }), cloth));
+  g2.add(new THREE.Mesh(dome.geo(THREE, { ws: 60, hs: 22 }), Object.assign(cloth.clone(), { side: THREE.FrontSide })), dome.lining(THREE, { color: 1711148 }));
   g2.add(new THREE.Mesh(dome.rim(THREE, { r: 1, off: 0.4, sy: 1.15, theta: dome.thetaMax - 0.03 }), M.plush(10326742)));
   U.tube = new DynTube(THREE, NS, 20, { r: (s) => 5.6 * Math.pow(1 - s, 1.7) + 0.32, uRepeat: 2 });
   const tip = new THREE.Mesh(U.tube.geo, M.plush(16777215, { map: starTex(THREE), normalMap: null, side: THREE.DoubleSide, sheen: 0.4 }));

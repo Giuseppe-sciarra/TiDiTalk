@@ -896,7 +896,7 @@ var Mats = class {
   }
 };
 var Band = class {
-  constructor({ R = 8.85, top = 12.3, y0 = 1.6, z0 = -2.6, zt = 0.9 } = {}) {
+  constructor({ R = 9.3, top = 14.9, y0 = 5, z0 = -3.2, zt = 0.9 } = {}) {
     Object.assign(this, { R, top, y0, z0, zt });
   }
   at(a, out) {
@@ -975,7 +975,7 @@ function buildEarband(THREE, h, spec) {
   if (spec.base) mount = spec.base(THREE, M, g2, U);
   else {
     const bandMat = spec.band.mat || M.plush(spec.band.color, spec.band.opt || {});
-    const bm = band.mesh(THREE, bandMat, { r: spec.band.r || 0.42, sx: spec.band.sx || 1.9, sy: spec.band.sy || 0.62, a0: spec.band.a0 || 1.3 });
+    const bm = band.mesh(THREE, bandMat, { r: spec.band.r || 0.42, sx: spec.band.sx || 1.9, sy: spec.band.sy || 0.62, a0: spec.band.a0 || 1.62 });
     g2.add(bm);
     U.bandMesh = bm;
   }

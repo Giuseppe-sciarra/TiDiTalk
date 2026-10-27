@@ -850,15 +850,15 @@ function build(THREE, h) {
   const velvet = new THREE.MeshPhysicalMaterial({ color: 5911840, roughness: 0.8, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(12159590), normalMap: feltNormal(THREE, 3, [6, 1], 3), transparent: true });
   const band = [];
   for (let i = 0; i <= 40; i++) {
-    const a = -Math.PI * 0.47 + i / 40 * Math.PI * 0.94;
-    band.push(new THREE.Vector3(Math.sin(a) * 8.6, 1.5 + Math.cos(a) * 11, -2.8 - Math.cos(a) * 0.8));
+    const a = -1.88 + i / 40 * 3.76;
+    band.push(new THREE.Vector3(Math.sin(a) * 9.2, 5.6 + Math.cos(a) * 9.2, -2.8 - Math.cos(a) * 0.8));
   }
   g2.add(new THREE.Mesh(taperTube(THREE, new THREE.CatmullRomCurve3(band), { segs: 80, radial: 10, r: () => 0.5, sx: 1.8, sy: 0.6 }), velvet));
   const ag = antler(THREE);
   const antMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, normalMap: feltNormal(THREE, 8, [3, 3], 2), transparent: true });
   for (const sx of [-1, 1]) {
     const m = new THREE.Mesh(ag, antMat);
-    m.position.set(sx * 4.6, 11, -2.9);
+    m.position.set(sx * 4.8, 13.5, -3.4);
     m.rotation.set(-0.12, sx * 0.25, sx * -0.42);
     m.scale.set(sx, 1, 1);
     g2.add(m);
@@ -868,7 +868,7 @@ function build(THREE, h) {
   U.ears = [];
   for (const sx of [-1, 1]) {
     const piv = new THREE.Group();
-    piv.position.set(sx * 7.8, 8.6, -2.6);
+    piv.position.set(sx * 8.4, 10.4, -2.6);
     piv.rotation.set(0.15, sx * 0.55, sx * -1.95);
     const m = new THREE.Group();
     m.add(new THREE.Mesh(earOut, velvet), new THREE.Mesh(earIn, pink));
@@ -878,11 +878,11 @@ function build(THREE, h) {
   }
   const gold = new THREE.MeshStandardMaterial({ color: 15909198, metalness: 1, roughness: 0.22, transparent: true });
   const bellGeo = smoothLathe(THREE, [[0, 1.05], [0.35, 1], [0.8, 0.7], [0.98, 0.1], [0.92, -0.45], [0.55, -0.88], [0, -0.98]], 24, 4);
-  const slot = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 0.5), new THREE.MeshStandardMaterial({ color: 2824709, roughness: 0.6 }));
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 0.5), new THREE.MeshStandardMaterial({ color: 2824709, roughness: 0.6, transparent: true }));
   const ribbon = new THREE.MeshStandardMaterial({ color: 13111342, roughness: 0.5, transparent: true });
   U.bells = [];
   for (const sx of [-1, 1]) {
-    const pivot = new THREE.Vector3(sx * 8.4, 6.6, -1.6);
+    const pivot = new THREE.Vector3(sx * 9, 7.6, -1.6);
     const holder = new THREE.Group();
     g2.add(holder);
     const str = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.2, 6), ribbon);

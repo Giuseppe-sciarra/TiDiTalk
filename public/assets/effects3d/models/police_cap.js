@@ -1,5 +1,10 @@
 // Berretto da poliziotto: calotta blu notte, fascia a scacchi bianco/nero, visiera nera lucida, sottogola e stemma argentati.
-import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js);
+// la fascia è ovale solo in basso (ovalize): la calotta larga resta tonda.
+import { finish, headOccluder, faceOccluder, afterFace, ovalize } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Berretto da poliziotto', labelEn: 'Police cap', category: 'costumi', icon: '👮' };
 
 export default function build(THREE, h) {
@@ -64,15 +69,15 @@ export default function build(THREE, h) {
   const st = new THREE.Mesh(new THREE.ExtrudeGeometry(star, { depth: 0.15, bevelEnabled: false }), h.mat(0xd9b24a, { roughness: .3, metalness: .9 }));
   st.position.set(0, 0.05, 0.38); badge.add(st);
   badge.position.set(0, 4.9, 9.05); badge.rotation.x = -0.32; badge.scale.setScalar(1.3); g.add(badge);
-
-  g.position.set(0, 7.9, -2.3);
-  g.rotation.x = -0.08;
+  ovalize(THREE, g, 0.754, 0.99, 8.9, 11.0);
+  g.scale.set(1.047, 0.995, 0.964);
+  g.position.set(0, 10.90, -3.85);
+  g.rotation.x = 0.066;
   // occlusore "testa + capelli" (solo profondità): nasconde il retro della fascia visto dal basso. In h.preview è marrone.
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
-    occ.scale.set(8.1, 5, 8.1); occ.position.set(0, -2.2, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
+    occ.scale.set(8.1 * 0.754, 5, 8.1 * 0.99); occ.position.set(0, -2.2, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }   // (ovale come la fascia)
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: -1.22, face: false });
 }

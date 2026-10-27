@@ -1,4 +1,5 @@
 // Corna da diavolo: due corna rosse lucide e ricurve, ancorate ai lati del cranio.
+// 1.8.9: il cerchietto segue la calotta del cranio vero del motore (appoggia sulla testa vera, calva o con i capelli).
 import { finish } from './_kit_acc.js';
 export const meta = { label: 'Corna da diavolo', labelEn: 'Devil horns', category: 'costumi', icon: '😈' };
 
@@ -25,7 +26,11 @@ export default function build(THREE, h) {
   const red = new THREE.MeshPhysicalMaterial({ color: 0xc41424, roughness: .3, metalness: 0, clearcoat: .6, clearcoatRoughness: .3 });
   // cerchietto rosso scuro sopra i capelli veri: dà una base credibile alle corna (come i cerchietti da costume)
   const band = [];
-  for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI; band.push(new THREE.Vector3(Math.cos(a) * 8.6, 1.0 + Math.sin(a) * 12.8, -3.0)); }
+  // 1.8.9: l'arco segue la calotta del cranio vero (HEAD.cranium del motore) 4,5 mm fuori: sopra un cerchio di raggio
+  // 7,98 attorno a (0, 5,6), ai lati scende dritto fino a y = 1 (prima a metà altezza entrava di ~4 mm nella testa vera)
+  band.push(new THREE.Vector3(7.9, 1.0, -3.0), new THREE.Vector3(7.98, 3.3, -3.0));
+  for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI; band.push(new THREE.Vector3(Math.cos(a) * 7.98, 5.6 + Math.sin(a) * 7.98, -3.0)); }
+  band.push(new THREE.Vector3(-7.98, 3.3, -3.0), new THREE.Vector3(-7.9, 1.0, -3.0));
   const tg = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band), 72, 0.33, 10);
   const tp = tg.attributes.position; for (let i = 0; i < tp.count; i++) tp.setZ(i, -3.0 + (tp.getZ(i) + 3.0) * 1.5); tg.computeVertexNormals();
   g.add(new THREE.Mesh(tg, h.mat(0x4a0c12, { roughness: .45 })));

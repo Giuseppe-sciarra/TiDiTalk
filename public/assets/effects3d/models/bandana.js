@@ -1,5 +1,11 @@
 // Bandana annodata in testa (stile pirata/rocker): tessuto rosso a motivo paisley, nodo dietro con due code.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js).
+// Con la calotta del cranio vero del motore: in cima la stoffa restava 2 cm sopra una testa calva; ora segue la calotta
+// 0,4–0,8 cm fuori.
 import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Bandana', labelEn: 'Bandana', category: 'accessori', icon: '🏴' };
 
 export default function build(THREE, h) {
@@ -23,7 +29,7 @@ export default function build(THREE, h) {
   const lathe = (pts, seg = 96) => new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg);
 
   // calotta di stoffa aderente sopra i capelli, con pieghe morbide (più marcate dietro, verso il nodo)
-  const cap = lathe([[8.75, 0.0], [8.95, 2.4], [8.65, 5.0], [7.7, 7.4], [5.8, 9.2], [3.0, 10.25], [0, 10.5]]);
+  const cap = lathe([[8.75, 0.0], [8.82, 1.0], [8.75, 2.0], [8.5, 3.2], [8.22, 4.0], [7.86, 4.8], [7.38, 5.6], [6.77, 6.4], [5.99, 7.2], [4.95, 8.0], [3.38, 8.8], [1.75, 9.2], [0, 9.3]]);
   const p = cap.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const vx = p.getX(i), vy = p.getY(i), vz = p.getZ(i), r = Math.hypot(vx, vz); if (r < 0.2) continue;
@@ -51,17 +57,16 @@ export default function build(THREE, h) {
   }
   knot.position.set(0, 0.6, -9.2);
   g.add(knot);
-
-  g.position.set(0, 6.6, -2.7);
-  g.rotation.x = -0.2;       // davanti il bordo sta sulla fronte alta, dietro scende sulla nuca
+  g.scale.set(0.919, 1.000, 1.110);
+  g.position.set(0, 5.07, -4.10);
+  g.rotation.x = -0.346;
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
     occ.scale.set(8.3, 5, 8.3); occ.position.set(0, -2.0, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   g.userData.knot = knot;
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: 0.0, face: false });
 }
 
 export function update(g, bs, t) {

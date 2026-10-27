@@ -152,6 +152,15 @@ function hatOccluder(THREE, scale = [8, 10.2, 9.3], center = [0, 2.3, -4.4]) {
   o.name = "hatOccluder";
   return o;
 }
+var FASCIA = { y: 7, z: -4.8, rx: 8.5, rz: 9.8, tilt: 0.2 };
+function hatPlug(THREE, rx, rz, y = 0, h = 2.5) {
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, h, 40, 1), new THREE.MeshBasicMaterial({ colorWrite: false }));
+  o.scale.set(rx, 1, rz);
+  o.position.y = y + h / 2;
+  o.renderOrder = -1;
+  o.name = "hatPlug";
+  return o;
+}
 
 // lib/expr.js
 var g = (b, k) => {
@@ -369,12 +378,12 @@ function feltNormal(THREE, seed = 3, repeat = [4, 4], strength = 3) {
 // fx/halloween_witch.js
 var meta = { label: "Strega con pipistrelli", labelEn: "Witch hat & bats", labelFr: "Sorci\xE8re et chauves-souris", labelDe: "Hexenhut mit Flederm\xE4usen", category: "costumi", icon: "\u{1F987}" };
 function brimGeo(THREE) {
-  const prof = [[7, 0.35], [10, 0.22], [13.5, 0.25], [15.6, 0.55], [16.1, 0.85], [16.3, 0.62], [16, 0.3], [13.5, -0.05], [10, -0.08], [7, -0.05]];
+  const prof = [[7.6, 0.35], [9.5, 0.22], [11.3, 0.25], [12.6, 0.55], [13, 0.85], [13.15, 0.62], [12.9, 0.3], [11.3, -0.05], [9.5, -0.08], [7.6, -0.05]];
   const g2 = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 96);
   const p = g2.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x), k = clamp((r - 8) / 8);
-    p.setY(i, p.getY(i) + Math.sin(a * 5 + 0.7) * 0.75 * k * k + (z > 0 ? 0.9 * k * k * (z / r) : 0.5 * k * k * (-z / r)));
+    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x), k = clamp((r - 7.6) / 5.5);
+    p.setY(i, p.getY(i) + Math.sin(a * 5 + 0.7) * 0.6 * k * k + (z > 0 ? 0.45 * k * k * (z / r) : 0.5 * k * k * (-z / r)));
   }
   g2.computeVertexNormals();
   return g2;
@@ -405,26 +414,29 @@ function build(THREE, h) {
   U.tick = new Ticker();
   U.expr = new Expr(["jaw"]);
   U.rnd = rng(91);
+  const RX = FASCIA.rx + 0.05, KZ = FASCIA.rz / FASCIA.rx;
   const hat = new THREE.Group();
-  hat.position.set(0, 11.6, -3.6);
-  hat.rotation.set(-0.22, 0, 0.04);
-  hat.scale.setScalar(0.94);
+  hat.position.set(0, FASCIA.y, FASCIA.z);
+  hat.rotation.set(-FASCIA.tilt, 0, 0.04);
+  hat.scale.set(1, 1, KZ);
   g2.add(hat);
   U.hat = hat;
   const felt = new THREE.MeshStandardMaterial({ color: 2364986, roughness: 0.9, normalMap: feltNormal(THREE, 4, [8, 8], 3), normalScale: new THREE.Vector2(1, 1), side: THREE.DoubleSide, transparent: true });
   hat.add(new THREE.Mesh(brimGeo(THREE), felt));
-  const spine = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 6.5, -0.4), new THREE.Vector3(0.4, 12.5, -1.4), new THREE.Vector3(2.2, 17.2, -1.4), new THREE.Vector3(5.2, 19.6, 0.4), new THREE.Vector3(6.6, 19.2, 1.6)]);
-  const cone = taperTube(THREE, spine, { segs: 80, radial: 32, r: (t) => (7.3 * Math.pow(1 - t, 1.05) + 0.12) * (1 + 0.035 * Math.sin(t * 34) * t), capEnd: false });
+  const spine = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 6.2, -0.35), new THREE.Vector3(0.35, 11.8, -1.2), new THREE.Vector3(2, 16.2, -1.2), new THREE.Vector3(4.8, 18.4, 0.3), new THREE.Vector3(6.1, 18, 1.3)]);
+  const coneR = (t) => (RX * Math.pow(1 - t, 1.05) + 0.12) * (1 + 0.035 * Math.sin(t * 34) * t);
+  const cone = taperTube(THREE, spine, { segs: 80, radial: 40, r: coneR, capStart: false, capEnd: false });
   const dk = new THREE.Color(1313310), lt = new THREE.Color(3941462), tmp = new THREE.Color();
   paintVerts(THREE, cone, (x, y, z, nx, ny, nz) => {
     tmp.copy(dk).lerp(lt, clamp(0.5 + 0.5 * nx * 0.6 + ny * 0.3));
     return [tmp.r, tmp.g, tmp.b];
   });
   hat.add(new THREE.Mesh(cone, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, normalMap: felt.normalMap, side: THREE.DoubleSide, transparent: true })));
+  const RB = coneR(1.3 / spine.getLength()) + 0.1;
   const ringC = [];
   for (let i = 0; i <= 48; i++) {
     const a = i / 48 * Math.PI * 2;
-    ringC.push(new THREE.Vector3(Math.cos(a) * 7, 1.3, Math.sin(a) * 7));
+    ringC.push(new THREE.Vector3(Math.cos(a) * RB, 1.3, Math.sin(a) * RB));
   }
   hat.add(new THREE.Mesh(taperTube(THREE, new THREE.CatmullRomCurve3(ringC, true), { segs: 96, radial: 6, r: () => 1, sx: 0.12, sy: 1.15 }), new THREE.MeshStandardMaterial({ color: 16742938, roughness: 0.45, transparent: true })));
   const bk = new THREE.Shape();
@@ -441,8 +453,13 @@ function build(THREE, h) {
   hole.closePath();
   bk.holes.push(hole);
   const buckle = new THREE.Mesh(new THREE.ExtrudeGeometry(bk, { depth: 0.25, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 2 }), new THREE.MeshStandardMaterial({ color: 15254618, metalness: 1, roughness: 0.25, transparent: true }));
-  buckle.position.set(0, 1.3, 7.05);
+  buckle.position.set(0, 1.3, RB + 0.05);
+  buckle.scale.z = 1 / KZ;
   hat.add(buckle);
+  const lining = new THREE.Mesh(new THREE.CylinderGeometry(RX * 0.55, RX - 0.2, 7, 40, 1, true), new THREE.MeshStandardMaterial({ color: 788498, roughness: 1, side: THREE.BackSide, transparent: true }));
+  lining.position.y = 3.6;
+  hat.add(lining);
+  hat.add(hatPlug(THREE, RX - 0.35, RX - 0.35, -0.8, 3.2));
   const wingGeo = batGeo(THREE);
   const membrane = new THREE.MeshStandardMaterial({ color: 1511708, roughness: 0.5, side: THREE.DoubleSide, transparent: true });
   const furM = new THREE.MeshStandardMaterial({ color: 1182997, roughness: 0.8, transparent: true });
@@ -503,7 +520,7 @@ function build(THREE, h) {
   U.spider = spider;
   U.thread = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 4), new THREE.MeshBasicMaterial({ color: 14540253, transparent: true, opacity: 0.7 }));
   g2.add(U.thread);
-  U.anchor = new THREE.Vector3(11.5, 10, 7.5);
+  U.anchor = new THREE.Vector3(12, 8.6, 0.8);
   U.dangle = new Dangle(THREE, 6, { damping: 0.94, stiff: 15, grav: 980 });
   U.drop = new Spring(6, 25, 4);
   U.excite = 0;

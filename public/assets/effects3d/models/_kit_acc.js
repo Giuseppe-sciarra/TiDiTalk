@@ -372,3 +372,26 @@ export function plugOccluder(THREE, h, r, y0 = -3, y1 = 1, opt = {}) {
   if (opt.scaleZ) o.scale.z = opt.scaleZ;
   return o;
 }
+
+// 1.8.9: cappello calzato sulla testa vera (fascia ovale come una testa). Scala x/z solo vicino alla fascia (r < r0),
+// sfumando fino a r1: tese, calotte e visiere larghe restano tonde e ampie. Coordinate del gruppo g del cappello.
+export function ovalize(THREE, g, kx, kz, r0, r1) {
+  g.updateMatrixWorld(true);
+  const gi = g.matrixWorld.clone().invert(), v = new THREE.Vector3();
+  g.traverse(o => {
+    if (!o.isMesh || !o.geometry?.attributes.position) return;
+    o.geometry = o.geometry.clone();                       // (geometrie condivise fra più mesh: ognuna la sua)
+    const M = new THREE.Matrix4().multiplyMatrices(gi, o.matrixWorld), Mi = M.clone().invert(), pos = o.geometry.attributes.position;
+    const nrm = o.geometry.attributes.normal, N = new THREE.Matrix3().getNormalMatrix(M), Ni = new THREE.Matrix3().getNormalMatrix(Mi), n = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(M);
+      const f = smooth(r0, r1, Math.hypot(v.x, v.z)), sx = kx + (1 - kx) * f, sz = kz + (1 - kz) * f;
+      v.x *= sx; v.z *= sz;
+      v.applyMatrix4(Mi); pos.setXYZ(i, v.x, v.y, v.z);
+      // normali: stessa deformazione (inversa trasposta della scala locale), restano lisce anche sulle geometrie non indicizzate
+      if (nrm) { n.fromBufferAttribute(nrm, i).applyMatrix3(N); n.x /= sx; n.z /= sz; n.applyMatrix3(Ni).normalize(); nrm.setXYZ(i, n.x, n.y, n.z); }
+    }
+    pos.needsUpdate = true; if (nrm) nrm.needsUpdate = true; o.geometry.computeBoundingSphere();
+  });
+  return g;
+}

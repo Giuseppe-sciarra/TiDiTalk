@@ -1,6 +1,8 @@
 // Cuffie over-ear: archetto in metallo spazzolato con imbottitura in similpelle cucita, slitte di regolazione,
 // forcelle arrotondate che reggono i padiglioni su un perno, padiglioni ovali in plastica opaca con anello lucido,
 // cuscinetti morbidi in similpelle che appoggiano sulle orecchie.
+// 1.8.9: archetto e imbottitura seguono la calotta del cranio vero del motore (archi attorno a (0, 5,6)): prima
+// l'imbottitura entrava nella testa vera; padiglioni 1 cm più indietro, sulle orecchie.
 import { metal, plastic, leather, tube, softExtrude, faceOccluder, afterFace, smooth, GUNMETAL } from './_kit_acc.js';
 export const meta = { label: 'Cuffie', labelEn: 'Headphones', category: 'accessori', icon: '🎧' };
 
@@ -13,15 +15,15 @@ export default function build(THREE, h) {
   const pad = leather(THREE, 0x1a1b1e, [3, 2], { sheen: 0.12 });
   const accent = metal(THREE, 0xc9553f, 0.35);
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const ZC = -2.9;                         // piano dei padiglioni (davanti all'orecchio di MediaPipe: x ±7,7 a z -2,4)
+  const ZC = -3.9;                         // piano dei padiglioni (1.8.9: sull'orecchio vero, ~1,5 cm dietro al punto di MediaPipe a z -2,4)
 
   // archetto: arco ellittico sopra la testa (segue il cranio a 1,3 cm), sezione piatta e larga
   const arc = (rx, ry, y0, a0 = 0, a1 = Math.PI) => { const P = []; for (let i = 0; i <= 48; i++) { const a = a0 + (a1 - a0) * i / 48; P.push(V(Math.cos(a) * rx, y0 + Math.sin(a) * ry, ZC)); } return P; };
   const up = (t, P) => V(0, 0, 1);         // la sezione resta larga in z (come una fascia)
-  g.add(new THREE.Mesh(tube(THREE, arc(9.25, 11.5, 2.0, 0.1, Math.PI - 0.1), 0.5, { aspect: 0.36, up, segs: 80, rad: 10 }), gloss));
-  g.add(new THREE.Mesh(tube(THREE, arc(9.0, 11.22, 2.0, 0.05, Math.PI - 0.05), 0.36, { aspect: 0.22, up, segs: 80, rad: 8 }), steel));
+  g.add(new THREE.Mesh(tube(THREE, arc(9.3, 9.3, 5.6, -0.1, Math.PI + 0.1), 0.5, { aspect: 0.36, up, segs: 80, rad: 10 }), gloss));
+  g.add(new THREE.Mesh(tube(THREE, arc(9.05, 9.05, 5.6, -0.15, Math.PI + 0.15), 0.36, { aspect: 0.22, up, segs: 80, rad: 8 }), steel));
   // imbottitura superiore: cuscino cucito sotto l'arco (sezione ovale, si assottiglia alle estremità)
-  const padArc = arc(8.45, 10.75, 2.0, 0.62, Math.PI - 0.62);
+  const padArc = arc(8.53, 8.53, 5.6, 0.45, Math.PI - 0.45);
   g.add(new THREE.Mesh(tube(THREE, padArc, (u) => 0.75 * Math.pow(Math.sin(Math.PI * u), 0.35), { aspect: 1.35, up: () => V(0, 0, 1), segs: 60, rad: 12 }), pad));
   // cucitura lungo l'imbottitura
   for (const dz of [-0.75, 0.75]) g.add(new THREE.Mesh(tube(THREE, padArc.map(p => V(p.x * 0.985, p.y * 0.985 - 0.05, p.z + dz)), 0.04, { segs: 50, rad: 3 }), dark));

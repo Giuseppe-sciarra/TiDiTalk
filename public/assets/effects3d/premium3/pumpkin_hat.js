@@ -698,9 +698,9 @@ var __s0 = { "x": void 0, "y": void 0, "z": void 0, "life": void 0, "size": void
 var __s1 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "cell": void 0, "rot": void 0, "spin": void 0, "wob": void 0, "fadeIn": void 0, "fadeOut": void 0 };
 var __s2 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "cell": void 0, "drag": void 0, "grav": void 0, "wob": void 0, "fadeIn": void 0, "fadeOut": void 0, "flicker": void 0 };
 var meta = { label: "Zucca col lumino", labelEn: "Jack-o'-lantern hat", labelFr: "Citrouille-lanterne", labelDe: "K\xFCrbislaterne als Hut", category: "costumi", icon: "\u{1F383}" };
-var RX = 7.4;
-var RY = 5.6;
-var CY = 15.2;
+var RX = 8.3;
+var RY = 6.1;
+var CY = 14.4;
 function faceCanvas(glow) {
   const W = 1024, H = 512, c = canvas(W, H), x = c.getContext("2d");
   x.fillStyle = glow ? "#000" : "#fff";
@@ -761,7 +761,7 @@ function build(THREE, h) {
   U.rnd = rng(271);
   U.trig = new Trigger({ on: 0.55, off: 0.3, hold: 0.08, cooldown: 0.8 });
   const hat = new THREE.Group();
-  hat.position.set(0, CY, -1.6);
+  hat.position.set(0, CY, -2.4);
   hat.rotation.set(-0.12, 0, 0.06);
   g2.add(hat);
   U.hat = hat;
@@ -863,21 +863,21 @@ function update(g2, bs, t, h) {
   U.hat.position.y = CY + b * 0.08;
   U.hat.rotation.z = 0.06 + b * 6e-3 + Math.sin(t * 0.8) * 0.015;
   U.glow.clear();
-  const p = U.v.set(0, CY - 0.5, -1.6 + RX + 0.6);
+  const p = U.v.set(0, CY - 0.5, -2.4 + RX + 0.6);
   U.frame.toWorld(p, p);
   U.glow.spawn((__s0["x"] = p.x, __s0["y"] = p.y, __s0["z"] = p.z, __s0["life"] = 1, __s0["size"] = 11 + U.fl * 3 + R * 10, __s0["r"] = 1, __s0["g"] = 0.55, __s0["b"] = 0.12, __s0["a"] = 0.22 + U.fl * 0.12 + R * 0.4, __s0["cell"] = U.atlas.cell.glow, __s0["fadeIn"] = 0, __s0["fadeOut"] = 0, __s0));
   U.glow.write();
   U.accS += dt * (0.9 + R * 5);
   while (U.accS >= 1) {
     U.accS -= 1;
-    const q = R > 0.2 ? U.v.set((r() - 0.5) * 5, CY - 2, -1.6 + RX) : U.v.set(-0.6 + (r() - 0.5), CY + RY + 0.5, -1.6);
+    const q = R > 0.2 ? U.v.set((r() - 0.5) * 5, CY - 2, -2.4 + RX) : U.v.set(-0.6 + (r() - 0.5), CY + RY + 0.5, -2.4);
     U.frame.toWorld(q, q);
     U.smoke.spawn((__s1["x"] = q.x, __s1["y"] = q.y, __s1["z"] = q.z, __s1["vx"] = (r() - 0.5) * 3, __s1["vy"] = 5 + r() * 4, __s1["vz"] = R > 0.2 ? 6 : 0, __s1["life"] = 1.8, __s1["size"] = 1.4, __s1["size1"] = 5.5, __s1["r"] = 0.35, __s1["g"] = 0.32, __s1["b"] = 0.3, __s1["a"] = 0.28, __s1["cell"] = U.atlas.cell.smoke, __s1["rot"] = r() * 6, __s1["spin"] = 0.5, __s1["wob"] = 1.5, __s1["fadeIn"] = 0.15, __s1["fadeOut"] = 0.6, __s1));
   }
   U.acc += dt * (1.2 + R * 50);
   while (U.acc >= 1) {
     U.acc -= 1;
-    const q = U.v.set((r() - 0.5) * 6, CY - 1.5 + (r() - 0.5) * 2, -1.6 + RX + 0.3);
+    const q = U.v.set((r() - 0.5) * 6, CY - 1.5 + (r() - 0.5) * 2, -2.4 + RX + 0.3);
     U.frame.toWorld(q, q);
     const d = U.d.set((r() - 0.5) * 1.2, 0.3 + r() * 0.8, 1).normalize();
     U.frame.dirToWorld(d, d);

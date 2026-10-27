@@ -1,7 +1,10 @@
 // Tiditalk AR, effetto "grigi" — la geometria comune di capelli e barbe sta in _kit_hair.js
-import { HC, fin, hairMat, headPt, mergeGeo, mixc, rgb, rng, shortCap, smooth, tintSpec, tuftGeo, vnoise } from './_kit_hair.js';
+// 1.8.9: calzata fuori dalla calotta del cranio vero del motore (useCranium): prima la cuffia corta, fatta sul profilo
+// piccolo della testa, in cima e sopra la fronte stava dentro la testa vera (il 14 % della superficie si sarebbe perso).
+import { HC, fin, hairMat, headPt, mergeGeo, mixc, rgb, rng, shortCap, smooth, tintSpec, tuftGeo, vnoise, useCranium } from './_kit_hair.js';
 export const meta = { label: 'Capelli grigi con basette', labelEn: 'Grey hair with sideburns', category: 'capelli', icon: '👴' };
-export default function build(THREE, h) {
+export default function build(THREE, h) { useCranium(0.25); try { return make(THREE, h); } finally { useCranium(0); } }
+function make(THREE, h) {
   const g = new THREE.Group();
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   // grigio "sale e pepe": radici più scure, punte chiare (mai bianco puro), tempie stempiate, basette fino a metà orecchio

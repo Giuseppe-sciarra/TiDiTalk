@@ -1,27 +1,33 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   update-report.js — riga di comando usata da auto-update.sh
+   update-report.js — riga di comando usata da aggiorna-tutto.sh
    ───────────────────────────────────────────────────────────────────────────
    Due modi d'uso, entrambi da dentro il container:
 
      node server/update-report.js --versions
         → stampa su stdout il JSON { pacchetto: "versione", ... } delle
-          dipendenze installate. auto-update.sh lo usa per fare la foto
-          "prima" e "dopo".
+          dipendenze installate (e di Node). aggiorna-tutto.sh lo usa per
+          fare la foto "prima" e "dopo".
 
      echo '<json>' | node server/update-report.js
         → manda l'email di riepilogo dell'aggiornamento notturno.
           JSON atteso:
           {
-            "status": "ok" | "rollback" | "error",
+            "status": "ok" | "rollback" | "error" | "nessuno",
             "before": { "mediasoup": "3.26.0", ... },
             "after":  { "mediasoup": "3.27.1", ... },
             "error":  "testo errore (solo se status != ok)",
+            "rebuilt": true,           // l'app è stata ricostruita (comandi per tornare indietro)
+            "always": true,            // manda anche senza pacchetti cambiati
             "duration": 123            // secondi, opzionale
           }
+        1.8.9, dall'ambiente (docker compose exec -e):
+          UPD_RIEPILOGO   le righe di «cosa è successo» (app, immagine base, coturn…)
+          UPD_RIPRISTINO  il comando esatto per tornare alla versione di prima
+          UPD_A           destinatario (AGG_MAIL_A del .env, se c'è)
 
-   Il destinatario è UPDATE_NOTIFY_EMAIL (o HOST_NOTIFY_EMAIL). SMTP e brand
-   sono quelli dell'applicazione: stesso mittente delle email di invito.
+   Il destinatario è UPD_A, poi UPDATE_NOTIFY_EMAIL, poi HOST_NOTIFY_EMAIL. SMTP
+   e brand sono quelli dell'applicazione: stesso mittente delle email di invito.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const PACKAGES = [
@@ -53,7 +59,8 @@ function versionOf(pkg) {
 }
 
 function installedVersions() {
-  const out = {};
+  // 1.8.9: anche Node (le correzioni di sicurezza arrivano con l'immagine di base)
+  const out = { node: process.versions.node };
   for (const pkg of PACKAGES) {
     const v = versionOf(pkg);
     if (v) out[pkg] = v;
@@ -111,12 +118,15 @@ async function main() {
   }
 
   const status = payload.status || 'ok';
+  const righe = String(process.env.UPD_RIEPILOGO || '').replace(/\s+$/, '');
+  const ripristino = String(process.env.UPD_RIPRISTINO || '').trim();
+  const ricostruita = payload.rebuilt !== false;   // senza il campo (versioni prima della 1.8.9): sì
   const rows = diffRows(payload.before, payload.after);
   const counts = rows.reduce((acc, r) => { acc[r.kind] = (acc[r.kind] || 0) + 1; return acc; }, {});
   const durata = payload.duration ? `${Math.round(payload.duration / 60)} min` : null;
 
   // Niente da dire: nessun aggiornamento e nessun problema → nessuna email.
-  if (status === 'ok' && !rows.length && !payload.always) {
+  if ((status === 'ok' || status === 'nessuno') && !rows.length && !payload.always && !righe) {
     console.log('[update-report] nessun aggiornamento: email non inviata');
     return;
   }
@@ -134,7 +144,7 @@ async function main() {
     process.exit(3);
   }
 
-  const to = (process.env.UPDATE_NOTIFY_EMAIL || process.env.HOST_NOTIFY_EMAIL || '').trim();
+  const to = (process.env.UPD_A || process.env.UPDATE_NOTIFY_EMAIL || process.env.HOST_NOTIFY_EMAIL || '').trim();
   if (!to) { console.log('[update-report] nessun destinatario: email non inviata'); return; }
 
   const badge = (kind) => `<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:${COLORS[kind]}">${kind}</span>`;
@@ -152,15 +162,17 @@ async function main() {
     counts.minor ? `${counts.minor} minor` : null,
     counts.patch ? `${counts.patch} patch` : null,
     counts.nuovo ? `${counts.nuovo} nuovi` : null,
-  ].filter(Boolean).join(' · ') || 'nessuna modifica';
+  ].filter(Boolean).join(' · ') || (status === 'ok' && righe ? 'pacchetti npm invariati' : 'nessuna modifica');
 
   const titolo = status === 'ok'
-    ? 'Aggiornamento automatico completato'
-    : status === 'rollback'
-      ? 'Aggiornamento annullato: ripristinata la versione precedente'
-      : 'Aggiornamento automatico fallito';
+    ? 'Aggiornamento notturno riuscito'
+    : status === 'nessuno'
+      ? 'Era già tutto aggiornato'
+      : status === 'rollback'
+        ? 'Aggiornamento notturno annullato, torna la versione di prima'
+        : 'Aggiornamento notturno con errori';
 
-  const colore = status === 'ok' ? '#3a7a5c' : status === 'rollback' ? '#b8892b' : '#c0453c';
+  const colore = status === 'ok' ? '#3a7a5c' : status === 'nessuno' ? '#565c67' : status === 'rollback' ? '#b8892b' : '#c0453c';
 
   // ── Istruzioni per tornare indietro (sempre incluse: servono quando serve) ──
   const rb = payload.rollbackInfo || {};
@@ -171,18 +183,20 @@ async function main() {
   const pkgBak = rb.pkg || 'backups/package.json.<data>.bak';
   const lockBak = rb.lock || 'backups/package-lock.json.<data>.bak';
 
-  const cmdTornaIndietro = [
-    `cd ${dir}`,
-    `cp ${pkgBak} server/package.json`,
-    `cp ${lockBak} server/package-lock.json   # se esiste`,
-    `docker tag ${img} ${imgName}`,
-    `docker compose up -d --no-build ${service}`,
-  ].join('\n');
+  const cmdTornaIndietro = ripristino
+    ? ripristino.split(' && ').join(' && \\\n  ')
+    : [
+      `cd ${dir}`,
+      `cp ${pkgBak} server/package.json`,
+      `cp ${lockBak} server/package-lock.json   # se esiste`,
+      `docker tag ${img} ${imgName}`,
+      `docker compose up -d --no-build ${service}`,
+    ].join('\n');
 
   const cmdRiprova = [
     `cd ${dir}`,
-    `bash auto-update.sh          # rifà tutto adesso`,
-    `bash auto-update.sh --dry-run  # solo per vedere cosa cambierebbe`,
+    `bash aggiorna-tutto.sh            # rifà tutto adesso`,
+    `bash aggiorna-tutto.sh --dry-run  # solo per vedere cosa cambierebbe`,
   ].join('\n');
 
   const cmdLog = `docker compose logs ${service} --tail 80`;
@@ -195,12 +209,12 @@ async function main() {
       <div style="font-weight:700;font-size:14px;margin-bottom:2px">Se qualcosa non funziona</div>
       <div style="font-size:13px;color:#565c67">Prima guarda i log:</div>
       ${pre(cmdLog)}
-      <div style="font-size:13px;color:#565c67;margin-top:14px">Per tornare alla versione di ieri — immagine e dipendenze com'erano prima di stamattina:</div>
+      ${ricostruita ? `<div style="font-size:13px;color:#565c67;margin-top:14px">Per tornare alla versione di ieri — immagine e dipendenze com'erano prima di stanotte:</div>
       ${pre(cmdTornaIndietro)}
       <div style="font-size:12.5px;color:#858b96;margin-top:10px">
         Il ripristino non tocca il database né le impostazioni: torna indietro solo il codice delle dipendenze.
         L'immagine precedente resta salvata come <b>${esc(img)}</b> e i backup in <b>${esc(dir)}/backups/</b> (ultimi 10).
-      </div>
+      </div>` : ''}
       <div style="font-size:13px;color:#565c67;margin-top:14px">Quando vuoi riprovare l'aggiornamento:</div>
       ${pre(cmdRiprova)}
     </div>
@@ -216,7 +230,10 @@ async function main() {
     <h1 style="margin:8px 0 4px;font-size:24px;font-weight:600;line-height:1.2;color:${colore}">${esc(titolo)}</h1>
     <p style="margin:0;color:#565c67;font-size:14px">${esc(riepilogo)}${durata ? ` · durata ${esc(durata)}` : ''}</p>
   </td></tr>
-  ${payload.error ? `<tr><td style="padding:12px 28px"><div style="background:#fdecea;border:1px solid #f3c2bd;border-radius:10px;padding:12px 14px;font-size:13px;white-space:pre-wrap">${esc(payload.error)}</div></td></tr>` : ''}
+  ${righe ? `<tr><td style="padding:12px 28px 4px">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#858b96;margin-bottom:6px">Cosa è successo</div>
+    <div style="background:${status === 'ok' || status === 'nessuno' ? '#f1f3f5' : '#fdecea'};border:1px solid ${status === 'ok' || status === 'nessuno' ? '#e3e5ea' : '#f3c2bd'};border-radius:10px;padding:12px 14px;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;color:#16181d">${esc(righe)}</div>
+  </td></tr>` : payload.error ? `<tr><td style="padding:12px 28px"><div style="background:#fdecea;border:1px solid #f3c2bd;border-radius:10px;padding:12px 14px;font-size:13px;white-space:pre-wrap">${esc(payload.error)}</div></td></tr>` : ''}
   ${rows.length ? `<tr><td style="padding:14px 28px 24px">
     <table role="presentation" width="100%" style="border-collapse:collapse;font-size:14px">
       <tr>
@@ -231,23 +248,31 @@ async function main() {
   ${boxTornaIndietro}
   <tr><td style="padding:14px 28px;border-top:1px solid #e3e5ea;font-size:12px;color:#565c67">
     ${status === 'ok'
-      ? 'Il servizio è stato ricostruito, risponde ed è di nuovo in linea. Backup e immagine precedente restano disponibili per 10 aggiornamenti.'
-      : status === 'rollback'
-        ? 'Il servizio non rispondeva dopo l\'aggiornamento: sono stati ripristinati package.json e immagine precedenti. Nessun intervento urgente, ma vale la pena guardare i log.'
-        : 'L\'aggiornamento si è interrotto. Controlla il log su host e lo stato dei container.'}
+      ? (ricostruita
+        ? 'Il servizio è stato ricostruito, risponde ed è di nuovo in linea. Backup e immagine precedente restano disponibili per 10 aggiornamenti.'
+        : 'Tutto quello che è cambiato è stato provato e risponde.')
+      : status === 'nessuno'
+        ? 'Nessuna versione nuova stanotte: non è stato toccato niente.'
+        : status === 'rollback'
+          ? 'Qualcosa non rispondeva dopo l\'aggiornamento: è tornata la versione di prima. Nessun intervento urgente, ma vale la pena guardare i log.'
+          : 'L\'aggiornamento si è interrotto. Controlla il log su host e lo stato dei container.'}
   </td></tr>
 </table></td></tr></table></body></html>`;
 
   const text = `${appName} — ${titolo}\n${riepilogo}${durata ? ` (durata ${durata})` : ''}\n\n`
     + rows.map(r => `- ${r.pkg}: ${r.from || '—'} → ${r.to || '—'} [${r.kind}]`).join('\n')
-    + (payload.error ? `\n\nErrore:\n${payload.error}` : '')
-    + `\n\nSE QUALCOSA NON FUNZIONA\nLog:\n${cmdLog}\n\nTornare alla versione precedente:\n${cmdTornaIndietro}\n\nRiprovare l'aggiornamento:\n${cmdRiprova}\n`;
+    + (righe ? `\n\nCOSA È SUCCESSO\n${righe}` : payload.error ? `\n\nErrore:\n${payload.error}` : '')
+    + `\n\nSE QUALCOSA NON FUNZIONA\nLog:\n${cmdLog}\n`
+    + (ricostruita ? `\nTornare alla versione precedente:\n${cmdTornaIndietro}\n` : '')
+    + `\nRiprovare l'aggiornamento:\n${cmdRiprova}\n`;
 
   const subject = status === 'ok'
-    ? `${appName}: aggiornato (${riepilogo})`
-    : status === 'rollback'
-      ? `${appName}: aggiornamento annullato, rollback eseguito`
-      : `${appName}: aggiornamento FALLITO`;
+    ? `✅ ${appName}: aggiornamento notturno riuscito${rows.length ? ` (${riepilogo})` : ''}`
+    : status === 'nessuno'
+      ? `${appName}: era già tutto aggiornato`
+      : status === 'rollback'
+        ? `⚠ ${appName}: aggiornamento notturno annullato, torna la versione di prima`
+        : `❌ ${appName}: aggiornamento notturno con errori`;
 
   await mailer.sendRaw({ to, subject, html, text });
   console.log(`[update-report] email inviata a ${to} (${rows.length} pacchetti)`);

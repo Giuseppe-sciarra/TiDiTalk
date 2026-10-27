@@ -1421,16 +1421,22 @@ function PETS(THREE, H, K, C, P) {
   return Q;
 }
 export const meta = { label: 'Musetto da cerbiatto', labelEn: 'Fawn face', labelFr: 'Frimousse de faon', labelDe: 'Rehkitzgesicht', category: 'divertenti', icon: '🦌' };
+// 1.8.9: la radice delle orecchie affonda apposta nei capelli: la nasconde la calotta del cranio vero, che qui si accende
+// sempre (il motore la spegnerebbe: ~5% della radice sta dentro la calotta)
+export const cranium = true;
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), C = CREATURE(THREE, h, K), L = LENS(THREE, h, K, C);
+  // 1.8.9: orecchie sul cranio vero del motore (HEAD.cranium: centro (0, 5,6, −4,8), raggi 7,7 × 7,7 × 8,7), non
+  // sull'ellissoide di prima (cima 10,4): sulle teste vere stavano 3 cm dentro la testa e il motore spegneva la calotta
+  L.capPoint = (dir, hair = 1.6) => { const SK = [0, 5.6, -4.8], SR = [7.7, 7.7, 8.7]; const l = Math.hypot(dir[0] / SR[0], dir[1] / SR[1], dir[2] / SR[2]); const d = [dir[0] / l, dir[1] / l, dir[2] / l], dl = Math.hypot(...d); return [SK[0] + d[0] + d[0] / dl * hair, SK[1] + d[1] + d[1] / dl * hair, SK[2] + d[2] + d[2] / dl * hair]; };
   const g = new THREE.Group();
   const spots = L.scatter(21, 34, [{ c: [4.0, -0.3], r: [1.7, 1.25] }, { c: [-4.0, -0.3], r: [1.7, 1.25] }, { c: [0, 2.1], r: [0.75, 1.5] }, { c: [3.2, 1.05], r: [1.1, 0.4] }, { c: [-3.2, 1.05], r: [1.1, 0.4] }], { col: [0.98, 0.95, 0.9], r0: 0.17, r1: 0.36, a0: 0.75, a1: 0.95, minD: 0.62 });
   const brownF = L.scatter(37, 14, [{ c: [3.6, -0.6], r: [1.4, 0.9] }, { c: [-3.6, -0.6], r: [1.4, 0.9] }, { c: [0, 1.4], r: [0.6, 1.0] }], { col: [0.42, 0.26, 0.16], r0: 0.07, r1: 0.14, a0: 0.5, a1: 0.75, minD: 0.4 });
   const ctx = await L.build(g, {
     seed: 7, earBack: 0.25, earPerk: 0.25, twitch: 0.3,
     // fawn ears: big ovals sticking out sideways — brown outside, pale skin inside with white fur only along the rim
-    ears: { kind: 'pointy', L: 8.6, W: 3.5, T: 0.6, D: 1.5, back: 0.25, rho: 0.38, dir: [0.75, 0.86, -0.15], hair: 1.0, rot: [-0.2, 0.5, -1.12],
+    ears: { kind: 'pointy', L: 8.6, W: 3.5, T: 0.6, D: 1.5, back: 0.25, rho: 0.38, dir: [0.75, 0.86, -0.15], hair: 2.0, rot: [-0.2, 0.5, -1.12],
       out: [0.56, 0.36, 0.2], inn: [0.78, 0.58, 0.5], tuft: [0.9, 0.86, 0.8], rim: [0.3, 0.19, 0.11], furIn: 0.8, tip: [0.34, 0.22, 0.13], tipFrom: 0.8, tipK: 0.7,
       fur: { shells: 9, len: 0.7, rep: [4, 6], root: 0.58, tip: 1.06 } },
     nose: { kind: 'dog', w: 1.35, h: 0.9, d: 0.85, col: [0.09, 0.07, 0.07], cc: 0.8, rough: 0.3, off: [0, 0.12, 0.22], rx: 0.15 },

@@ -1,5 +1,9 @@
 // Cappello da giullare: calotta con fascia a rombi, tre punte morbide ricadenti (rosso, viola, giallo) con sonagli dorati che dondolano.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js).
 import { finish, headOccluder, faceOccluder, afterFace } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappello da giullare', labelEn: 'Jester hat', category: 'costumi', icon: '🃏' };
 
 function tubeVar(THREE, pts, rFn, segs = 48, radial = 24) {
@@ -56,16 +60,16 @@ export default function build(THREE, h) {
     const end = curve.getPointAt(1), b = bell(0.85); b.position.copy(end).add(new THREE.Vector3(0, -0.75, 0));
     const holder = new THREE.Group(); holder.position.copy(end); b.position.set(0, -0.8, 0); holder.add(b); g.add(holder); bells.push(holder);
   }
-  g.position.set(0, 8.6, -2.5);
-  g.rotation.x = -0.12;
+  g.scale.set(0.920, 1.000, 1.051);
+  g.position.set(0, 7.85, -4.50);
+  g.rotation.x = -0.100;
   { const occ = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), h.preview ? h.mat(0x4a3526, { roughness: 1 }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
     occ.scale.set(8.2, 5, 8.2); occ.position.set(0, -2.0, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   g.userData.bells = bells;
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: -0.5, face: false });
 }
 
 export function update(g, bs, t) {

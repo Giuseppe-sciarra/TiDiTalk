@@ -1,5 +1,10 @@
 // Cappello di Babbo Natale: cono rosso morbido che ricade di lato, bordo di pelliccia bianca e pompon.
+// 1.8.9: calzato sulla testa vera: fascia ovale come una testa, più indietro e più in basso (prima davanti e ai lati
+// restava 1–2 cm sopra la testa e dietro ci entrava); riempitivo invisibile con la forma della testa vera, tappo
+// sull'apertura e fodera scura (hatFit in glb/_glbhead.js);
+// tolto il fondo chiuso/disco sotto la cupola: da sotto si vedeva come un coperchio.
 import { afterFace, faceOccluder, felt, fiberBump, finish, headOccluder } from './_kit_acc.js';
+import { hatFit } from '../glb/_glbhead.js';
 export const meta = { label: 'Cappello di Babbo Natale', labelEn: 'Santa hat', category: 'costumi', icon: '🎅' };
 
 function tubeVar(THREE, pts, rFn, segs = 48, radial = 32) {
@@ -41,8 +46,6 @@ export default function build(THREE, h) {
   // cono che sale e poi ricade sul lato destro (+X) con la punta in giù
   const spine = [[0, 0, 0], [0, 6, 0], [0.8, 11, -0.6], [3.5, 15, -1.6], [8.0, 15.8, -2.4], [12.0, 13.0, -2.4], [13.6, 9.0, -1.8]];
   g.add(new THREE.Mesh(tubeVar(THREE, spine, t => 8.7 * Math.pow(1 - t, 1.25) + 0.25, 64, 40), velvet));
-  // tappo inferiore
-  g.add(new THREE.Mesh(new THREE.CircleGeometry(8.7, 48), velvet).rotateX(Math.PI / 2));
 
   // bordo di pelliccia: toro spesso con superficie "pelosa"
   const trimGeo = fluffy(THREE, new THREE.TorusGeometry(8.9, 2.0, 24, 96), 0.22, 2.2);
@@ -52,9 +55,9 @@ export default function build(THREE, h) {
   // pompon in punta
   const pomGeo = fluffy(THREE, new THREE.SphereGeometry(2.3, 32, 24), 0.3, 2.6);
   const pom = new THREE.Mesh(pomGeo, fur); pom.position.set(13.8, 7.6, -1.7); g.add(pom);
-
-  g.position.set(0, 8.0, -2.4);
-  g.rotation.x = -0.14;
+  g.scale.set(0.944, 1.000, 1.100);
+  g.position.set(0, 10.55, -4.90);
+  g.rotation.x = -0.029;
   g.userData.pom = pom;
   // occlusore "testa + capelli" dentro il cappello (solo profondità, invisibile): nell'app l'occlusore del cranio è
   // piccolo all'altezza della tesa e i capelli veri non nascondono nulla, quindi vista dal basso si vedrebbe il retro
@@ -63,9 +66,8 @@ export default function build(THREE, h) {
     occ.scale.set(7.8, 6, 7.8); occ.position.set(0, -2.5, 0); occ.renderOrder = -1; occ.name = 'headOccluder'; g.add(occ); }
   // occlusori nello spazio del viso (1.8.0): testa grande/calva inclinata in giù e viso davanti alle parti posteriori
   const root = new THREE.Group(); root.add(g); root.userData = g.userData;   // update() legge userData dal gruppo restituito
-  root.add(headOccluder(THREE, h, { scale: [8.1, 10.0, 9.3], center: [0, 2.6, -4.3] }));
   root.add(faceOccluder(THREE, h, 0.2));
-  return afterFace(finish(THREE, root));
+  return hatFit(THREE, h, afterFace(finish(THREE, root)), g, { rimY: 0.0, face: false });
 }
 
 export function update(g, bs, t) {

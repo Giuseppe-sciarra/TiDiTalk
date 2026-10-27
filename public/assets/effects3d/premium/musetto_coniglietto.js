@@ -1421,15 +1421,21 @@ function PETS(THREE, H, K, C, P) {
   return Q;
 }
 export const meta = { label: 'Musetto da coniglietto', labelEn: 'Bunny face', labelFr: 'Frimousse de lapin', labelDe: 'Häschengesicht', category: 'divertenti', icon: '🐰' };
+// 1.8.9: la radice delle orecchie affonda apposta nei capelli: la nasconde la calotta del cranio vero, che qui si accende
+// sempre (il motore la spegnerebbe: ~5% della radice sta dentro la calotta)
+export const cranium = true;
 export const hideHead = false;
 export default async function build(THREE, h) {
   const K = KIT(THREE, h), C = CREATURE(THREE, h, K), L = LENS(THREE, h, K, C);
+  // 1.8.9: orecchie sul cranio vero del motore (HEAD.cranium: centro (0, 5,6, −4,8), raggi 7,7 × 7,7 × 8,7), non
+  // sull'ellissoide di prima (cima 10,4): sulle teste vere stavano 3 cm dentro la testa e il motore spegneva la calotta
+  L.capPoint = (dir, hair = 1.6) => { const SK = [0, 5.6, -4.8], SR = [7.7, 7.7, 8.7]; const l = Math.hypot(dir[0] / SR[0], dir[1] / SR[1], dir[2] / SR[2]); const d = [dir[0] / l, dir[1] / l, dir[2] / l], dl = Math.hypot(...d); return [SK[0] + d[0] + d[0] / dl * hair, SK[1] + d[1] + d[1] / dl * hair, SK[2] + d[2] + d[2] / dl * hair]; };
   const g = new THREE.Group();
   const Lh = 13;
   const blush = [1, -1].map(sd => ({ c: [sd * 4.3, -0.6, 3.6], r: 1.25, ry: 0.85, col: [0.95, 0.55, 0.6], a: 0.32, edge: 0 }));
   const ctx = await L.build(g, {
     seed: 5, earBack: 0.1, earPerk: 0.15, wiggle: 0.06,
-    ears: { kind: 'pointy', L: Lh, W: 2.9, T: 0.6, D: 1.0, back: 0.25, rho: 0.85, dir: [0.34, 1.0, 0.0], hair: 1.6, rot: [-0.1, 0.12, -0.18],
+    ears: { kind: 'pointy', L: Lh, W: 2.9, T: 0.6, D: 1.0, back: 0.25, rho: 0.85, dir: [0.34, 1.0, 0.0], hair: 2.4, rot: [-0.1, 0.12, -0.18],
       out: [0.86, 0.84, 0.8], inn: [0.9, 0.62, 0.66], tuft: [0.88, 0.85, 0.82], furOut: 0.8, nu: 24, nv: 22,
       fur: { shells: 9, len: 0.7, rep: [4, 10], root: 0.62, tip: 1.04 },
       morphs: [{ name: 'droop', ctrl: [[0, -0.22 * Lh, 0], [0, 0.3 * Lh, 0.0], [0.12 * Lh, 0.55 * Lh, 0.22 * Lh], [0.3 * Lh, 0.42 * Lh, 0.55 * Lh]] }] },

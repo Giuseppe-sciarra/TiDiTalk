@@ -123,6 +123,58 @@ function hatOccluder(THREE, scale = [8, 10.2, 9.3], center = [0, 2.3, -4.4]) {
   o.name = "hatOccluder";
   return o;
 }
+var FASCIA = { y: 7, z: -4.8, rx: 8.5, rz: 9.8, tilt: 0.2 };
+function hatPlug(THREE, rx, rz, y = 0, h = 2.5) {
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, h, 40, 1), new THREE.MeshBasicMaterial({ colorWrite: false }));
+  o.scale.set(rx, 1, rz);
+  o.position.y = y + h / 2;
+  o.renderOrder = -1;
+  o.name = "hatPlug";
+  return o;
+}
+var NeckRig = class {
+  constructor(THREE, g2, { pivot = [0, -7.5, -3.2], kp = 0.85, kpUp = 0.2, ky = 0.55, kr = 0.7 } = {}) {
+    this.root = new THREE.Group();
+    this.root.position.set(pivot[0], pivot[1], pivot[2]);
+    this.root.name = "neckRig";
+    g2.add(this.root);
+    this.inner = new THREE.Group();
+    this.inner.position.set(-pivot[0], -pivot[1], -pivot[2]);
+    this.root.add(this.inner);
+    this.k = [kp, ky, kr, kpUp];
+    this.e = new THREE.Euler();
+  }
+  add(...o) {
+    this.inner.add(...o);
+    return this;
+  }
+  update(frame) {
+    if (!frame.attached) {
+      this.root.quaternion.identity();
+      return;
+    }
+    const e = this.e.setFromQuaternion(frame.q, "YXZ");
+    e.set(-(e.x > 0 ? this.k[0] : this.k[3]) * e.x, -this.k[1] * e.y, -this.k[2] * e.z, "ZXY");
+    this.root.quaternion.setFromEuler(e);
+  }
+};
+function neckOccluder(THREE, { r0 = 5.3, r1 = 6.2, y0 = -8.5, y1 = -19, z = -2.4, back = true } = {}) {
+  const m = new THREE.MeshBasicMaterial({ colorWrite: false });
+  const g2 = new THREE.Group();
+  g2.name = "neckOccluder";
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, y0 - y1, 32, 1), m);
+  o.position.set(0, (y0 + y1) / 2, z);
+  o.scale.z = 0.92;
+  o.renderOrder = -1;
+  g2.add(o);
+  if (back) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(20, y0 - y1 + 2, 11), m);
+    b.position.set(0, (y0 + y1) / 2 - 1, z - 0.9 - 5.5);
+    b.renderOrder = -1;
+    g2.add(b);
+  }
+  return g2;
+}
 
 // lib/expr.js
 var g = (b, k) => {
@@ -975,6 +1027,7 @@ var __s0 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, 
 var __s1 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "s": void 0, "q": void 0, "wy": void 0, "drag": void 0, "grav": void 0, "flut": void 0, "color": void 0, "grow": void 0 };
 var __s2 = { "x": void 0, "y": void 0, "z": void 0, "vx": void 0, "vy": void 0, "vz": void 0, "life": void 0, "size": void 0, "size1": void 0, "r": void 0, "g": void 0, "b": void 0, "a": void 0, "cell": void 0, "spin": void 0, "drag": void 0, "grav": void 0, "fadeIn": void 0, "fadeOut": void 0 };
 var meta = { label: "Tifoso azzurro", labelEn: "Italy fan", labelFr: "Supporter italien", labelDe: "Italien-Fan", category: "costumi", icon: "\u{1F1EE}\u{1F1F9}" };
+var neck = false;
 var G = "#0f8a3c";
 var W = "#f4f1ea";
 var R = "#d2232e";
@@ -1026,51 +1079,56 @@ function build(THREE, h) {
   U.expr = new Expr(["smile"]);
   U.trig = new Trigger({ on: 0.55, off: 0.3, cooldown: 1.2 });
   U.rnd = rng(121);
+  const RX = FASCIA.rx + 0.05, KZ = FASCIA.rz / FASCIA.rx, HH = 12.5;
   const hat = new THREE.Group();
-  hat.position.set(0.2, 10.4, -3.3);
-  hat.rotation.set(-0.14, 0, -0.08);
+  hat.position.set(0, FASCIA.y, FASCIA.z);
+  hat.rotation.set(-FASCIA.tilt, 0, -0.05);
+  hat.scale.set(1, 1, KZ);
   g2.add(hat);
   U.hat = hat;
-  U.hatY = 10.4;
-  const crown = smoothLathe(THREE, [[0, 15.2], [5.7, 15.2], [6.05, 15], [6.15, 14.3], [5.85, 8], [5.65, 1.5], [5.7, 0.2]], 64, 4);
+  U.hatY = FASCIA.y;
+  const crown = smoothLathe(THREE, [[RX, 0.15], [RX - 0.2, 1.4], [RX - 0.05, HH * 0.55], [RX + 0.32, HH - 0.6], [RX + 0.25, HH - 0.15], [RX - 0.1, HH], [0, HH]], 72, 4);
   const uv = crown.attributes.uv, pc = crown.attributes.position;
-  for (let i = 0; i < uv.count; i++) uv.setY(i, clamp(pc.getY(i) / 15));
-  const satin = new THREE.MeshPhysicalMaterial({ map: hatTex(THREE), roughness: 0.38, sheen: 0.6, sheenColor: new THREE.Color(16777215), clearcoat: 0.3, side: THREE.DoubleSide, transparent: true });
+  for (let i = 0; i < uv.count; i++) uv.setY(i, clamp(pc.getY(i) / HH));
+  const satin = new THREE.MeshPhysicalMaterial({ map: hatTex(THREE), roughness: 0.38, sheen: 0.6, sheenColor: new THREE.Color(16777215), clearcoat: 0.3, side: THREE.FrontSide, transparent: true });
   hat.add(new THREE.Mesh(crown, satin));
-  const top = new THREE.Mesh(new THREE.CircleGeometry(5.72, 48), new THREE.MeshPhysicalMaterial({ color: W, roughness: 0.4, sheen: 0.5, transparent: true }));
+  const lin = new THREE.Mesh(new THREE.CylinderGeometry(RX - 0.25, RX - 0.25, HH - 0.3, 48, 1, true), new THREE.MeshStandardMaterial({ color: 1316380, roughness: 1, side: THREE.BackSide, transparent: true }));
+  lin.position.y = (HH - 0.3) / 2 + 0.1;
+  hat.add(lin);
+  const top = new THREE.Mesh(new THREE.CircleGeometry(RX + 0.05, 64), new THREE.MeshPhysicalMaterial({ color: W, roughness: 0.4, sheen: 0.5, transparent: true }));
   top.rotation.x = -Math.PI / 2;
-  top.position.y = 15.18;
+  top.position.y = HH - 0.02;
   hat.add(top);
-  const brim = new THREE.LatheGeometry([[5.5, 0.35], [8.6, 0.25], [9.8, 0.55], [10, 0.75], [9.9, 0.4], [8.6, -0.05], [5.5, 0]].map(([r, y]) => new THREE.Vector2(r, y)), 72);
+  const BR = RX + 3.1;
+  const brim = new THREE.LatheGeometry([[RX - 0.3, 0.35], [BR - 1, 0.25], [BR - 0.1, 0.55], [BR + 0.1, 0.78], [BR, 0.4], [BR - 1, -0.05], [RX - 0.3, 0]].map(([r, y]) => new THREE.Vector2(r, y)), 96);
   const bp = brim.attributes.position;
   for (let i = 0; i < bp.count; i++) {
-    const x = bp.getX(i), z = bp.getZ(i), r = Math.hypot(x, z), k = clamp((r - 6) / 4);
-    bp.setY(i, bp.getY(i) + k * k * 1.8 * Math.pow(Math.abs(x) / Math.max(r, 1e-3), 2) - 0.4 * k);
+    const x = bp.getX(i), z = bp.getZ(i), r = Math.hypot(x, z), k = clamp((r - RX) / (BR - RX));
+    bp.setY(i, bp.getY(i) + k * k * 1.6 * Math.pow(Math.abs(x) / Math.max(r, 1e-3), 2) - 0.35 * k);
     bp.setZ(i, z * 0.94);
   }
   brim.computeVertexNormals();
-  hat.add(new THREE.Mesh(brim, new THREE.MeshPhysicalMaterial({ color: W, roughness: 0.4, sheen: 0.5, sheenColor: new THREE.Color(16777215), side: THREE.DoubleSide, transparent: true })));
-  {
-    const plug = new THREE.Mesh(new THREE.CylinderGeometry(5.7, 5.7, 3.2, 32), new THREE.MeshBasicMaterial({ colorWrite: false }));
-    plug.position.y = -1;
-    plug.renderOrder = -1;
-    hat.add(plug);
-  }
+  const brimM = new THREE.MeshPhysicalMaterial({ color: W, roughness: 0.4, sheen: 0.5, sheenColor: new THREE.Color(16777215), side: THREE.DoubleSide, transparent: true });
+  hat.add(new THREE.Mesh(brim, brimM));
+  hat.add(hatPlug(THREE, RX - 0.3, RX - 0.3, -0.6, 3));
+  const rig = new NeckRig(THREE, g2);
+  U.rig = rig;
+  rig.add(neckOccluder(THREE));
   const knit = knitNormal(THREE, [40, 6], 3);
   const wool = new THREE.MeshStandardMaterial({ map: scarfTex(THREE), normalMap: knit, roughness: 0.95, transparent: true });
   const ring = [];
   for (let i = 0; i < 48; i++) {
     const a = i / 48 * Math.PI * 2;
-    ring.push(new THREE.Vector3(Math.sin(a) * 6.6, -12.4 - Math.cos(a) * 1.1 + Math.sin(a * 3) * 0.2, -1.4 + Math.cos(a) * 6.2));
+    ring.push(new THREE.Vector3(Math.sin(a) * 6.5, -13.9 - Math.cos(a) * 1 + Math.sin(a * 3) * 0.25, -2.1 + Math.cos(a) * 6.1));
   }
-  g2.add(new THREE.Mesh(taperTube(THREE, new THREE.CatmullRomCurve3(ring, true), { segs: 96, radial: 14, r: (t) => 1.75 + Math.sin(t * Math.PI * 12) * 0.12, sx: 1, sy: 0.75, capStart: false, capEnd: false }), wool));
-  const knot = new THREE.Mesh(new THREE.SphereGeometry(1.9, 20, 14), wool);
+  rig.add(new THREE.Mesh(taperTube(THREE, new THREE.CatmullRomCurve3(ring, true), { segs: 96, radial: 16, r: (t) => 2.3 + Math.sin(t * Math.PI * 12) * 0.12, sx: 0.5, sy: 1, capStart: false, capEnd: false }), wool));
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(1.85, 20, 14), wool);
   knot.scale.set(1.1, 0.9, 0.8);
-  knot.position.set(-2.4, -13.9, 5);
-  g2.add(knot);
-  const endC = new THREE.CatmullRomCurve3([new THREE.Vector3(-2.4, -14.2, 5), new THREE.Vector3(-3.6, -18, 5.6), new THREE.Vector3(-3.9, -23, 5), new THREE.Vector3(-4.2, -27, 4.6)]);
-  const endC2 = new THREE.CatmullRomCurve3([new THREE.Vector3(-1.8, -14.2, 4.8), new THREE.Vector3(-0.6, -18.5, 5.4), new THREE.Vector3(0, -24, 5.2), new THREE.Vector3(0.4, -28, 5)]);
-  for (const c of [endC, endC2]) g2.add(new THREE.Mesh(taperTube(THREE, c, { segs: 30, radial: 10, r: () => 2, sx: 1, sy: 0.35, capEnd: true }), wool));
+  knot.position.set(-2.4, -15.5, 5.1);
+  rig.add(knot);
+  const endC = new THREE.CatmullRomCurve3([new THREE.Vector3(-2.4, -15.8, 5.3), new THREE.Vector3(-3.4, -19.2, 6), new THREE.Vector3(-3.7, -23.6, 5.9), new THREE.Vector3(-4, -27.6, 5.6)]);
+  const endC2 = new THREE.CatmullRomCurve3([new THREE.Vector3(-1.8, -15.8, 5.1), new THREE.Vector3(-0.7, -19.6, 5.9), new THREE.Vector3(-0.1, -24.6, 5.9), new THREE.Vector3(0.3, -28.6, 5.7)]);
+  for (const c of [endC, endC2]) rig.add(new THREE.Mesh(taperTube(THREE, c, { segs: 30, radial: 10, r: () => 1.9, sx: 1, sy: 0.35, capEnd: true }), wool));
   const fr = [];
   for (const [c, k] of [[endC, 0], [endC2, 1]]) {
     const e = c.getPointAt(1);
@@ -1079,7 +1137,7 @@ function build(THREE, h) {
       fr.push(taperTube(THREE, new THREE.CatmullRomCurve3([new THREE.Vector3(x0, e.y, e.z), new THREE.Vector3(x0 + 0.1, e.y - 1, e.z + 0.1), new THREE.Vector3(x0, e.y - 2, e.z)]), { segs: 4, radial: 4, r: () => 0.12 }));
     }
   }
-  g2.add(new THREE.Mesh(merge(THREE, fr), new THREE.MeshStandardMaterial({ color: W, roughness: 0.9, transparent: true })));
+  rig.add(new THREE.Mesh(merge(THREE, fr), new THREE.MeshStandardMaterial({ color: W, roughness: 0.9, transparent: true })));
   const world = worldRoot(THREE, g2, U.frame);
   U.world = world;
   const rect = new THREE.PlaneGeometry(1, 0.55, 3, 1);
@@ -1116,7 +1174,7 @@ function build(THREE, h) {
 function party(U) {
   const r = U.rnd;
   U.hat.updateMatrix();
-  const p = U.v.set(0, 15.5, 0).applyMatrix4(U.hat.matrix);
+  const p = U.v.set(0, 12.8, 0).applyMatrix4(U.hat.matrix);
   U.frame.toWorld(p, p);
   for (let i = 0; i < 150; i++) {
     const d = U.d.set((r() - 0.5) * 1.6, 1 + r() * 0.6, 0.3 + (r() - 0.3) * 1.2).normalize();
@@ -1142,6 +1200,7 @@ function update(g2, bs, t, h) {
   const dt = U.tick.tick(t);
   U.frame.update(dt);
   U.world.userData.sync();
+  U.rig.update(U.frame);
   const e = U.expr.update(bs, dt, h);
   if (U.trig.update(e.smile, dt)) party(U);
   if (!U.frame.attached && !U.showcase) {
@@ -1155,7 +1214,7 @@ function update(g2, bs, t, h) {
   }
   const j = U.jump.step(dt, 0);
   U.hat.position.y = U.hatY + Math.max(0, j) * 0.25;
-  U.hat.rotation.z = -0.08 + j * 0.01;
+  U.hat.rotation.z = -0.05 + j * 0.01;
   U.conf.update(dt, U.down);
   U.str.update(dt, U.down);
   U.spr.update(dt, U.down);
@@ -1163,5 +1222,6 @@ function update(g2, bs, t, h) {
 export {
   build as default,
   meta,
+  neck,
   update
 };

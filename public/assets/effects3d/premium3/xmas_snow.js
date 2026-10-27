@@ -143,6 +143,14 @@ function hatOccluder(THREE, scale = [8, 10.2, 9.3], center = [0, 2.3, -4.4]) {
   o.name = "hatOccluder";
   return o;
 }
+function hatPlug(THREE, rx, rz, y = 0, h = 2.5) {
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, h, 40, 1), new THREE.MeshBasicMaterial({ colorWrite: false }));
+  o.scale.set(rx, 1, rz);
+  o.position.y = y + h / 2;
+  o.renderOrder = -1;
+  o.name = "hatPlug";
+  return o;
+}
 
 // lib/expr.js
 var g = (b, k) => {
@@ -868,6 +876,12 @@ function build(THREE, h) {
   brim.position.copy(U.B0);
   brim.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), U.d0);
   g2.add(brim);
+  {
+    const plug = hatPlug(THREE, 8.4, 8.4, 0, 2.6);
+    plug.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), U.d0);
+    plug.position.copy(U.B0).addScaledVector(U.d0, 1);
+    g2.add(plug);
+  }
   U.pom = new THREE.Mesh(fluff(THREE, new THREE.IcosahedronGeometry(2.25, 4), 0.38, 9), furMat);
   g2.add(U.pom);
   U.dangle = new Dangle(THREE, 14, { damping: 0.86, stiff: 260, grav: 380 });
