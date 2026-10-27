@@ -165,8 +165,14 @@ diagnosi() {
     docker inspect -f 'stato: {{.State.Status}} · healthcheck: {{if .State.Health}}{{.State.Health.Status}}{{else}}nessuno{{end}} · riavvii: {{.RestartCount}} · codice di uscita: {{.State.ExitCode}}{{if .State.Error}} · errore: {{.State.Error}}{{end}}' "$cid" 2>/dev/null
     docker inspect -f '{{if .State.Health}}{{range .State.Health.Log}}healthcheck ({{.ExitCode}}): {{.Output}}{{"\n"}}{{end}}{{end}}' "$cid" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -3
   fi
+  # le righe d'errore prima di tutto: un programma che rifiuta un'opzione stampa l'errore e poi tutto
+  # l'aiuto, e in coda al log resterebbe solo l'aiuto
+  echo "righe di errore nel log:"
+  docker compose logs --no-color --tail 600 "$1" 2>&1 | tr -d '\r' | sed 's/^[^|]*| //' \
+    | grep -iE 'error|errore|unrecogn|unknown|invalid|illegal|bad |wrong|cannot|can.t|failed|fatal|denied|not permitted|abort' \
+    | awk '!visto[$0]++' | tail -8
   echo "ultime righe del log:"
-  docker compose logs --no-color --tail 25 "$1" 2>&1 | tr -d '\r' | tail -25
+  docker compose logs --no-color --tail 12 "$1" 2>&1 | tr -d '\r' | tail -12
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
