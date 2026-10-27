@@ -1,0 +1,37 @@
+/* Recenti: sulle riunioni in corso, piccolo tasto accanto a «Rientra» */
+.rc-ss {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 10px; cursor: pointer; padding: 0;
+  background: transparent; color: var(--paper-2); border: 1px solid var(--hair-2);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.rc-ss:hover { background: var(--ink-3); border-color: var(--accent-line); color: var(--paper); }
+.rc-ss:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+/* 1.8.5 · Home: riunione in corso in cima alla card, con «Entra come secondo schermo» */
+.home-livecard {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: -8px 0 18px; padding: 10px 10px 10px 14px; border-radius: 16px;
+  background: color-mix(in srgb, var(--ok) 9%, var(--ink-3)); border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--hair-2));
+}
+.home-livecard.hidden { display: none; }
+.home-livecard.flash { animation: hl-flash .9s var(--ease); }
+@keyframes hl-flash { 30% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 35%, transparent); } }
+.hl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); flex-shrink: 0; box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 50%, transparent); animation: live-ping 1.8s ease-out infinite; }
+.hl-main { flex: 1 1 90px; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hl-main small { font-size: 12.5px; color: var(--paper-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-main b { font-size: 15px; font-weight: 600; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-more { border: 0; background: none; padding: 0; font: inherit; color: var(--accent-text); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.hl-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto; }
+.hl-ss {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--paper); border: 1px solid var(--hair-2); font: 500 13.5px var(--font); white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.hl-ss svg { color: var(--paper-2); flex-shrink: 0; width: 17px; height: 17px; }
+.hl-ss:hover { background: var(--ink-2); border-color: var(--accent-line); }
+.hl-ss:focus-visible, .hl-more:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.home-live { cursor: pointer; }
+/* con la card in corso la riga di presentazione sotto «Nuova riunione» non serve: lascia spazio */
+.home-left.has-live #pane-new > p.hint { display: none; }
+@media (max-width: 560px) { .hl-acts { width: 100%; } .hl-acts > * { flex: 1 1 auto; justify-content: center; } }

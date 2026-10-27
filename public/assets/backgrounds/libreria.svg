@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="lib" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#78350f"/><stop offset="1" stop-color="#451a03"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#lib)"/>
+  <g fill="#92400e" opacity="0.7">
+    <rect x="40" y="100" width="60" height="880"/>
+    <rect x="120" y="100" width="55" height="880"/>
+    <rect x="190" y="100" width="70" height="880"/>
+    <rect x="280" y="100" width="50" height="880"/>
+    <rect x="345" y="100" width="65" height="880"/>
+    <rect x="430" y="100" width="55" height="880"/>
+  </g>
+  <g fill="#b45309" opacity="0.6">
+    <rect x="1450" y="100" width="60" height="880"/>
+    <rect x="1530" y="100" width="55" height="880"/>
+    <rect x="1605" y="100" width="70" height="880"/>
+    <rect x="1695" y="100" width="50" height="880"/>
+    <rect x="1760" y="100" width="65" height="880"/>
+    <rect x="1845" y="100" width="55" height="880"/>
+  </g>
+  <rect x="540" y="200" width="840" height="600" fill="#1c1917" opacity="0.3" rx="8"/>
+  <ellipse cx="960" cy="900" rx="400" ry="60" fill="#000" opacity="0.5"/>
+</svg>

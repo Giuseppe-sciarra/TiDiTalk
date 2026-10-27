@@ -1,0 +1,229 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TIDITALK 1.8.3 — Telefono (idea 19), in verticale e in orizzontale
+   Tutte le regole che cambiano qualcosa stanno nella media query del telefono:
+   computer e tablet restano come nella 1.8.2. Fuori dal telefono qui si
+   nascondono soltanto le cose nuove create da bar183.js.
+   Classi di bar183.js: body.b183 (attivo), body.b183-fab-on (pulsante della
+   chat visibile), .b183-spk-group / .b183-av-group sui gruppi della barra.
+   Solo variabili del tema (--ink-*, --paper-*, --hair*, --accent*).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* fuori dal telefono le cose nuove non si vedono */
+.b183-top,
+.b183-fab,
+#moreMenu .b183-quick,
+#moreMenu .b183-tail { display: none !important; }
+
+@keyframes b183-spin { from { transform: rotate(0deg); } to { transform: rotate(180deg); } }
+@keyframes b183-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* stessa condizione di bar183.js (PHONE) e di notify.css */
+@media (max-width: 640px), (max-height: 500px) and (pointer: coarse) and (orientation: landscape) {
+
+  /* ── in alto: codice stanza, gira la videocamera, casse ─────────────── */
+  body.tdt-room.b183 { --header-h: 52px; }
+  body.tdt-room.b183 .room-header {
+    height: 52px !important; padding: 0 8px 0 12px !important;
+    flex-wrap: nowrap !important; gap: 8px !important;
+  }
+  body.tdt-room.b183 .room-header .logo-small,
+  body.tdt-room.b183 .room-header .header-center,
+  body.tdt-room.b183 .room-header .clock,
+  body.tdt-room.b183 .room-header .header-right > *:not(.b183-top) { display: none !important; }
+  body.tdt-room.b183 .room-header .header-right { gap: 6px !important; margin-left: auto; }
+  body.tdt-room.b183 .room-header #roomIdDisplay { font-size: 13px; letter-spacing: .14em; padding: 9px 13px; color: var(--paper); }
+  body.tdt-room.b183 .room-header .b183-top:not(.hidden) {
+    display: inline-flex !important; align-items: center; justify-content: center;
+    width: 42px !important; height: 42px !important; border-radius: 50%;
+    background: var(--hair); color: var(--paper); border: 0;
+  }
+  body.tdt-room.b183 .room-header .b183-top svg { width: 21px !important; height: 21px !important; }
+  body.tdt-room.b183 .room-header .b183-top.off { background: color-mix(in srgb, var(--danger) 88%, black); color: #fff; }
+  body.tdt-room.b183 #b183Flip.b183-spin svg { animation: b183-spin .45s var(--ease); }
+  body.tdt-room.b183 .room-footer { display: none !important; }
+
+  /* ── in basso: microfono, camera, mano, Altro, Esci, grandi ─────────── */
+  body.tdt-room.b183 .controls-bar {
+    display: flex !important; flex-direction: row !important; justify-content: center !important;
+    position: static !important; height: auto !important; gap: 0 !important;
+    padding: 6px 10px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  body.tdt-room.b183 .controls-bar .controls-left,
+  body.tdt-room.b183 .controls-bar .controls-right { display: none !important; }
+  body.tdt-room.b183 .controls-bar .controls-center {
+    position: static !important; transform: none !important;
+    width: 100% !important; max-width: 420px !important; margin: 0 auto;
+    display: flex !important; flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    gap: 6px !important; padding: 8px 10px !important;
+  }
+  body.tdt-room.b183 .controls-center > .b183-spk-group,
+  body.tdt-room.b183 .controls-center > #btnScreen,
+  body.tdt-room.b183 .controls-center > #btnAnnotate,
+  body.tdt-room.b183 .controls-center > #btnReactions,
+  body.tdt-room.b183 .controls-center > #btnRecord,
+  body.tdt-room.b183 .controls-center .ctrl-btn-chevron { display: none !important; }
+  body.tdt-room.b183 .controls-center > .b183-av-group { background: transparent !important; height: auto !important; border-radius: 50% !important; }
+  body.tdt-room.b183 .controls-center > .b183-av-group > .ctrl-btn,
+  body.tdt-room.b183 .controls-center > .ctrl-btn,
+  body.tdt-room.b183 .controls-center > #btnHand {
+    width: 54px !important; height: 54px !important; min-width: 54px !important;
+    padding: 0 !important; border-radius: 50% !important; flex-shrink: 0;
+    justify-content: center !important; align-items: center !important;
+  }
+  body.tdt-room.b183 .controls-center > .b183-av-group > .ctrl-btn { background: var(--hair) !important; }
+  body.tdt-room.b183 .controls-center > .b183-av-group > .ctrl-btn.off { background: color-mix(in srgb, var(--danger) 88%, black) !important; }
+  /* Esci tondo come gli altri (serve l'id: tdt-room.css lo stringeva a 44 px con #btnLeave) */
+  body.tdt-room.b183 .controls-center > .ctrl-btn--danger,
+  body.tdt-room.b183 .controls-center > #btnLeave { width: 54px !important; min-width: 54px !important; height: 54px !important; border-radius: 50% !important; padding: 0 !important; flex-shrink: 0; }
+  /* fixes.css rimpiccioliva Mano con una regola per id: qui serve l'id */
+  body.tdt-room.b183 .controls-center .ctrl-icon,
+  body.tdt-room.b183 .controls-center .ctrl-icon svg,
+  body.tdt-room.b183 .controls-center > #btnHand .ctrl-icon,
+  body.tdt-room.b183 .controls-center > #btnHand .ctrl-icon svg { width: 24px !important; height: 24px !important; }
+  body.tdt-room.b183 .controls-center .ctrl-label { display: none !important; }
+
+  /* la tua finestrella non va sotto il pulsante della chat */
+  body.tdt-room.b183.b183-fab-on #videoGrid .video-tile.local.lv-float:not([data-lv-corner="tl"]):not([data-lv-corner="tr"]):not([data-lv-corner="bl"]) {
+    bottom: calc(var(--lv-fb, 100px) + 62px) !important;
+  }
+  /* la pila delle notifiche (a sinistra) lascia libero il pulsante della chat
+     e la tua finestrella, se è in uno degli angoli in basso */
+  body.b183.b183-fab-on .tdt-ntf { right: 76px; }
+  body.b183.b183-fab-on .tdt-hands-pill { max-width: calc(100vw - 92px); }
+  body.b183:has(#videoGrid .video-tile.local.lv-float:not([data-lv-corner="tl"]):not([data-lv-corner="tr"]):not([data-lv-corner="bl"])) .tdt-ntf { right: 124px; }
+  body.b183:has(#videoGrid .video-tile.local.lv-float[data-lv-corner="bl"]) .tdt-ntf { left: 124px; }
+
+  /* ── Altro: foglio dal basso, i tasti tolti dalla barra in griglia ──── */
+  body.tdt-room.b183 #moreMenu {
+    left: 8px !important; right: 8px !important; width: auto !important; min-width: 0 !important;
+    max-width: 480px; margin: 0 auto; padding: 8px; border-radius: 22px;
+    overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: var(--hair-2) transparent;
+    z-index: 9050;   /* sopra gli avvisi in alto (permessi, microfono): l'hai aperto tu */
+  }
+  body.tdt-room.b183 #moreMenu > * { flex-shrink: 0; }
+  body.tdt-room.b183 #moreMenu .b183-quick:not(.hidden) {
+    display: grid !important; order: -1;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; margin-bottom: 6px;
+  }
+  body.tdt-room.b183 #moreMenu .b183-tail { display: flex !important; flex-direction: column; gap: 2px; order: 7; }
+  body.tdt-room.b183 #moreMenu > #btnShareMenu { order: 8; }
+  body.tdt-room.b183 #moreMenu > #btnCallSettings { order: 9; }
+  body.tdt-room.b183 #moreMenu .more-menu-item { min-height: 46px; }
+  body.tdt-room.b183 #moreMenu .b183-quick > .b183-mi {
+    flex-direction: column; justify-content: center; gap: 6px;
+    min-height: 68px; padding: 10px 6px; border-radius: 16px;
+    background: var(--hair); text-align: center; font-size: 12.5px; line-height: 1.2;
+    position: relative;
+  }
+  body.tdt-room.b183 #moreMenu .b183-quick > .b183-mi.hidden { display: none !important; }
+  body.tdt-room.b183 #moreMenu .b183-quick > .b183-mi.active { background: var(--accent-soft); }
+  body.tdt-room.b183 #moreMenu .b183-quick .more-menu-ico { width: 24px; height: 24px; }
+  body.tdt-room.b183 #moreMenu .b183-quick .more-menu-ico svg { width: 21px; height: 21px; }
+  body.tdt-room.b183 #moreMenu .b183-mi-lbl { flex: 1; min-width: 0; cursor: inherit; }
+  body.tdt-room.b183 #moreMenu .b183-quick .b183-mi-lbl { flex: none; }
+  body.tdt-room.b183 #moreMenu .b183-mi-n {
+    position: absolute; top: 7px; right: 8px;
+    min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--hair-2); color: var(--paper); font: 600 11.5px/1 var(--font); font-variant-numeric: tabular-nums;
+  }
+  body.tdt-room.b183 #moreMenu .b183-kbd {
+    position: absolute; top: 7px; left: 8px;
+    font: 600 10.5px/1 var(--font); color: var(--paper-3);
+    border: 1px solid var(--hair-2); border-radius: 6px; padding: 2px 5px;
+  }
+  body.tdt-room.b183 #moreMenu .more-menu-ico > span { display: flex; }
+  body.tdt-room.b183 #moreMenu .more-menu-ico > span.hidden { display: none !important; }
+
+  /* Suoni: interruttore a destra */
+  body.tdt-room.b183 #moreMenu .b183-sw {
+    position: relative; width: 34px; height: 20px; border-radius: 999px; flex-shrink: 0;
+    background: var(--hair-2); transition: background .2s;
+  }
+  body.tdt-room.b183 #moreMenu .b183-sw::after {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--paper); transition: transform .2s var(--ease);
+  }
+  body.tdt-room.b183 #moreMenu #b183Sound[aria-checked="true"] .b183-sw { background: var(--accent); }
+  body.tdt-room.b183 #moreMenu #b183Sound[aria-checked="true"] .b183-sw::after { transform: translateX(14px); background: var(--accent-ink); }
+
+  /* Lingua: la tendina di i18n.js dentro la voce */
+  body.tdt-room.b183 #moreMenu .b183-lang { cursor: default; padding-top: 6px; padding-bottom: 6px; }
+  body.tdt-room.b183 #moreMenu .b183-lang:hover { background: transparent; }
+  html[data-project="videochat"] body.tdt-room.b183 #moreMenu #language-switcher {
+    position: relative; right: auto; top: auto; z-index: 1;
+    margin: 0 0 0 auto; height: 34px; min-height: 34px; padding: 0 8px 0 2px;
+    border-radius: 999px; box-shadow: none; background: var(--hair); border: 1px solid var(--hair-2);
+    font: 500 14px/1 var(--font);
+  }
+  html[data-project="videochat"] body.tdt-room.b183 #moreMenu #language-switcher .language-switcher__icon { display: none !important; }
+  html[data-project="videochat"] body.tdt-room.b183 #moreMenu #language-switcher select {
+    min-height: 32px; max-width: 160px; padding: 0 24px 0 10px; font: 500 14px/1 var(--font); color: var(--paper);
+  }
+  html[data-project="videochat"] body.tdt-room.b183 #moreMenu #language-switcher::after { display: block; right: 12px; }
+
+  /* ── pulsante flottante della chat, a destra sopra la barra ─────────── */
+  body.tdt-room.b183 .b183-fab {
+    display: flex !important;
+    position: fixed; right: 12px; bottom: calc(var(--b183-bh, 84px) + 12px); z-index: 246;
+    width: 54px; height: 54px; border-radius: 50%;
+    align-items: center; justify-content: center;
+    background: var(--ink-2); color: var(--paper);
+    border: 1px solid var(--hair-2); box-shadow: var(--shadow-2);
+    cursor: pointer;
+    transition: opacity .22s var(--ease), transform .22s var(--ease), visibility 0s;
+  }
+  body.tdt-room.b183 .b183-fab:active { transform: scale(.94); }
+  /* chat aperta (a tutto schermo): il pulsante sparisce */
+  body.tdt-room.b183 .b183-fab.b183-off { opacity: 0; visibility: hidden; transform: scale(.8); pointer-events: none; transition: none; }
+  body.tdt-room.b183 .b183-fab-n {
+    position: absolute; top: -3px; right: -3px;
+    min-width: 21px; height: 21px; padding: 0 6px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent); color: var(--accent-ink);
+    font: 700 11.5px/1 var(--font); font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--ink-1);
+    animation: b183-pop .3s var(--ease);
+  }
+  body.tdt-room.b183 .b183-fab-n.hidden { display: none; }
+  body.stage-focus .b183-fab { display: none !important; }
+  :root[data-theme="light"] body.tdt-room.b183 .b183-fab { background: #ffffff; box-shadow: 0 14px 34px -14px rgba(16, 18, 23, .35), 0 0 0 1px rgba(16, 18, 23, .06); }
+  :root[data-theme="light"] body.tdt-room.b183 .b183-fab-n { box-shadow: 0 0 0 2px #ffffff; }
+}
+
+/* ── telefono in orizzontale: tutto più basso, il video ha poco spazio ──── */
+@media (max-height: 500px) and (pointer: coarse) and (orientation: landscape) {
+  body.tdt-room.b183 { --header-h: 44px; }
+  body.tdt-room.b183 .room-header { height: 44px !important; padding-left: max(12px, env(safe-area-inset-left, 0px)) !important; padding-right: max(8px, env(safe-area-inset-right, 0px)) !important; }
+  body.tdt-room.b183 .room-header #roomIdDisplay { padding: 7px 12px; font-size: 12.5px; }
+  body.tdt-room.b183 .room-header .b183-top:not(.hidden) { width: 36px !important; height: 36px !important; }
+  body.tdt-room.b183 .room-header .b183-top svg { width: 19px !important; height: 19px !important; }
+  body.tdt-room.b183 .controls-bar { padding: 2px 10px calc(4px + env(safe-area-inset-bottom, 0px)) !important; }
+  body.tdt-room.b183 .controls-bar .controls-center { max-width: 380px !important; padding: 5px 8px !important; }
+  body.tdt-room.b183 .controls-center > .b183-av-group > .ctrl-btn,
+  body.tdt-room.b183 .controls-center > .ctrl-btn,
+  body.tdt-room.b183 .controls-center > #btnHand { width: 44px !important; height: 44px !important; min-width: 44px !important; }
+  body.tdt-room.b183 .controls-center > .ctrl-btn--danger,
+  body.tdt-room.b183 .controls-center > #btnLeave { width: 44px !important; min-width: 44px !important; height: 44px !important; }
+  body.tdt-room.b183 .controls-center .ctrl-icon,
+  body.tdt-room.b183 .controls-center .ctrl-icon svg,
+  body.tdt-room.b183 .controls-center > #btnHand .ctrl-icon,
+  body.tdt-room.b183 .controls-center > #btnHand .ctrl-icon svg { width: 21px !important; height: 21px !important; }
+  body.tdt-room.b183 .b183-fab { width: 46px; height: 46px; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(var(--b183-bh, 60px) + 8px); }
+  body.tdt-room.b183.b183-fab-on #videoGrid .video-tile.local.lv-float:not([data-lv-corner="tl"]):not([data-lv-corner="tr"]):not([data-lv-corner="bl"]) {
+    bottom: calc(var(--lv-fb, 60px) + 54px) !important;
+  }
+  body.tdt-room.b183 #moreMenu { max-width: 560px; }
+  /* la finestrella da computer (232×131) qui coprirebbe mezzo video */
+  html body.tdt-room.b183 #videoGrid .video-tile.local.lv-float { width: 168px !important; height: 95px !important; border-radius: 12px; }
+}
+
+/* telefoni stretti (≤ 360 px): i 5 tasti un po' più piccoli, sempre tondi */
+@media (max-width: 360px) {
+  body.tdt-room.b183 .controls-center > .b183-av-group > .ctrl-btn,
+  body.tdt-room.b183 .controls-center > .ctrl-btn,
+  body.tdt-room.b183 .controls-center > #btnHand,
+  body.tdt-room.b183 .controls-center > #btnLeave { width: 48px !important; min-width: 48px !important; height: 48px !important; }
+}

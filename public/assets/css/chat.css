@@ -1,0 +1,196 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.8.2 — Chat: messaggi fissati in cima · barretta di azioni sul messaggio
+   (5 reazioni, Rispondi, Fissa) · reazioni col conteggio · citazione ·
+   link · «sta scrivendo…». Solo variabili del tema (chiaro e scuro).
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.tdt-room .chat-msg { position: relative; }
+.tc-emoji, .tc-chip-e, .tc-tool-e { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', var(--font); }
+
+/* ── Messaggi fissati ───────────────────────────────────────────────────── */
+.tc-pins {
+  flex-shrink: 0;
+  padding: 8px 10px 9px;
+  border-bottom: 1px solid var(--hair);
+  background: color-mix(in srgb, var(--accent) 7%, var(--ink-2));
+}
+.tc-pins.hidden { display: none; }
+.tc-pins-list { display: flex; flex-direction: column; gap: 4px; }
+.tc-pin {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 4px 3px 8px;
+  border-radius: 12px;
+  animation: tc-in .28s var(--ease);
+}
+.tc-pin:hover { background: var(--hair); }
+.tc-pin-ico { color: var(--accent-text); display: flex; flex-shrink: 0; }
+.tc-pin-ico svg { width: 14px; height: 14px; }
+.tc-pin-body {
+  flex: 1; min-width: 0; cursor: pointer;
+  display: flex; flex-direction: column; gap: 1px;
+  border-radius: 8px; outline: none;
+}
+.tc-pin-body:focus-visible { box-shadow: 0 0 0 2px var(--accent-line); }
+.tc-pin-who { font-size: 11px; font-weight: 600; color: var(--paper-2); }
+.tc-pin-text {
+  font-size: 13px; line-height: 1.35; color: var(--paper);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2;
+  overflow: hidden; word-break: break-word;
+}
+body.tdt-room .tc-pin-x { width: 28px; height: 28px; min-width: 28px; flex-shrink: 0; color: var(--paper-3); border-radius: 8px; }
+body.tdt-room .tc-pin-x:hover { color: var(--paper); background: var(--hair-2); }
+body.tdt-room .tc-pin-x svg { width: 14px; height: 14px; }
+
+/* segno sul messaggio fissato, nella lista */
+.chat-msg.tc-pinned .msg-meta::after {
+  content: ''; width: 11px; height: 11px; align-self: center;
+  background: var(--accent-text);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3.5h6l-1 5.5 3.5 3.5v1.5h-11V12.5L10 9z'/%3E%3Cpath d='M12 14v6.5'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3.5h6l-1 5.5 3.5 3.5v1.5h-11V12.5L10 9z'/%3E%3Cpath d='M12 14v6.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* ── Barretta di azioni (passaggio del mouse; sul telefono tocco sul fumetto) ─ */
+.tc-tools {
+  position: absolute; z-index: 3;
+  bottom: calc(100% - 6px); left: 0;
+  display: flex; align-items: center; gap: 1px;
+  padding: 3px;
+  background: var(--ink-2);
+  border: 1px solid var(--hair-2);
+  border-radius: 999px;
+  box-shadow: var(--shadow-2);
+  opacity: 0; visibility: hidden; transform: translateY(4px) scale(.96);
+  transition: opacity .14s, transform .18s var(--ease), visibility 0s linear .18s;
+}
+.chat-msg.own .tc-tools { left: auto; right: 0; }
+/* primo messaggio: sopra non c'è posto, la barretta va sotto il fumetto */
+.chat-msg:first-child .tc-tools { bottom: auto; top: calc(100% - 4px); }
+@media (hover: hover) {
+  .chat-msg:hover .tc-tools, .chat-msg:focus-within .tc-tools { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+}
+.chat-msg.tc-open .tc-tools { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.tc-tool {
+  width: 30px; height: 30px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+  color: var(--paper-2);
+  transition: background .12s, transform .15s var(--ease), color .12s;
+}
+.tc-tool-e { font-size: 17px; line-height: 1; }
+.tc-tool:hover { background: var(--hair-2); color: var(--paper); }
+.tc-tool-e:hover { transform: scale(1.18); background: transparent; }
+.tc-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tc-tools-sep { width: 1px; height: 18px; background: var(--hair-2); margin: 0 3px; }
+body:not(.tc-host) .tc-tool-pin { display: none; }
+.chat-msg.tc-open .msg-tts-btn { opacity: 1; }
+
+/* ── Reazioni col conteggio ─────────────────────────────────────────────── */
+.tc-reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.chat-msg.own .tc-reacts { justify-content: flex-end; }
+.tc-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 8px 0 6px;
+  border-radius: 999px; cursor: pointer;
+  background: var(--ink-3); color: var(--paper);
+  border: 1px solid var(--hair-2);
+  font: 600 12px/1 var(--font);
+  animation: tc-pop .26s var(--ease);
+  transition: background .12s, border-color .12s, transform .12s;
+}
+.tc-chip:hover { border-color: var(--accent-line); }
+.tc-chip:active { transform: scale(.94); }
+.tc-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tc-chip.mine { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-text); }
+.tc-chip-e { font-size: 14px; line-height: 1; }
+.tc-chip-n { font-variant-numeric: tabular-nums; }
+
+/* ── Citazione nel messaggio ───────────────────────────────────────────── */
+.tc-quote {
+  display: flex; flex-direction: column; gap: 1px; align-items: flex-start; text-align: left;
+  max-width: 100%;
+  margin: 1px 0 2px;
+  padding: 5px 10px 6px 10px;
+  border: 0; border-left: 3px solid var(--accent);
+  border-radius: 4px 10px 10px 4px;
+  background: var(--hair); color: var(--paper-2);
+  font: 12px/1.35 var(--font);
+  cursor: pointer;
+}
+.chat-msg.own .tc-quote { align-self: flex-end; }
+.tc-quote:hover { background: var(--hair-2); }
+.tc-quote:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tc-quote-who { font-weight: 600; color: var(--accent-text); }
+.tc-quote-text {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2;
+  overflow: hidden; word-break: break-word;
+}
+.chat-msg.tc-flash .msg-bubble { animation: tc-flash 1.6s var(--ease); }
+
+/* ── Link nel fumetto ──────────────────────────────────────────────────── */
+.msg-bubble a.tc-link, .tc-pin-text a.tc-link {
+  color: var(--accent-text);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px;
+  word-break: break-all;
+}
+body.tdt-room .chat-msg.own .msg-bubble a.tc-link { color: inherit; }
+.msg-bubble a.tc-link:hover, .tc-pin-text a.tc-link:hover { text-decoration-thickness: 2px; }
+.msg-bubble a.tc-link:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 3px; }
+
+/* ── Risposta in corso (sopra il campo) ────────────────────────────────── */
+.tc-replybar {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 8px 8px 14px;
+  border-top: 1px solid var(--hair);
+  background: var(--ink-2);
+  animation: tc-in .2s var(--ease);
+  position: relative; z-index: 2;
+}
+.tc-replybar.hidden { display: none; }
+.tc-replybar-ico { display: flex; color: var(--accent-text); flex-shrink: 0; }
+.tc-replybar-body {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;
+  border-left: 3px solid var(--accent); padding-left: 8px;
+}
+.tc-replybar-who { font-size: 12px; font-weight: 600; color: var(--accent-text); }
+.tc-replybar-text { font-size: 12.5px; color: var(--paper-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.tdt-room .tc-replybar-x { width: 30px; height: 30px; min-width: 30px; color: var(--paper-3); border-radius: 8px; }
+body.tdt-room .tc-replybar-x:hover { color: var(--paper); background: var(--hair-2); }
+body.tdt-room .tc-replybar-x svg { width: 14px; height: 14px; }
+
+/* ── «sta scrivendo…»: pillola appoggiata sopra il campo, non sposta nulla ── */
+.tc-typing { position: relative; height: 0; flex-shrink: 0; z-index: 3; pointer-events: none; }
+.tc-typing-pill {
+  position: absolute; bottom: 6px; left: 12px; max-width: calc(100% - 24px);
+  display: none; align-items: center; gap: 7px;
+  height: 25px; padding: 0 11px 0 9px;
+  background: var(--ink-3); border: 1px solid var(--hair-2); border-radius: 999px;
+  box-shadow: var(--shadow-1);
+  font: 500 12px/1 var(--font); color: var(--paper-2);
+}
+.tc-typing.on .tc-typing-pill { display: inline-flex; animation: tc-in .2s var(--ease); }
+.tc-typing-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tc-dots { display: inline-flex; gap: 3px; flex-shrink: 0; }
+.tc-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--paper-3); animation: tc-dot 1.1s ease-in-out infinite; }
+.tc-dots i:nth-child(2) { animation-delay: .15s; }
+.tc-dots i:nth-child(3) { animation-delay: .3s; }
+
+@keyframes tc-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-3px); opacity: 1; } }
+@keyframes tc-in { from { opacity: 0; transform: translateY(4px); } }
+@keyframes tc-pop { from { opacity: 0; transform: scale(.7); } 60% { transform: scale(1.06); } }
+@keyframes tc-flash {
+  0% { box-shadow: 0 0 0 0 var(--accent-line); }
+  25% { box-shadow: 0 0 0 4px var(--accent-line); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ── Telefono ───────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .tc-pins { padding: 8px 8px 9px; }
+  .tc-tool { width: 36px; height: 36px; }
+  .tc-tool-e { font-size: 20px; }
+  .tc-chip { height: 30px; padding: 0 10px 0 8px; }
+  body.tdt-room .tc-pin-x { width: 36px; height: 36px; min-width: 36px; }
+  body.tdt-room .tc-replybar-x { width: 36px; height: 36px; min-width: 36px; }
+  :root[data-theme="light"] body.tdt-room .tc-pins { background: color-mix(in srgb, var(--accent) 7%, var(--ink-2)) !important; }
+  :root[data-theme="light"] body.tdt-room .tc-replybar { background: var(--ink-2) !important; }
+}

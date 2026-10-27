@@ -1,0 +1,99 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.8.0 — Mani alzate in coda (hands.js)
+   Posto in coda in alto a sinistra sul riquadro (.tile-badges, colonna dove
+   si impilano anche altre scritte) · sezione «Mani alzate» nella lista
+   Persone · avviso in basso a sinistra che apre la coda.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* il vecchio ✋ in alto a destra lascia il posto al numero in coda */
+body.tdt-room .video-tile .tile-hand-badge { display: none !important; }
+
+/* contenitore a colonna in alto a sinistra: sotto le barrette della rete */
+.video-tile > .tile-badges {
+  position: absolute; top: 38px; left: 8px; z-index: 7;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  pointer-events: none;
+}
+.video-tile > .tile-badges:empty { display: none; }
+.video-tile > .tile-badges > * { pointer-events: auto; }
+.tile-hand-queue {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 30px; padding: 0 11px 0 8px;
+  border-radius: 999px;
+  background: var(--warn); color: #1b1407;
+  font: 700 14px/1 var(--font); font-variant-numeric: tabular-nums;
+  box-shadow: 0 8px 20px -8px rgba(0,0,0,.55);
+  animation: thq-in .45s var(--ease) both;
+}
+.tile-hand-queue .thq-ico { font-size: 16px; display: inline-block; transform-origin: 70% 90%; animation: thq-wave 1.6s ease-in-out infinite; }
+@keyframes thq-in { from { opacity: 0; transform: translateY(-6px) scale(.8); } to { opacity: 1; transform: none; } }
+@keyframes thq-wave { 0%, 60%, 100% { transform: rotate(0); } 15% { transform: rotate(-14deg); } 30% { transform: rotate(12deg); } 45% { transform: rotate(-6deg); } }
+.video-tile.spotlight-strip > .tile-badges { top: 26px; left: 5px; gap: 3px; }
+.video-tile.spotlight-strip .tile-hand-queue { height: 22px; padding: 0 7px 0 5px; font-size: 11.5px; }
+.video-tile.spotlight-strip .tile-hand-queue .thq-ico { font-size: 12px; }
+
+/* ── sezione nella lista Persone ────────────────────────────────────────── */
+.tdt-hands-sec {
+  flex-shrink: 0;
+  margin: 10px 10px 4px; padding: 10px 10px 8px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--ink-3));
+  border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent);
+  color: var(--paper); font-family: var(--font);
+}
+.tdt-hands-sec.hidden { display: none; }
+.tdt-hands-sec.flash { animation: thq-flash 1.3s var(--ease); }
+@keyframes thq-flash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 55%, transparent); } }
+.tdt-hands-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; margin-bottom: 6px; }
+.tdt-hands-title { font: 600 14.5px/1.2 var(--font-display); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tdt-hands-count { font-family: var(--font); font-size: 12px; background: var(--hair-2); padding: 2px 8px; border-radius: 999px; vertical-align: 1px; }
+.tdt-hands-all, .tdt-hands-lower {
+  border: 1px solid var(--hair-2); background: var(--ink-2); color: var(--paper);
+  border-radius: 999px; padding: 6px 12px; font: 600 12.5px/1 var(--font); cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.tdt-hands-all:hover, .tdt-hands-lower:hover { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-text); }
+.tdt-hands-all.hidden { display: none; }
+.tdt-hands-all { white-space: nowrap; flex-shrink: 0; margin-left: auto; }
+.tdt-hands-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 40vh; overflow-y: auto; }
+.tdt-hands-row { display: flex; align-items: center; gap: 9px; padding: 5px 2px; border-radius: 10px; }
+.tdt-hands-pos { width: 18px; text-align: center; font: 700 13px var(--font); color: var(--paper-2); font-variant-numeric: tabular-nums; }
+.tdt-hands-av { width: 30px !important; height: 30px !important; font-size: 12.5px !important; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; color: #fff; }
+.tdt-hands-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tdt-hands-name { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tdt-hands-since { font-size: 11.5px; color: var(--paper-3); font-variant-numeric: tabular-nums; }
+
+/* ── avviso in basso a sinistra ─────────────────────────────────────────── */
+.tdt-hands-pill {
+  position: fixed; left: 14px; bottom: 96px; z-index: 245;
+  display: inline-flex; align-items: center; gap: 10px;
+  max-width: min(300px, calc(100vw - 28px));
+  padding: 7px 16px 7px 7px;
+  border-radius: 999px;
+  background: var(--ink-2); color: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--hair-2));
+  box-shadow: var(--shadow-2);
+  font-family: var(--font); text-align: left; cursor: pointer;
+  transition: border-color .2s, transform .2s var(--ease);
+}
+.tdt-hands-pill.hidden { display: none; }
+.tdt-hands-pill.in { animation: thp-in .4s var(--ease) both; }
+@keyframes thp-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.tdt-hands-pill:hover { border-color: var(--warn); transform: translateY(-1px); }
+.tdt-hands-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.thp-ico { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--warn); font-size: 18px; }
+.thp-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.thp-n { font-size: 13.5px; font-weight: 600; }
+.thp-who { font-size: 12px; color: var(--paper-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+:root[data-theme="light"] .tdt-hands-pill { background: #ffffff; }
+:root[data-theme="light"] .tdt-hands-sec { background: color-mix(in srgb, var(--warn) 14%, #ffffff); }
+
+@media (max-width: 640px) {
+  .tdt-hands-pill { left: 8px; padding: 5px 12px 5px 5px; }
+  .thp-ico { width: 28px; height: 28px; font-size: 15px; }
+  .video-tile > .tile-badges { top: 32px; left: 6px; }
+  .tile-hand-queue { height: 26px; font-size: 12.5px; padding: 0 9px 0 6px; }
+  /* Persone a schermo intero: la sezione ha il fondo del pannello */
+  .tdt-hands-sec { margin: 10px 12px 4px; }
+}
