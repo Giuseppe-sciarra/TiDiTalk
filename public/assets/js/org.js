@@ -369,6 +369,9 @@
   // qui solo il nome sull'anteprima, «Ci sono già …», le pillole senza
   // dispositivo e «Entra e presenta».
   const pj = (id) => document.getElementById(id);
+  // regola delle iniziali della 1.8.0 (room.js getInitialsPlain): «Giuseppe (Sciarra)» → GS, mai «G(»
+  const initials = (n) => (typeof window.getInitialsPlain === 'function' ? window.getInitialsPlain(n)
+    : String(n || '').split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 2).map(w => Array.from(w)[0]).join('').toUpperCase() || '?');
   function listNames(names, count) {
     const n = names.length, more = Math.max(0, (count || n) - Math.min(n, 3));
     const shown = names.slice(0, 3);
@@ -391,7 +394,7 @@
         const names = (Array.isArray(d.names) ? d.names : []).map(x => String(x).slice(0, 50)).filter(Boolean);
         const txt = names.length ? listNames(names, +d.count || names.length) : T('Non c\'è ancora nessuno');
         box.querySelector('.pj2-who-txt').textContent = txt;
-        box.querySelector('.pj2-who-av').innerHTML = names.slice(0, 3).map(nm => `<i>${esc(nm.trim().split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2))}</i>`).join('');
+        box.querySelector('.pj2-who-av').innerHTML = names.slice(0, 3).map(nm => `<i>${esc(initials(nm))}</i>`).join('');
         box.classList.toggle('pj2-who-empty', !names.length);
         box.classList.remove('hidden');
       }
@@ -402,7 +405,7 @@
   function syncPreviewName() {
     const v = (pj('pjName')?.value || '').trim();
     const el = pj('pjPreviewName'); if (el) el.textContent = v;
-    const ai = pj('pjAvatarInitials'); if (ai && v) ai.textContent = v.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+    const ai = pj('pjAvatarInitials'); if (ai && v) ai.textContent = initials(v);
   }
   // pillola senza dispositivi («Nessun microfono», «Nessuna videocamera»)
   function syncPills() {

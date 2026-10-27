@@ -278,6 +278,9 @@
       h.addEventListener('click', (e) => { if (this._eat) { this._eat = false; e.stopPropagation(); e.preventDefault(); } }, true);
       h.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
       h.addEventListener('pointerenter', () => { hovered = this; });
+      // lo schermo condiviso può comparire sotto il mouse fermo: pointerenter arriva prima
+      // dell'aggancio (scan dopo 120 ms) e non torna finché non si esce; basta muovere il mouse
+      h.addEventListener('pointermove', () => { if (hovered !== this) hovered = this; }, { passive: true });
       h.addEventListener('pointerleave', () => { if (hovered === this && !POPUP) hovered = null; });
       // Safari su Mac: il pizzico del trackpad arriva come gesture*, non come wheel
       let g0 = null;

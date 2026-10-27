@@ -37,6 +37,6 @@ third-party components, each under its own license.
 | Fonts: [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque), [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans) (`public/assets/fonts`) | SIL Open Font License 1.1 |
 | Reaction sounds (`public/assets/sounds`) | from [MiroTalk SFU](https://github.com/miroslavpejic85/mirotalksfu), AGPL-3.0 — © Miroslav Pejic |
 | Canonical face mesh (`public/assets/effects3d/facemesh.json`: vertices, UVs and triangles of MediaPipe's `canonical_face_model.obj`) | Apache-2.0 — © Google LLC |
-| 3D face effects (`public/assets/effects3d/{models,hair,chars,paints}`: hats, glasses, wigs, beards, characters, face paints — procedural, written for Tiditalk) and their thumbnails | part of Tiditalk, AGPL-3.0 |
+| 3D face effects (`public/assets/effects3d/{models,hair,chars,paints,premium,premium2,premium3,premium4,premium5}`: hats, glasses, wigs, beards, characters, animals, costumes, accessories, fun effects, face paints — procedural, written for Tiditalk) and their thumbnails | part of Tiditalk, AGPL-3.0 |
 | Free 3D models in `public/assets/effects3d/glb/` | CC0 / CC-BY 4.0 / Apache-2.0 — authors and sources in [`public/assets/effects3d/glb/CREDITS.md`](public/assets/effects3d/glb/CREDITS.md) |
 | Background placeholders (`public/assets/backgrounds/*.svg`) and illustrations (`public/assets/backgrounds/6*-*.png`: synthwave, pixel art) | part of Tiditalk, AGPL-3.0 |

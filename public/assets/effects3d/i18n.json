@@ -886,5 +886,329 @@
  "Zebra": {
   "fr": "Zèbre",
   "de": "Zebra"
+ },
+ "Gatto soriano": {
+  "fr": "Chat tigré",
+  "de": "Getigerte Katze"
+ },
+ "Tigre bianca": {
+  "fr": "Tigre blanc",
+  "de": "Weißer Tiger"
+ },
+ "Leopardo delle nevi": {
+  "fr": "Panthère des neiges",
+  "de": "Schneeleopard"
+ },
+ "Volpe artica": {
+  "fr": "Renard polaire",
+  "de": "Polarfuchs"
+ },
+ "Drago a squame": {
+  "fr": "Dragon à écailles",
+  "de": "Schuppendrache"
+ },
+ "Sirena": {
+  "fr": "Sirène",
+  "de": "Meerjungfrau"
+ },
+ "Farfalla monarca": {
+  "fr": "Papillon monarque",
+  "de": "Monarchfalter"
+ },
+ "Corona di fiori dipinta": {
+  "fr": "Couronne de fleurs peinte",
+  "de": "Gemalter Blumenkranz"
+ },
+ "Catrina": {
+  "fr": "Catrina",
+  "de": "Catrina"
+ },
+ "Teschio oro e nero": {
+  "fr": "Crâne or et noir",
+  "de": "Schädel in Gold und Schwarz"
+ },
+ "Arlecchino": {
+  "fr": "Arlequin",
+  "de": "Harlekin"
+ },
+ "Colombina": {
+  "fr": "Masque de Colombine",
+  "de": "Colombina-Maske"
+ },
+ "Mezza maschera nera": {
+  "fr": "Demi-masque noir",
+  "de": "Schwarze Halbmaske"
+ },
+ "Pierrot": {
+  "fr": "Pierrot",
+  "de": "Pierrot"
+ },
+ "Tatuaggio a spirali": {
+  "fr": "Tatouage en spirales",
+  "de": "Spiral-Tattoo"
+ },
+ "Trucco cyber neon": {
+  "fr": "Maquillage cyber néon",
+  "de": "Neon-Cyber-Make-up"
+ },
+ "Glitter geometrico": {
+  "fr": "Paillettes géométriques",
+  "de": "Geometrischer Glitzer"
+ },
+ "Gemme e strass": {
+  "fr": "Gemmes et strass",
+  "de": "Edelsteine und Strass"
+ },
+ "Bandiera portoghese": {
+  "fr": "Drapeau portugais",
+  "de": "Portugiesische Flagge"
+ },
+ "Bandiera olandese": {
+  "fr": "Drapeau néerlandais",
+  "de": "Niederländische Flagge"
+ },
+ "Bandiera belga": {
+  "fr": "Drapeau belge",
+  "de": "Belgische Flagge"
+ },
+ "Bandiera svizzera": {
+  "fr": "Drapeau suisse",
+  "de": "Schweizer Flagge"
+ },
+ "Bandiera giapponese": {
+  "fr": "Drapeau japonais",
+  "de": "Japanische Flagge"
+ },
+ "Bandiera messicana": {
+  "fr": "Drapeau mexicain",
+  "de": "Mexikanische Flagge"
+ },
+ "Bandiera canadese": {
+  "fr": "Drapeau canadien",
+  "de": "Kanadische Flagge"
+ },
+ "Agnellino": {
+  "fr": "Petit agneau",
+  "de": "Lämmchen"
+ },
+ "Axolotl kawaii": {
+  "fr": "Axolotl kawaii",
+  "de": "Kawaii-Axolotl"
+ },
+ "Bradipino": {
+  "fr": "Bébé paresseux",
+  "de": "Faultier-Baby"
+ },
+ "Cerbiattino": {
+  "fr": "Petit faon",
+  "de": "Rehkitz"
+ },
+ "Coniglietto kawaii": {
+  "fr": "Lapinou kawaii",
+  "de": "Kawaii-Häschen"
+ },
+ "Coniglietto che spunta": {
+  "fr": "Lapinou coucou",
+  "de": "Guckguck-Häschen"
+ },
+ "Criceto paffuto": {
+  "fr": "Hamster joufflu",
+  "de": "Pausbäckiger Hamster"
+ },
+ "Criceto sulla spalla": {
+  "fr": "Hamster sur l'épaule",
+  "de": "Hamster auf der Schulter"
+ },
+ "Cucciolotto kawaii": {
+  "fr": "Chiot kawaii",
+  "de": "Kawaii-Welpe"
+ },
+ "Draghetto kawaii": {
+  "fr": "Bébé dragon kawaii",
+  "de": "Kawaii-Babydrache"
+ },
+ "Foca baby": {
+  "fr": "Bébé phoque",
+  "de": "Robbenbaby"
+ },
+ "Koalino": {
+  "fr": "Bébé koala",
+  "de": "Koala-Baby"
+ },
+ "Leoncino kawaii": {
+  "fr": "Lionceau kawaii",
+  "de": "Kawaii-Löwenjunges"
+ },
+ "Lontrina": {
+  "fr": "Petite loutre",
+  "de": "Kleiner Otter"
+ },
+ "Maialino kawaii": {
+  "fr": "Porcelet kawaii",
+  "de": "Kawaii-Ferkel"
+ },
+ "Micino kawaii": {
+  "fr": "Chaton kawaii",
+  "de": "Kawaii-Kätzchen"
+ },
+ "Orsetto di peluche": {
+  "fr": "Ours en peluche",
+  "de": "Plüsch-Teddy"
+ },
+ "Pandino": {
+  "fr": "Bébé panda",
+  "de": "Panda-Baby"
+ },
+ "Paperella in testa": {
+  "fr": "Caneton sur la tête",
+  "de": "Entchen auf dem Kopf"
+ },
+ "Pinguino kawaii": {
+  "fr": "Pingouin kawaii",
+  "de": "Kawaii-Pinguin"
+ },
+ "Polpetto": {
+  "fr": "Petite pieuvre",
+  "de": "Kleiner Krake"
+ },
+ "Pulcino kawaii": {
+  "fr": "Poussin kawaii",
+  "de": "Kawaii-Küken"
+ },
+ "Ranocchia carina": {
+  "fr": "Grenouille mignonne",
+  "de": "Süßes Fröschchen"
+ },
+ "Ranocchia in testa": {
+  "fr": "Grenouille sur la tête",
+  "de": "Frosch auf dem Kopf"
+ },
+ "Riccetto": {
+  "fr": "Petit hérisson",
+  "de": "Igelchen"
+ },
+ "Topino kawaii": {
+  "fr": "Souris kawaii",
+  "de": "Kawaii-Mäuschen"
+ },
+ "Unicornino": {
+  "fr": "Bébé licorne",
+  "de": "Einhorn-Baby"
+ },
+ "Vitellino": {
+  "fr": "Petit veau",
+  "de": "Kälbchen"
+ },
+ "Volpacchiotto": {
+  "fr": "Renardeau",
+  "de": "Fuchsjunges"
+ },
+ "Orecchie da orsetto": {
+  "fr": "Oreilles d'ourson",
+  "de": "Teddybär-Ohren"
+ },
+ "Apina ronzante": {
+  "fr": "Abeille bourdonnante",
+  "de": "Summendes Bienchen"
+ },
+ "Arcobaleno tra le nuvolette": {
+  "fr": "Arc-en-ciel et petits nuages",
+  "de": "Regenbogen und Wölkchen"
+ },
+ "Avocado sorridente": {
+  "fr": "Avocat souriant",
+  "de": "Lächelnde Avocado"
+ },
+ "Berretto orsetto": {
+  "fr": "Bonnet ourson",
+  "de": "Teddybär-Mütze"
+ },
+ "Cappellino fragola": {
+  "fr": "Bonnet fraise",
+  "de": "Erdbeermütze"
+ },
+ "Cappello a fungo": {
+  "fr": "Chapeau champignon",
+  "de": "Fliegenpilz-Hut"
+ },
+ "Cappello ranocchio": {
+  "fr": "Chapeau grenouille",
+  "de": "Froschmütze"
+ },
+ "Cappuccio da coniglietto": {
+  "fr": "Capuche lapin",
+  "de": "Hasenkapuze"
+ },
+ "Ciambella glassata": {
+  "fr": "Beignet glacé",
+  "de": "Glasierter Donut"
+ },
+ "Coccinella a passeggio": {
+  "fr": "Coccinelle en balade",
+  "de": "Spazierender Marienkäfer"
+ },
+ "Coniglietta orecchie lunghe": {
+  "fr": "Longues oreilles de lapine",
+  "de": "Lange Hasenohren"
+ },
+ "Corna fiorite": {
+  "fr": "Bois fleuris",
+  "de": "Blütengeweih"
+ },
+ "Cupcake in testa": {
+  "fr": "Cupcake sur la tête",
+  "de": "Cupcake auf dem Kopf"
+ },
+ "Due fiocchetti": {
+  "fr": "Deux petits nœuds",
+  "de": "Zwei Schleifchen"
+ },
+ "Fiocco a pois": {
+  "fr": "Nœud à pois",
+  "de": "Gepunktete Schleife"
+ },
+ "Gattina col fiocco": {
+  "fr": "Chaton avec nœud",
+  "de": "Kätzchen mit Schleife"
+ },
+ "Gelato che si scioglie": {
+  "fr": "Glace qui fond",
+  "de": "Schmelzendes Eis"
+ },
+ "Goccia e stizza": {
+  "fr": "Goutte et colère",
+  "de": "Schweißtropfen und Ärger"
+ },
+ "Guanciotte kawaii": {
+  "fr": "Joues kawaii",
+  "de": "Kawaii-Bäckchen"
+ },
+ "Lumachina": {
+  "fr": "Petit escargot",
+  "de": "Schneckchen"
+ },
+ "Nanna": {
+  "fr": "Dodo",
+  "de": "Schlummer"
+ },
+ "Pulcino nel guscio": {
+  "fr": "Poussin dans sa coquille",
+  "de": "Küken in der Eierschale"
+ },
+ "Sushi kawaii": {
+  "fr": "Sushi kawaii",
+  "de": "Kawaii-Sushi"
+ },
+ "Topolina col formaggio": {
+  "fr": "Souris au fromage",
+  "de": "Mäuschen mit Käse"
+ },
+ "Uccellino canterino": {
+  "fr": "Oiseau chanteur",
+  "de": "Singvögelchen"
+ },
+ "Volpina": {
+  "fr": "Petite renarde",
+  "de": "Füchschen"
  }
 }

@@ -619,6 +619,8 @@
     },
     // chiamato da setTileVideo: la videocamera di qualcuno si accende/spegne
     videoChanged() { if (S.hide || overflowIds.size) schedule(150); },
+    // chiamato da hands.js: chi è nel «+N» e alza la mano torna in vista da solo
+    hand(peerId, raised) { if (raised && peerId && overflowIds.has(peerId)) schedule(150); },
     phoneGrid: () => eff().phone && eff().mode === 'grid' && !lvPin,
     getPin: () => lvPin, // 1.8.3: menu ⋮ (Fissa / Sblocca per me)
     setMode, open: openPanel, close, get state() { return Object.assign({}, S); },

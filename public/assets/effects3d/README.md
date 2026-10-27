@@ -10,6 +10,11 @@ Face Landmarker (posizione 3D della testa + 52 espressioni). Il motore è `publi
 | `hair/`   | parrucche e barbe (procedurali) |
 | `chars/`  | personaggi che copiano le espressioni e scene con la faccia in una cornice (procedurali) |
 | `paints/` | maschere dipinte sulla pelle: texture sulla mesh del viso che segue l'espressione |
+| `premium/` | animali fatti con più cura: forme morbide, pelo, occhi e bocca che seguono il viso (procedurali) |
+| `premium2/` | personaggi e costumi fatti con più cura (procedurali) |
+| `premium3/` | effetti divertenti e a tema fatti con più cura (procedurali) |
+| `premium4/` | animaletti kawaii "da pupazzo" e amichetti in testa o sulla spalla (procedurali) |
+| `premium5/` | accessori carini ed effetti kawaii sul viso vero (procedurali) |
 | `glb/`    | modelli gratuiti (CC0 / CC-BY / Apache-2.0) già ottimizzati — crediti in `glb/CREDITS.md` |
 | `thumbs/` | miniature del pannello (generate) |
 | `catalog.js` | catalogo per il pannello (generato) |
@@ -20,7 +25,7 @@ Face Landmarker (posizione 3D della testa + 52 espressioni). Il motore è `publi
    ```js
    export const meta = { label: 'Cappello da pirata', labelEn: 'Pirate hat', category: 'costumi', icon: '🏴‍☠️' };
    export default function build(THREE, h) { /* Group in cm, spazio del viso canonico */ }
-   export function update(g, bs, t, h) { /* facoltativo: anima con le 52 espressioni (bs.jawOpen, bs.eyeBlinkLeft…) */ }
+   export function update(g, bs, t, h) { /* facoltativo: anima con le 52 espressioni calibrate (0 = viso a riposo, 1 = pieno) */ }
    export const hideHead = false; // true per i personaggi che sostituiscono la testa
    ```
    Le maschere (`paints/`) esportano invece `paint(ctx, size, h)` e disegnano sulla texture UV del viso.

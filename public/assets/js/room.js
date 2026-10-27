@@ -2267,7 +2267,24 @@ window._tdSetScreenAudioTrack = async function (track) {
   producers.set('screen-audio', sap);
   return true;
 };
-window._tdRestartScreenShare = async function () { await stopScreenShare(); await produceScreen(); };
+// «Presenta di nuovo con l'audio»: prima si sceglie cosa presentare (finché vale il clic),
+// poi si ferma la presentazione vecchia e parte la nuova con lo schermo scelto
+// (_tdPendingScreen, come «Entra e presenta»). Se si annulla la scelta, quella in corso resta.
+window._tdRestartScreenShare = async function () {
+  let st = null;
+  try {
+    // stessi vincoli di _produceScreenInner (Safari: risoluzione nativa)
+    const _isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+    st = await navigator.mediaDevices.getDisplayMedia(_isSafari ? { video: true, audio: true } : {
+      video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 15 }, cursor: 'always' },
+      ...(window.TdtScreenAudio?.captureOpts() || { audio: true }),
+    });
+  } catch { showToast('Condivisione schermo annullata'); return; }
+  await stopScreenShare();
+  window._tdPendingScreen = st;
+  await produceScreen();
+  if (window._tdPendingScreen === st) { window._tdPendingScreen = null; try { st.getTracks().forEach(t => t.stop()); } catch { } }
+};
 
 // ⭐ FIX R11: UN solo percorso di stop. Prima c'erano 3 copie divergenti
 // (pulsante, 'ended' del browser, transportclose): il pulsante ripristinava la

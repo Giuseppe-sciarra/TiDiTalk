@@ -87,7 +87,7 @@
       <form class="qna-form" id="qnaForm" autocomplete="off" novalidate>
         <label class="sr-only" for="qnaText">Fai una domanda</label>
         <div class="qna-field">
-          <textarea id="qnaText" class="act-input qna-text" rows="2" maxlength="${MAX}" placeholder="Fai una domanda…"></textarea>
+          <textarea id="qnaText" class="act-input qna-text" rows="2" maxlength="${MAX}" placeholder="${esc(T('Fai una domanda…'))}"></textarea>
           <button type="submit" class="qna-send" id="qnaSend" data-tip="Invia la domanda" aria-label="Invia la domanda">${ICO.send}</button>
         </div>
         <div class="qna-form-row">

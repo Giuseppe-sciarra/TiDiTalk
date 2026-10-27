@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Costruisce il catalogo degli effetti viso 3D e le miniature.
 
-Legge i moduli in public/assets/effects3d/{chars,models,hair,paints}/*.js (export const meta),
+Legge i moduli in public/assets/effects3d/{chars,models,hair,glb,premium,premium2,premium3,paints}/*.js (export const meta),
 renderizza una miniatura per ognuno con three.js (Chromium headless via Playwright) e scrive:
   public/assets/effects3d/catalog.js      (window.FaceEffects3D: sezioni + indice per id)
   public/assets/effects3d/thumbs/<id>.webp
@@ -13,6 +13,7 @@ e i vendor scaricati da setup-mediapipe.sh (three.js).
 Uso:  python3 tools/build-effects3d.py            # tutto
       python3 tools/build-effects3d.py --no-thumbs # solo catalogo
       python3 tools/build-effects3d.py --only pig  # una miniatura sola
+      python3 tools/build-effects3d.py --changed   # solo le miniature mancanti o più vecchie del modulo
 """
 import os, sys, json, subprocess, io, base64, http.server, socketserver, threading, functools
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,14 +21,17 @@ FX = os.path.join(ROOT, 'public', 'assets', 'effects3d')
 PUB = os.path.join(ROOT, 'public')
 NO_THUMBS = '--no-thumbs' in sys.argv
 ONLY = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else None
+CHANGED = '--changed' in sys.argv
 
 # ordine e titoli delle sezioni del pannello (le categorie le dichiarano i moduli in meta.category)
 SECTIONS = [
     ('novita', 'Novità'), ('personaggi', 'Personaggi'), ('divertenti', 'Divertenti'), ('costumi', 'Costumi'),
     ('capelli', 'Capelli'), ('barba', 'Barba'), ('accessori', 'Accessori'), ('maschere', 'Maschere'),
 ]
-FOLDERS = [('chars', 'model'), ('models', 'model'), ('hair', 'model'), ('glb', 'model'), ('paints', 'paint')]
-PREFIX = {'chars': 'char', 'models': 'acc', 'hair': 'hair', 'glb': 'cc', 'paints': 'paint'}
+FOLDERS = [('chars', 'model'), ('models', 'model'), ('hair', 'model'), ('glb', 'model'),
+           ('premium', 'model'), ('premium2', 'model'), ('premium3', 'model'), ('premium4', 'model'), ('premium5', 'model'),
+           ('paints', 'paint')]
+PREFIX = {'chars': 'char', 'models': 'acc', 'hair': 'hair', 'glb': 'cc', 'premium': 'pa', 'premium2': 'pc', 'premium3': 'pf', 'premium4': 'pk', 'premium5': 'pq', 'paints': 'paint'}
 
 def read_meta(path):
     """Importa il modulo in node e restituisce meta (+ hideHead)."""
@@ -49,7 +53,8 @@ for folder, typ in FOLDERS:
             'id': f'3d-{PREFIX[folder]}-{fid}', 'type': typ, 'path': f'{folder}/{f}', 'folder': folder,
             'label': m.get('label', fid), 'labelEn': m.get('labelEn', m.get('label', fid)),
             'labelFr': m.get('labelFr'), 'labelDe': m.get('labelDe'),
-            'category': m.get('category') or {'chars': 'personaggi', 'hair': 'capelli', 'paints': 'maschere'}.get(folder, 'accessori'),
+            'category': m.get('category') or {'chars': 'personaggi', 'premium': 'personaggi', 'premium2': 'costumi', 'premium3': 'divertenti', 'premium4': 'personaggi', 'premium5': 'accessori',
+                                              'hair': 'capelli', 'paints': 'maschere'}.get(folder, 'accessori'),
             'order': m.get('order', 50),
             'icon': m.get('icon', '✨'), 'hideHead': info['hideHead'], 'animated': info['hasUpdate'],
             'new': bool(m.get('new')),
@@ -146,6 +151,9 @@ if not NO_THUMBS:
         pg.goto(f'http://127.0.0.1:{port}/__thumbs.html'); pg.wait_for_function('() => window.__ready', timeout=60000)
         for it in items:
             if ONLY and ONLY not in it['id']: continue
+            if CHANGED:
+                tp = os.path.join(FX, 'thumbs', it['id'] + '.webp')
+                if os.path.exists(tp) and os.path.getmtime(tp) >= os.path.getmtime(os.path.join(FX, it['path'])): continue
             try:
                 data = pg.evaluate('(d) => window.__thumb(d)', it)
                 im = Image.open(io.BytesIO(base64.b64decode(data.split(',')[1]))).convert('RGBA')

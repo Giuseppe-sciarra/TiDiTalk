@@ -1,5 +1,85 @@
 # Changelog
 
+## 1.8.8
+
+175 new 3D face effects (392 in all): animals with real fur, kawaii animals,
+characters and costumes, cute accessories, fun and Halloween effects, new face
+paints. Plus the fixes from a full check of 1.8.0–1.8.7.
+
+### Added
+- **Animals with real fur** (32): tabby kitten, black cat, white Persian,
+  Siamese, ginger cat, shiba, golden and pug puppies, tiger and lion cubs, red
+  panda, giant panda, raccoon, lop-eared bunny, hamster, red fox, koala joey,
+  polar bear cub, wolf pup, piglet, penguin chick, little owl, unicorn. Soft fur
+  that lags a little behind the head, glossy eyes that blink one at a time and
+  look where you look, a real mouth with tongue that opens, smiles, frowns and
+  kisses. On your own face: puppy, kitty, bunny, teddy and fawn faces, a kitten
+  or a hamster on your head, kittens peeking from behind your shoulders, a
+  puppy on your shoulder. On slow computers the fur gets lighter by itself
+- **Kawaii animals** (29): round toy-like heads with big shiny eyes and pink
+  cheeks — bunny, kitten, puppy, plush teddy, froggy, chick, chubby hamster,
+  penguin, piglet, axolotl, fox cub, fawn, panda, koala, calf, lamb, baby seal,
+  otter, hedgehog, octopus, sloth, mouse, lion cub, unicorn, baby dragon — plus
+  a froggy and a duckling on your head, a bunny peeking from your shoulder and a
+  hamster on your shoulder
+- **Characters and costumes** (25): bearded pirate, viking, wizard, witch,
+  Santa, Christmas elf, vampire count, fairy, caped hero and heroine, screen-face
+  robot, hooded skeleton, mummy, stitched monster, Halloween zombie; Roman
+  centurion, pirate with a parrot that squawks when you open your mouth, king,
+  starry hood, samurai, pharaoh, fairy-tale princess, detective with a pipe,
+  firefighter, snow queen. Picking an effect again is instant, and the video
+  doesn't freeze while a character is prepared
+- **Fun and Halloween** (37), triggered by your face: confetti, balloons,
+  fireworks, fairy dust, autumn leaves and cherry blossoms when you smile; a
+  rainbow, a ghost parade, a pie in the face or a jack-o'-lantern hat when you
+  open your mouth wide; a head on fire or a storm cloud (sun and rainbow when you
+  smile) when you frown; laser eyes or falling shades when you raise your
+  brows; bubbles, a party blower, birthday candles and flying kisses when you
+  blow; dizzy stars with your eyes closed; butterflies, heart eyes, cartoon
+  tears, comic BOOM, angel wings, devil horns and tail, witch with bats, Santa
+  hat with snow, reindeer, jester, Venetian mask, Easter bunny, Italy fan,
+  chef, firefighter with hose, doctor, miner, pilot. Talking doesn't set them off
+- **Cute accessories** (27): bouncy ear headbands (teddy, mouse with cheese,
+  kitty with bow and bell, fox, floppy bunny) that perk up when you raise your
+  brows and droop when you frown, blossom antlers, polka-dot and twin bows,
+  teddy beanie, bunny hood, froggy hat whose eyes blink with yours, strawberry
+  and toadstool hats, a chick in its eggshell, a cupcake, a melting ice cream, a
+  donut, a smiling avocado and kawaii sushi on your head, kawaii blush, rainbow
+  and little clouds, anime sweat drop and anger mark, sleepy zzz with a nose
+  bubble when you close your eyes, a singing birdie, a little snail, a strolling
+  ladybug and a buzzy bee that lands on your nose
+- **25 new face paints**: tabby cat, white tiger, snow leopard, arctic fox,
+  scaled dragon, mermaid, monarch butterfly, painted flower crown, Catrina, gold
+  and black skull, harlequin, Colombina, black half-mask, Pierrot, spiral tattoo,
+  neon cyber make-up, geometric glitter, festival gems, and the flags of
+  Portugal, the Netherlands, Belgium, Switzerland, Japan, Mexico and Canada
+
+### Fixed
+- **Present again with audio**: cancelling the browser's screen picker ended
+  the presentation that was running. Now you choose the screen first and the
+  old presentation stops only after that
+- **Use an audio device**: if sending the chosen input failed, it was left open
+  (a microphone or BlackHole stayed on); now it is closed again
+- **+N tile**: someone hidden in it who raises their hand now comes into view by
+  themselves
+- **Zoom on a shared screen**: Ctrl/⌘ + plus, minus and 0 did nothing (and
+  Ctrl + plus zoomed the whole page) when the shared screen appeared under a
+  mouse that had not moved
+- **Pre-join**: initials of names with parentheses or symbols follow the 1.8.0
+  rule there too («Giuseppe (Sciarra)» is GS, it was «G(»)
+- **Questions**: the *Ask a question…* placeholder is translated in English,
+  French and German
+
+### Repository
+- The 1.8.7 commit on GitHub contained only the 12 files of the update and
+  removed the other 626 files of the project (styles, scripts, part of the
+  server, fonts, sounds, backgrounds and all the 3D effects). They are back: the
+  repository is again the complete program. Servers updated with the 1.8.7 zip
+  were not affected
+
+### Update
+- Only `docker compose up -d --build`
+
 ## 1.8.7
 
 The audio of what you present (a YouTube video, a DaVinci Resolve timeline).

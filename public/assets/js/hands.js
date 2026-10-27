@@ -186,6 +186,7 @@
     else queue.delete(peerId);
     if (!raised && by && peerId === myId()) window.showToast?.(T('{0} ha abbassato la tua mano').replace('{0}', by), 3500);
     paint();
+    window.TdtLayout?.hand?.(tileId(peerId), !!raised); // chi è nel «+N» e alza la mano torna in vista
   }
 
   window.TdtHands = {

@@ -799,6 +799,761 @@
   "Casque ailé",
   "Flügelhelm"
  ],
+ "Carlino": [
+  "Pug",
+  "Carlin",
+  "Mops"
+ ],
+ "Civetta": [
+  "Little owl",
+  "Chevêche",
+  "Steinkauz"
+ ],
+ "Coniglietto ariete": [
+  "Lop-eared bunny",
+  "Lapin bélier",
+  "Widderkaninchen"
+ ],
+ "Criceto": [
+  "Hamster",
+  "Hamster",
+  "Hamster"
+ ],
+ "Criceto in testa": [
+  "Hamster on your head",
+  "Hamster sur la tête",
+  "Hamster auf dem Kopf"
+ ],
+ "Cucciolo sulla spalla": [
+  "Puppy on your shoulder",
+  "Chiot sur l'épaule",
+  "Welpe auf der Schulter"
+ ],
+ "Gattini che spuntano": [
+  "Peekaboo kittens",
+  "Chatons coucou",
+  "Kuckuck-Kätzchen"
+ ],
+ "Gattino in testa": [
+  "Kitten on your head",
+  "Chaton sur la tête",
+  "Kätzchen auf dem Kopf"
+ ],
+ "Gatto nero": [
+  "Black cat",
+  "Chat noir",
+  "Schwarze Katze"
+ ],
+ "Persiano bianco": [
+  "White Persian cat",
+  "Persan blanc",
+  "Weiße Perserkatze"
+ ],
+ "Gatto rosso": [
+  "Ginger cat",
+  "Chat roux",
+  "Rote Katze"
+ ],
+ "Gatto siamese": [
+  "Siamese cat",
+  "Chat siamois",
+  "Siamkatze"
+ ],
+ "Gattino soriano": [
+  "Tabby kitten",
+  "Chaton tigré",
+  "Getigertes Kätzchen"
+ ],
+ "Cucciolo di golden": [
+  "Golden retriever puppy",
+  "Chiot golden retriever",
+  "Golden-Retriever-Welpe"
+ ],
+ "Cucciolo di koala": [
+  "Koala joey",
+  "Bébé koala",
+  "Koalababy"
+ ],
+ "Leoncino": [
+  "Lion cub",
+  "Lionceau",
+  "Löwenbaby"
+ ],
+ "Lupetto": [
+  "Wolf pup",
+  "Louveteau",
+  "Wolfswelpe"
+ ],
+ "Musetto da cagnolino": [
+  "Puppy face",
+  "Museau de chiot",
+  "Welpengesicht"
+ ],
+ "Musetto da cerbiatto": [
+  "Fawn face",
+  "Frimousse de faon",
+  "Rehkitzgesicht"
+ ],
+ "Musetto da coniglietto": [
+  "Bunny face",
+  "Frimousse de lapin",
+  "Häschengesicht"
+ ],
+ "Musetto da gattino": [
+  "Kitty face",
+  "Frimousse de chaton",
+  "Kätzchengesicht"
+ ],
+ "Musetto da orsetto": [
+  "Teddy face",
+  "Frimousse d'ourson",
+  "Teddygesicht"
+ ],
+ "Orsetto polare": [
+  "Polar bear cub",
+  "Ourson polaire",
+  "Eisbärbaby"
+ ],
+ "Panda gigante": [
+  "Giant panda",
+  "Panda géant",
+  "Großer Panda"
+ ],
+ "Panda rosso": [
+  "Red panda",
+  "Panda roux",
+  "Roter Panda"
+ ],
+ "Pulcino di pinguino": [
+  "Penguin chick",
+  "Poussin manchot",
+  "Pinguinküken"
+ ],
+ "Porcellino": [
+  "Piglet",
+  "Porcelet",
+  "Ferkel"
+ ],
+ "Procione": [
+  "Raccoon",
+  "Raton laveur",
+  "Waschbär"
+ ],
+ "Cucciolo di shiba": [
+  "Shiba puppy",
+  "Chiot shiba",
+  "Shiba-Welpe"
+ ],
+ "Tigrotto": [
+  "Tiger cub",
+  "Bébé tigre",
+  "Tigerbaby"
+ ],
+ "Unicorno": [
+  "Unicorn",
+  "Licorne",
+  "Einhorn"
+ ],
+ "Volpe rossa": [
+  "Red fox",
+  "Renard roux",
+  "Rotfuchs"
+ ],
+ "Babbo Natale": [
+  "Santa Claus",
+  "Père Noël",
+  "Weihnachtsmann"
+ ],
+ "Cappuccio stellato": [
+  "Starry wizard hood",
+  "Capuche étoilée",
+  "Sternenkapuze"
+ ],
+ "Centurione romano": [
+  "Roman centurion",
+  "Centurion romain",
+  "Römischer Zenturio"
+ ],
+ "Detective": [
+  "Detective",
+  "Détective",
+  "Detektiv"
+ ],
+ "Elfo di Natale": [
+  "Christmas elf",
+  "Lutin de Noël",
+  "Weihnachtself"
+ ],
+ "Eroe col mantello": [
+  "Caped hero",
+  "Héros à cape",
+  "Held mit Umhang"
+ ],
+ "Eroina col mantello": [
+  "Caped heroine",
+  "Héroïne à cape",
+  "Heldin mit Umhang"
+ ],
+ "Faraone": [
+  "Pharaoh",
+  "Pharaon",
+  "Pharao"
+ ],
+ "Fata": [
+  "Fairy",
+  "Fée",
+  "Fee"
+ ],
+ "Mago": [
+  "Wizard",
+  "Magicien",
+  "Zauberer"
+ ],
+ "Mostro cucito": [
+  "Stitched monster",
+  "Monstre recousu",
+  "Genähtes Monster"
+ ],
+ "Mummia": [
+  "Mummy",
+  "Momie",
+  "Mumie"
+ ],
+ "Pirata barbuto": [
+  "Bearded pirate",
+  "Pirate barbu",
+  "Bärtiger Pirat"
+ ],
+ "Pirata col pappagallo": [
+  "Pirate with parrot",
+  "Pirate et son perroquet",
+  "Pirat mit Papagei"
+ ],
+ "Pompiere": [
+  "Firefighter",
+  "Pompier",
+  "Feuerwehrmann"
+ ],
+ "Principessa delle fiabe": [
+  "Fairy-tale princess",
+  "Princesse de conte",
+  "Märchenprinzessin"
+ ],
+ "Re con mantello": [
+  "King with royal robe",
+  "Roi en manteau",
+  "König im Königsmantel"
+ ],
+ "Regina delle nevi": [
+  "Snow queen",
+  "Reine des neiges",
+  "Schneekönigin"
+ ],
+ "Robot con schermo": [
+  "Screen-face robot",
+  "Robot à écran",
+  "Bildschirm-Roboter"
+ ],
+ "Samurai": [
+  "Samurai",
+  "Samouraï",
+  "Samurai"
+ ],
+ "Scheletro incappucciato": [
+  "Hooded skeleton",
+  "Squelette encapuchonné",
+  "Skelett mit Kapuze"
+ ],
+ "Strega": [
+  "Witch",
+  "Sorcière",
+  "Hexe"
+ ],
+ "Conte vampiro": [
+  "Vampire count",
+  "Comte vampire",
+  "Vampirgraf"
+ ],
+ "Vichingo": [
+  "Viking",
+  "Viking",
+  "Wikinger"
+ ],
+ "Zombi di Halloween": [
+  "Halloween zombie",
+  "Zombie d'Halloween",
+  "Halloween-Zombie"
+ ],
+ "Angioletto": [
+  "Little angel",
+  "Petit ange",
+  "Engelchen"
+ ],
+ "Foglie d'autunno": [
+  "Autumn leaves",
+  "Feuilles d'automne",
+  "Herbstlaub"
+ ],
+ "Palloncini": [
+  "Balloons",
+  "Ballons",
+  "Luftballons"
+ ],
+ "Spegni le candeline": [
+  "Blow out the candles",
+  "Souffle les bougies",
+  "Kerzen auspusten"
+ ],
+ "Farfalle": [
+  "Butterflies",
+  "Papillons",
+  "Schmetterlinge"
+ ],
+ "Lacrimoni": [
+  "Cartoon tears",
+  "Grosses larmes",
+  "Krokodilstränen"
+ ],
+ "Chef con baffi": [
+  "Chef with moustache",
+  "Chef moustachu",
+  "Koch mit Schnurrbart"
+ ],
+ "Fumetto BOOM!": [
+  "Comic BOOM!",
+  "BOUM de BD",
+  "Comic-BUMM!"
+ ],
+ "Sorriso a coriandoli": [
+  "Confetti smile",
+  "Sourire confettis",
+  "Konfetti-Lächeln"
+ ],
+ "Corna e coda": [
+  "Horns & tail",
+  "Cornes et queue",
+  "Hörner und Schwanz"
+ ],
+ "Stordito": [
+  "Dizzy stars",
+  "Étourdi",
+  "Schwindelig"
+ ],
+ "Dottore": [
+  "Doctor",
+  "Docteur",
+  "Doktor"
+ ],
+ "Coniglietto pasquale": [
+  "Easter bunny",
+  "Lapin de Pâques",
+  "Osterhase"
+ ],
+ "Polvere di fata": [
+  "Fairy dust",
+  "Poussière de fée",
+  "Feenstaub"
+ ],
+ "Testa in fiamme": [
+  "Head on fire",
+  "Tête en feu",
+  "Feuerkopf"
+ ],
+ "Pompiere con la lancia": [
+  "Firefighter with hose",
+  "Pompier avec la lance",
+  "Feuerwehrmann mit Schlauch"
+ ],
+ "Fuochi d'artificio": [
+  "Fireworks",
+  "Feu d'artifice",
+  "Feuerwerk"
+ ],
+ "Girotondo di fantasmi": [
+  "Ghost parade",
+  "Ronde de fantômes",
+  "Geisterreigen"
+ ],
+ "Strega con pipistrelli": [
+  "Witch hat & bats",
+  "Sorcière et chauves-souris",
+  "Hexenhut mit Fledermäusen"
+ ],
+ "Occhi a cuore": [
+  "Heart eyes",
+  "Yeux en cœur",
+  "Herzaugen"
+ ],
+ "Tifoso azzurro": [
+  "Italy fan",
+  "Supporter italien",
+  "Italien-Fan"
+ ],
+ "Giullare con sonagli": [
+  "Jingle-bell jester",
+  "Bouffon à grelots",
+  "Narr mit Schellen"
+ ],
+ "Bacio volante": [
+  "Blow a kiss",
+  "Bisou volant",
+  "Kusshand"
+ ],
+ "Occhi laser": [
+  "Laser eyes",
+  "Yeux laser",
+  "Laseraugen"
+ ],
+ "Casco con torcia": [
+  "Headlamp helmet",
+  "Casque à lampe",
+  "Helm mit Stirnlampe"
+ ],
+ "Trombetta da festa": [
+  "Party blower",
+  "Langue de belle-mère",
+  "Luftrüssel"
+ ],
+ "Torta in faccia": [
+  "Pie in the face",
+  "Tarte à la crème",
+  "Torte ins Gesicht"
+ ],
+ "Pilota d'aereo": [
+  "Airline pilot",
+  "Pilote de ligne",
+  "Flugkapitän"
+ ],
+ "Zucca col lumino": [
+  "Jack-o'-lantern hat",
+  "Citrouille-lanterne",
+  "Kürbislaterne als Hut"
+ ],
+ "Arcobaleno dalla bocca": [
+  "Rainbow mouth",
+  "Arc-en-ciel buccal",
+  "Regenbogenmund"
+ ],
+ "Renna dal naso rosso": [
+  "Red-nosed reindeer",
+  "Renne au nez rouge",
+  "Rentier mit roter Nase"
+ ],
+ "Fiori di ciliegio": [
+  "Cherry blossoms",
+  "Fleurs de cerisier",
+  "Kirschblüten"
+ ],
+ "Occhiali dal cielo": [
+  "Falling shades",
+  "Lunettes tombées du ciel",
+  "Brille vom Himmel"
+ ],
+ "Bolle di sapone": [
+  "Soap bubbles",
+  "Bulles de savon",
+  "Seifenblasen"
+ ],
+ "Temporale in testa": [
+  "Brainstorm",
+  "Orage dans la tête",
+  "Gewitter im Kopf"
+ ],
+ "Maschera con piume": [
+  "Feathered carnival mask",
+  "Masque à plumes",
+  "Federmaske"
+ ],
+ "Natale sotto la neve": [
+  "Snowy Christmas",
+  "Noël sous la neige",
+  "Weihnachten im Schnee"
+ ],
+ "Agnellino": [
+  "Little lamb",
+  "Petit agneau",
+  "Lämmchen"
+ ],
+ "Axolotl kawaii": [
+  "Kawaii axolotl",
+  "Axolotl kawaii",
+  "Kawaii-Axolotl"
+ ],
+ "Bradipino": [
+  "Baby sloth",
+  "Bébé paresseux",
+  "Faultier-Baby"
+ ],
+ "Cerbiattino": [
+  "Little fawn",
+  "Petit faon",
+  "Rehkitz"
+ ],
+ "Coniglietto kawaii": [
+  "Kawaii bunny",
+  "Lapinou kawaii",
+  "Kawaii-Häschen"
+ ],
+ "Coniglietto che spunta": [
+  "Peekaboo bunny",
+  "Lapinou coucou",
+  "Guckguck-Häschen"
+ ],
+ "Criceto paffuto": [
+  "Chubby hamster",
+  "Hamster joufflu",
+  "Pausbäckiger Hamster"
+ ],
+ "Criceto sulla spalla": [
+  "Hamster on your shoulder",
+  "Hamster sur l'épaule",
+  "Hamster auf der Schulter"
+ ],
+ "Cucciolotto kawaii": [
+  "Kawaii puppy",
+  "Chiot kawaii",
+  "Kawaii-Welpe"
+ ],
+ "Draghetto kawaii": [
+  "Kawaii baby dragon",
+  "Bébé dragon kawaii",
+  "Kawaii-Babydrache"
+ ],
+ "Foca baby": [
+  "Baby seal",
+  "Bébé phoque",
+  "Robbenbaby"
+ ],
+ "Koalino": [
+  "Baby koala",
+  "Bébé koala",
+  "Koala-Baby"
+ ],
+ "Leoncino kawaii": [
+  "Kawaii lion cub",
+  "Lionceau kawaii",
+  "Kawaii-Löwenjunges"
+ ],
+ "Lontrina": [
+  "Little otter",
+  "Petite loutre",
+  "Kleiner Otter"
+ ],
+ "Maialino kawaii": [
+  "Kawaii piglet",
+  "Porcelet kawaii",
+  "Kawaii-Ferkel"
+ ],
+ "Micino kawaii": [
+  "Kawaii kitten",
+  "Chaton kawaii",
+  "Kawaii-Kätzchen"
+ ],
+ "Orsetto di peluche": [
+  "Plush teddy bear",
+  "Ours en peluche",
+  "Plüsch-Teddy"
+ ],
+ "Pandino": [
+  "Baby panda",
+  "Bébé panda",
+  "Panda-Baby"
+ ],
+ "Paperella in testa": [
+  "Duckling on your head",
+  "Caneton sur la tête",
+  "Entchen auf dem Kopf"
+ ],
+ "Pinguino kawaii": [
+  "Kawaii penguin",
+  "Pingouin kawaii",
+  "Kawaii-Pinguin"
+ ],
+ "Polpetto": [
+  "Little octopus",
+  "Petite pieuvre",
+  "Kleiner Krake"
+ ],
+ "Pulcino kawaii": [
+  "Kawaii chick",
+  "Poussin kawaii",
+  "Kawaii-Küken"
+ ],
+ "Ranocchia carina": [
+  "Cute froggy",
+  "Grenouille mignonne",
+  "Süßes Fröschchen"
+ ],
+ "Ranocchia in testa": [
+  "Froggy on your head",
+  "Grenouille sur la tête",
+  "Frosch auf dem Kopf"
+ ],
+ "Riccetto": [
+  "Little hedgehog",
+  "Petit hérisson",
+  "Igelchen"
+ ],
+ "Topino kawaii": [
+  "Kawaii mouse",
+  "Souris kawaii",
+  "Kawaii-Mäuschen"
+ ],
+ "Unicornino": [
+  "Baby unicorn",
+  "Bébé licorne",
+  "Einhorn-Baby"
+ ],
+ "Vitellino": [
+  "Little calf",
+  "Petit veau",
+  "Kälbchen"
+ ],
+ "Volpacchiotto": [
+  "Fox cub",
+  "Renardeau",
+  "Fuchsjunges"
+ ],
+ "Apina ronzante": [
+  "Buzzy bee",
+  "Abeille bourdonnante",
+  "Summendes Bienchen"
+ ],
+ "Arcobaleno tra le nuvolette": [
+  "Rainbow & little clouds",
+  "Arc-en-ciel et petits nuages",
+  "Regenbogen und Wölkchen"
+ ],
+ "Avocado sorridente": [
+  "Smiling avocado",
+  "Avocat souriant",
+  "Lächelnde Avocado"
+ ],
+ "Berretto orsetto": [
+  "Teddy bear beanie",
+  "Bonnet ourson",
+  "Teddybär-Mütze"
+ ],
+ "Cappellino fragola": [
+  "Strawberry hat",
+  "Bonnet fraise",
+  "Erdbeermütze"
+ ],
+ "Cappello a fungo": [
+  "Toadstool hat",
+  "Chapeau champignon",
+  "Fliegenpilz-Hut"
+ ],
+ "Cappello ranocchio": [
+  "Froggy hat",
+  "Chapeau grenouille",
+  "Froschmütze"
+ ],
+ "Cappuccio da coniglietto": [
+  "Bunny hood",
+  "Capuche lapin",
+  "Hasenkapuze"
+ ],
+ "Ciambella glassata": [
+  "Sprinkle donut",
+  "Beignet glacé",
+  "Glasierter Donut"
+ ],
+ "Coccinella a passeggio": [
+  "Strolling ladybug",
+  "Coccinelle en balade",
+  "Spazierender Marienkäfer"
+ ],
+ "Coniglietta orecchie lunghe": [
+  "Floppy bunny ears",
+  "Longues oreilles de lapine",
+  "Lange Hasenohren"
+ ],
+ "Corna fiorite": [
+  "Blossom antlers",
+  "Bois fleuris",
+  "Blütengeweih"
+ ],
+ "Cupcake in testa": [
+  "Cupcake hat",
+  "Cupcake sur la tête",
+  "Cupcake auf dem Kopf"
+ ],
+ "Due fiocchetti": [
+  "Twin gingham bows",
+  "Deux petits nœuds",
+  "Zwei Schleifchen"
+ ],
+ "Fiocco a pois": [
+  "Polka-dot bow",
+  "Nœud à pois",
+  "Gepunktete Schleife"
+ ],
+ "Gattina col fiocco": [
+  "Kitty ears & bow",
+  "Chaton avec nœud",
+  "Kätzchen mit Schleife"
+ ],
+ "Gelato che si scioglie": [
+  "Melting ice cream",
+  "Glace qui fond",
+  "Schmelzendes Eis"
+ ],
+ "Goccia e stizza": [
+  "Anime sweat & anger",
+  "Goutte et colère",
+  "Schweißtropfen und Ärger"
+ ],
+ "Guanciotte kawaii": [
+  "Kawaii blush",
+  "Joues kawaii",
+  "Kawaii-Bäckchen"
+ ],
+ "Lumachina": [
+  "Little snail",
+  "Petit escargot",
+  "Schneckchen"
+ ],
+ "Nanna": [
+  "Sleepy zzz",
+  "Dodo",
+  "Schlummer"
+ ],
+ "Orecchie da orsetto": [
+  "Teddy bear ears",
+  "Oreilles d'ourson",
+  "Teddybär-Ohren"
+ ],
+ "Pulcino nel guscio": [
+  "Eggshell chick",
+  "Poussin dans sa coquille",
+  "Küken in der Eierschale"
+ ],
+ "Sushi kawaii": [
+  "Kawaii sushi",
+  "Sushi kawaii",
+  "Kawaii-Sushi"
+ ],
+ "Topolina col formaggio": [
+  "Mouse ears & cheese",
+  "Souris au fromage",
+  "Mäuschen mit Käse"
+ ],
+ "Uccellino canterino": [
+  "Singing birdie",
+  "Oiseau chanteur",
+  "Singvögelchen"
+ ],
+ "Volpina": [
+  "Fox kit ears",
+  "Petite renarde",
+  "Füchschen"
+ ],
+ "Volpe artica": [
+  "Arctic fox",
+  "Renard polaire",
+  "Polarfuchs"
+ ],
  "Ape": [
   "Bee",
   "Abeille",
@@ -809,10 +1564,25 @@
   "Papillon",
   "Schmetterling"
  ],
+ "Teschio oro e nero": [
+  "Gold & black skull",
+  "Crâne or et noir",
+  "Schädel in Gold und Schwarz"
+ ],
+ "Mezza maschera nera": [
+  "Black carnival half-mask",
+  "Demi-masque noir",
+  "Schwarze Halbmaske"
+ ],
  "Gatto": [
   "Cat",
   "Chat",
   "Katze"
+ ],
+ "Catrina": [
+  "Catrina",
+  "Catrina",
+  "Catrina"
  ],
  "Clown": [
   "Clown",
@@ -829,6 +1599,11 @@
   "Clown triste",
   "Trauriger Clown"
  ],
+ "Colombina": [
+  "Colombina mask",
+  "Masque de Colombine",
+  "Colombina-Maske"
+ ],
  "Circuiti cyborg": [
   "Cyborg circuits",
   "Circuits cyborg",
@@ -844,15 +1619,45 @@
   "Faon",
   "Rehkitz"
  ],
+ "Drago a squame": [
+  "Scaled dragon",
+  "Dragon à écailles",
+  "Schuppendrache"
+ ],
+ "Gemme e strass": [
+  "Festival gems",
+  "Gemmes et strass",
+  "Edelsteine und Strass"
+ ],
+ "Glitter geometrico": [
+  "Geometric festival glitter",
+  "Paillettes géométriques",
+  "Geometrischer Glitzer"
+ ],
  "Bandiera argentina": [
   "Argentina flag cheeks",
   "Drapeau argentin",
   "Argentinische Flagge"
  ],
+ "Bandiera belga": [
+  "Belgium flag cheeks",
+  "Drapeau belge",
+  "Belgische Flagge"
+ ],
  "Bandiera brasiliana": [
   "Brazil flag cheeks",
   "Drapeau brésilien",
   "Brasilianische Flagge"
+ ],
+ "Bandiera canadese": [
+  "Canada flag cheeks",
+  "Drapeau canadien",
+  "Kanadische Flagge"
+ ],
+ "Bandiera svizzera": [
+  "Swiss flag cheeks",
+  "Drapeau suisse",
+  "Schweizer Flagge"
  ],
  "Bandiera tedesca": [
   "German flag cheeks",
@@ -874,6 +1679,26 @@
   "Drapeau français",
   "Französische Flagge"
  ],
+ "Bandiera giapponese": [
+  "Japan flag cheeks",
+  "Drapeau japonais",
+  "Japanische Flagge"
+ ],
+ "Bandiera messicana": [
+  "Mexico flag cheeks",
+  "Drapeau mexicain",
+  "Mexikanische Flagge"
+ ],
+ "Bandiera olandese": [
+  "Netherlands flag cheeks",
+  "Drapeau néerlandais",
+  "Niederländische Flagge"
+ ],
+ "Bandiera portoghese": [
+  "Portugal flag cheeks",
+  "Drapeau portugais",
+  "Portugiesische Flagge"
+ ],
  "Bandiera britannica": [
   "UK flag cheeks",
   "Drapeau britannique",
@@ -883,6 +1708,11 @@
   "USA flag cheeks",
   "Drapeau américain",
   "US-Flagge"
+ ],
+ "Corona di fiori dipinta": [
+  "Painted flower crown",
+  "Couronne de fleurs peinte",
+  "Gemalter Blumenkranz"
  ],
  "Frankenstein": [
   "Frankenstein",
@@ -918,6 +1748,11 @@
   "Half skull",
   "Demi-crâne",
   "Halber Totenkopf"
+ ],
+ "Arlecchino": [
+  "Harlequin",
+  "Arlequin",
+  "Harlekin"
  ],
  "Maschera nera": [
   "Black hero mask",
@@ -964,10 +1799,25 @@
   "Masque vénitien",
   "Venezianische Maske"
  ],
+ "Sirena": [
+  "Mermaid",
+  "Sirène",
+  "Meerjungfrau"
+ ],
  "Mimo": [
   "Mime",
   "Mime",
   "Pantomime"
+ ],
+ "Farfalla monarca": [
+  "Monarch butterfly",
+  "Papillon monarque",
+  "Monarchfalter"
+ ],
+ "Trucco cyber neon": [
+  "Neon cyber makeup",
+  "Maquillage cyber néon",
+  "Neon-Cyber-Make-up"
  ],
  "Ninja": [
   "Ninja bandana",
@@ -978,6 +1828,11 @@
   "Old age",
   "Vieillesse",
   "Alter"
+ ],
+ "Pierrot": [
+  "Pierrot",
+  "Pierrot",
+  "Pierrot"
  ],
  "Bambola di porcellana": [
   "Cracked porcelain doll",
@@ -1004,10 +1859,20 @@
   "Yeux smoky",
   "Smoky Eyes"
  ],
+ "Leopardo delle nevi": [
+  "Snow leopard",
+  "Panthère des neiges",
+  "Schneeleopard"
+ ],
  "Ragnatela": [
   "Spider web",
   "Toile d'araignée",
   "Spinnennetz"
+ ],
+ "Tatuaggio a spirali": [
+  "Spiral tattoo",
+  "Tatouage en spirales",
+  "Spiral-Tattoo"
  ],
  "Teschio messicano": [
   "Sugar skull",
@@ -1018,6 +1883,11 @@
   "Superhero mask",
   "Super-héros",
   "Superheld"
+ ],
+ "Gatto soriano": [
+  "Tabby cat",
+  "Chat tigré",
+  "Getigerte Katze"
  ],
  "Tatuaggi cuoricini": [
   "Heart tattoos",
@@ -1043,6 +1913,11 @@
   "War paint",
   "Guerrier",
   "Krieger"
+ ],
+ "Tigre bianca": [
+  "White tiger",
+  "Tigre blanc",
+  "Weißer Tiger"
  ],
  "Zebra": [
   "Zebra",

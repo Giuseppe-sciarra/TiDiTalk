@@ -146,7 +146,9 @@ tuo marchio.
   o una tua immagine), stili colore ed effetti
   viso (MediaPipe) in un **pannello laterale con anteprima**, da Altro o dal
   pulsante sul proprio riquadro
-- **217 effetti viso 3D come Meet** (personaggi che copiano le tue espressioni,
+- **392 effetti viso 3D come Meet** (personaggi che copiano le tue espressioni,
+  animali col pelo vero e animaletti kawaii, costumi, accessori carini, effetti
+  divertenti e di Halloween che reagiscono a sorriso, bocca e sopracciglia,
   parrucche, barbe, cappelli, occhiali, maschere dipinte, scene con la faccia in
   una cornice) che seguono la testa in 3D: MediaPipe Face Landmarker in un Web
   Worker + three.js, tutto servito in locale. Gli effetti 2D classici restano

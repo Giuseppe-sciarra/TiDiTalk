@@ -90,15 +90,20 @@
   async function useDevice() {
     const sel = card?.querySelector('#saDevSel'); const id = sel?.value; if (!id) return;
     const label = sel.options[sel.selectedIndex]?.textContent || '';
+    let st = null;
     try {
-      const st = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: id }, echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 }, sampleRate: { ideal: 48000 } } });
+      st = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: id }, echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 }, sampleRate: { ideal: 48000 } } });
       const tr = st.getAudioTracks()[0];
       try { tr.contentHint = 'music'; } catch (_) { }
       await window._tdSetScreenAudioTrack(tr);
       stopExtra(); extra = st; hasAudio = true;
       closeCard(); paintChip();
       window.showToast?.(T('Ora gli altri sentono: {0}').replace('{0}', label), 3500);
-    } catch (e) { toast(e?.message || 'Non riesco ad aprire questo ingresso audio', 3500); }
+    } catch (e) {
+      // l'ingresso aperto ma non mandato agli altri si richiude (niente microfono o BlackHole lasciato acceso)
+      if (st && st !== extra) { try { st.getTracks().forEach(t => t.stop()); } catch (_) { } }
+      toast(e?.message || 'Non riesco ad aprire questo ingresso audio', 3500);
+    }
   }
 
   function onClick(e) {
