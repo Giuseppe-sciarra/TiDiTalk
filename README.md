@@ -314,6 +314,7 @@ Backups: `backups/` (last 10). Log: `logs/aggiorna-tutto.log` (plus
 | `UPDATE_SKIP_IF_BUSY` | `1` | postpone while people are connected |
 | `UPDATE_BUSY_RETRIES` / `UPDATE_BUSY_WAIT` | `3` / `900` | how many times / every how many seconds |
 | `UPDATE_KEEP_ROLLBACK` (or `AGG_TIENI_ROLLBACK`) | `5` | rollback images to keep |
+| `AGG_ATTESA_SERVIZI` | `600` | seconds to wait for coturn to stay up on a new image |
 | `UPDATE_CHECK` | `0` | old "updates available" email, without updating |
 
 ### Manual

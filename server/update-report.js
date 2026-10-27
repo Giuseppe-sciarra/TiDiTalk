@@ -169,7 +169,7 @@ async function main() {
     : status === 'nessuno'
       ? 'Era già tutto aggiornato'
       : status === 'rollback'
-        ? 'Aggiornamento notturno annullato, torna la versione di prima'
+        ? (payload.rebuilt ? 'Aggiornato, ma qualcosa è tornato alla versione di prima' : 'Aggiornamento notturno annullato, torna la versione di prima')
         : 'Aggiornamento notturno con errori';
 
   const colore = status === 'ok' ? '#3a7a5c' : status === 'nessuno' ? '#565c67' : status === 'rollback' ? '#b8892b' : '#c0453c';
@@ -254,7 +254,9 @@ async function main() {
       : status === 'nessuno'
         ? 'Nessuna versione nuova stanotte: non è stato toccato niente.'
         : status === 'rollback'
-          ? 'Qualcosa non rispondeva dopo l\'aggiornamento: è tornata la versione di prima. Nessun intervento urgente, ma vale la pena guardare i log.'
+          ? (payload.rebuilt
+            ? 'Tiditalk è aggiornato e risponde; quello che non restava su è tornato alla versione di prima e funziona come ieri. Il perché è in «Cosa è successo».'
+            : 'Qualcosa non rispondeva dopo l\'aggiornamento: è tornata la versione di prima. Nessun intervento urgente, ma vale la pena guardare i log.')
           : 'L\'aggiornamento si è interrotto. Controlla il log su host e lo stato dei container.'}
   </td></tr>
 </table></td></tr></table></body></html>`;
@@ -271,7 +273,7 @@ async function main() {
     : status === 'nessuno'
       ? `${appName}: era già tutto aggiornato`
       : status === 'rollback'
-        ? `⚠ ${appName}: aggiornamento notturno annullato, torna la versione di prima`
+        ? (payload.rebuilt ? `⚠ ${appName}: aggiornato, ma qualcosa è tornato alla versione di prima (vedi email)` : `⚠ ${appName}: aggiornamento notturno annullato, torna la versione di prima`)
         : `❌ ${appName}: aggiornamento notturno con errori`;
 
   await mailer.sendRaw({ to, subject, html, text });

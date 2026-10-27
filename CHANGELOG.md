@@ -37,7 +37,10 @@ Alpine and coturn.
   meetings, `--force`, realigning old versions inside the image and the
   major/minor/patch table all stay. `auto-update.sh` and `install-cron.sh`
   still work and hand over to the new names; the new installer removes the
-  old 08:00 schedule
+  old 08:00 schedule. coturn gets up to 10 minutes to stay up on a new
+  image (`AGG_ATTESA_SERVIZI`); if it doesn't, its state, health check,
+  restarts, exit code and last log lines go into the log and the email before
+  it goes back to the previous image
 
 ### Security
 - **Node's Brotli flaw (CVE-2026-111497, October 2026)**: the server no longer

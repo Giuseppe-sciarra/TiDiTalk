@@ -327,6 +327,7 @@ Backup: `backups/` (ultimi 10). Log: `logs/aggiorna-tutto.log` (e
 | `UPDATE_SKIP_IF_BUSY` | `1` | rimanda se ci sono persone collegate |
 | `UPDATE_BUSY_RETRIES` / `UPDATE_BUSY_WAIT` | `3` / `900` | quante volte / ogni quanti secondi |
 | `UPDATE_KEEP_ROLLBACK` (o `AGG_TIENI_ROLLBACK`) | `5` | immagini di rollback da tenere |
+| `AGG_ATTESA_SERVIZI` | `600` | secondi di attesa perché coturn resti su con l'immagine nuova |
 | `UPDATE_CHECK` | `0` | vecchia email "aggiornamenti disponibili", senza aggiornare |
 
 ### A mano

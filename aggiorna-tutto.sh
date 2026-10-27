@@ -39,6 +39,7 @@
 #   UPDATE_SKIP_IF_BUSY=1         rimanda se ci sono partecipanti collegati
 #   UPDATE_BUSY_RETRIES=3         quante volte rimandare…
 #   UPDATE_BUSY_WAIT=900          …e ogni quanti secondi (900 = 15 minuti)
+#   AGG_ATTESA_SERVIZI=600        quanti secondi aspettare che coturn resti su con l'immagine nuova
 # ═════════════════════════════════════════════════════════════════════════════
 PROGETTO="tiditalk"
 NOME="Tiditalk"
@@ -81,6 +82,8 @@ SKIP_IF_BUSY="$(pick UPDATE_SKIP_IF_BUSY)"; SKIP_IF_BUSY="${SKIP_IF_BUSY:-1}"
 BUSY_RETRIES="$(pick UPDATE_BUSY_RETRIES)"; BUSY_RETRIES="${BUSY_RETRIES:-3}"
 BUSY_WAIT="$(pick UPDATE_BUSY_WAIT)"; BUSY_WAIT="${BUSY_WAIT:-900}"
 HEALTH_TRIES="$(pick AGG_HEALTH_TRIES UPDATE_HEALTH_TRIES)"; HEALTH_TRIES="${HEALTH_TRIES:-36}"   # x5 s = 3 minuti
+# coturn e gli altri servizi scaricati: quanto aspettare (secondi) che restino su con l'immagine nuova
+ATTESA_ALTRI="$(pick AGG_ATTESA_SERVIZI)"; [[ "$ATTESA_ALTRI" =~ ^[0-9]+$ ]] || ATTESA_ALTRI=600
 APP_PORT="$(pick APP_PORT PORT)"; APP_PORT="${APP_PORT:-3010}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:${APP_PORT}/api/health}"
 
@@ -136,11 +139,11 @@ versione() {   # $1 servizio → versione leggibile per log ed email
   printf '%s' "$v"
 }
 
-# Il servizio è in piedi, sano e risponde alla sua prova (al massimo HEALTH_TRIES x 5 s);
+# Il servizio è in piedi, sano e risponde alla sua prova (al massimo HEALTH_TRIES x 5 s, o $2 x 5 s);
 # poi deve restare su altri 20 s senza ripartire (un crash-loop qui si vede).
 controlla() {
   local svc="$1" cid st h at
-  for _ in $(seq 1 "$HEALTH_TRIES"); do
+  for _ in $(seq 1 "${2:-$HEALTH_TRIES}"); do
     sleep 5
     cid=$(docker compose ps -q "$svc" 2>/dev/null | head -1)
     [[ -n "$cid" ]] || continue
@@ -152,6 +155,18 @@ controlla() {
     return
   done
   return 1
+}
+
+# Perché un servizio non va: stato, healthcheck dell'immagine, riavvii, codice di uscita e ultime righe
+# del log. Si legge PRIMA di tornare indietro (dopo il container nuovo non c'è più).
+diagnosi() {
+  local cid; cid=$(docker compose ps -aq "$1" 2>/dev/null | head -1)
+  if [[ -n "$cid" ]]; then
+    docker inspect -f 'stato: {{.State.Status}} · healthcheck: {{if .State.Health}}{{.State.Health.Status}}{{else}}nessuno{{end}} · riavvii: {{.RestartCount}} · codice di uscita: {{.State.ExitCode}}{{if .State.Error}} · errore: {{.State.Error}}{{end}}' "$cid" 2>/dev/null
+    docker inspect -f '{{if .State.Health}}{{range .State.Health.Log}}healthcheck ({{.ExitCode}}): {{.Output}}{{"\n"}}{{end}}{{end}}' "$cid" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -3
+  fi
+  echo "ultime righe del log:"
+  docker compose logs --no-color --tail 25 "$1" 2>&1 | tr -d '\r' | tail -25
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -364,11 +379,11 @@ else
     log "build ok, riavvio $SERVICE…"
     docker compose up -d "$SERVICE" >> logs/build.log 2>&1
     if ! controlla "$SERVICE"; then
-      ERR=$(docker compose logs --tail 25 "$SERVICE" 2>&1 | tail -25)
+      ERR=$(diagnosi "$SERVICE")
       ripristina_app "$SERVICE non parte o non risponde con la versione nuova"
       peggiora rollback
       aggiungi "⚠ $NOME: con la versione nuova non partiva o non rispondeva. È tornato alla versione di prima, funziona come ieri."
-      aggiungi "   Ultime righe del log:"; aggiungi "$(printf '%s\n' "$ERR" | sed 's/^/   /')"
+      aggiungi "$(printf '%s\n' "$ERR" | sed 's/^/   /')"
       [[ -n "$MODIFICHE" ]] && { aggiungi "   Versioni che erano state provate:"; aggiungi "$MODIFICHE"; }
       aggiungi "   Domani riprova da solo; se il problema resta, metti un limite alla libreria in server/package.json (es. \"nome\": \">=2 <3\")."
     else
@@ -421,7 +436,8 @@ aggiorna_immagine() {   # $1 servizio
   if [[ "$voluta" != "$img" ]]; then log "$svc: il docker-compose.yml ora chiede $voluta (gira $img), cambio…"
   else log "$svc: immagine nuova, riavvio…"; fi
   docker compose up -d "$svc" > /dev/null 2>&1
-  if controlla "$svc"; then
+  log "aspetto che $svc resti su con l'immagine nuova (fino a $((ATTESA_ALTRI / 60)) minuti)…"
+  if controlla "$svc" "$(( (ATTESA_ALTRI + 4) / 5 ))"; then
     vdopo=$(versione "$svc")
     log "✅ $svc aggiornato${vprima:+: $vprima}${vdopo:+ → $vdopo}"
     peggiora ok
@@ -430,9 +446,14 @@ aggiorna_immagine() {   # $1 servizio
     docker rmi "$tag" > /dev/null 2>&1   # funziona: l'immagine vecchia non serve più
     [[ "$voluta" != "$img" ]] && { docker rmi "$img" > /dev/null 2>&1 || true; }
   else
-    log "❌ $svc non resta su con l'immagine nuova: torno a quella di prima"
+    local diag nuova
+    diag=$(diagnosi "$svc")
+    nuova=$(docker image inspect -f '{{.Created}}' "$dopo" 2>/dev/null | cut -c1-10)
+    log "❌ $svc non resta su con l'immagine nuova${nuova:+ (del $nuova)}: torno a quella di prima"
+    printf '%s\n' "$diag" | sed 's/^/   /'
     peggiora rollback
-    aggiungi "⚠ $svc: con l'immagine nuova ($voluta) non restava su. È tornato alla versione di prima."
+    aggiungi "⚠ $svc: con l'immagine nuova ($voluta${nuova:+ del $nuova}) non restava su in $((ATTESA_ALTRI / 60)) minuti. È tornato alla versione di prima, funziona come ieri."
+    aggiungi "$(printf '%s\n' "$diag" | sed 's/^/   /')"
     docker tag "$prima" "$voluta"   # il compose usa questo nome: ci rimetto sotto l'immagine di prima
     docker compose up -d --no-build "$svc" > /dev/null 2>&1
     docker rmi "$tag" > /dev/null 2>&1
