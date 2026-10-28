@@ -33,7 +33,10 @@ Alpine and coturn.
   that has an upper limit (e.g. `"mediasoup": ">=3.14 <4"`); after the
   restart the app must answer and must not restart by itself for 20 seconds,
   otherwise everything goes back as it was. The email says what happened (app,
-  Node, coturn) and gives the exact command to go back. Postponing during
+  Node, coturn), lists everything that changed — Tiditalk's libraries, all
+  npm packages including dependencies, the Alpine system packages, with the
+  full lists in `logs/` — and the versions now, and gives the exact command to
+  go back. Postponing during
   meetings, `--force`, realigning old versions inside the image and the
   major/minor/patch table all stay. `auto-update.sh` and `install-cron.sh`
   still work and hand over to the new names; the new installer removes the

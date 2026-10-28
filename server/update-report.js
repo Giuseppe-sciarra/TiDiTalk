@@ -232,7 +232,7 @@ async function main() {
   </td></tr>
   ${righe ? `<tr><td style="padding:12px 28px 4px">
     <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#858b96;margin-bottom:6px">Cosa è successo</div>
-    <div style="background:${status === 'ok' || status === 'nessuno' ? '#f1f3f5' : '#fdecea'};border:1px solid ${status === 'ok' || status === 'nessuno' ? '#e3e5ea' : '#f3c2bd'};border-radius:10px;padding:12px 14px;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;color:#16181d">${esc(righe)}</div>
+    <pre style="margin:0;background:${status === 'ok' || status === 'nessuno' ? '#f1f3f5' : '#fdecea'};border:1px solid ${status === 'ok' || status === 'nessuno' ? '#e3e5ea' : '#f3c2bd'};border-radius:10px;padding:12px 14px;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word;color:#16181d">${esc(righe)}</pre>
   </td></tr>` : payload.error ? `<tr><td style="padding:12px 28px"><div style="background:#fdecea;border:1px solid #f3c2bd;border-radius:10px;padding:12px 14px;font-size:13px;white-space:pre-wrap">${esc(payload.error)}</div></td></tr>` : ''}
   ${rows.length ? `<tr><td style="padding:14px 28px 24px">
     <table role="presentation" width="100%" style="border-collapse:collapse;font-size:14px">

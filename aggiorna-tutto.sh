@@ -216,10 +216,60 @@ snapshot_versions() {
   fi
   [[ "$out" == \{* ]] && printf '%s' "$out" || printf '{}'
 }
+# Tutte le librerie npm installate nell'immagine (anche le dipendenze delle dipendenze), una riga
+# «nome versione»: è l'elenco che finisce nell'email quando qualcosa cambia.
+pacchetti_npm() {
+  docker compose exec -T "$SERVICE" node -e '
+const fs = require("fs"), path = require("path"), out = new Map();
+function giro(d) {
+  let L; try { L = fs.readdirSync(d); } catch (e) { return; }
+  for (const n of L) {
+    if (n.startsWith(".")) continue;
+    const p = path.join(d, n);
+    if (n.startsWith("@")) { giro(p); continue; }
+    try {
+      const j = JSON.parse(fs.readFileSync(path.join(p, "package.json"), "utf8"));
+      if (j.name && j.version) { const s = out.get(j.name) || new Set(); s.add(j.version); out.set(j.name, s); }
+    } catch (e) {}
+    giro(path.join(p, "node_modules"));
+  }
+}
+giro("/app/server/node_modules");
+for (const [k, v] of [...out].sort()) console.log(k + " " + [...v].sort().join(","));
+' 2>/dev/null | tr -d '\r' | sort
+}
+# I pacchetti di sistema (Alpine) dell'immagine, una riga «nome versione».
+pacchetti_alpine() {
+  docker compose exec -T "$SERVICE" awk '/^P:/ { p = substr($0, 3) } /^V:/ { print p " " substr($0, 3) }' /lib/apk/db/installed 2>/dev/null | tr -d '\r' | sort
+}
+alpine_ver() { docker compose exec -T "$SERVICE" cat /etc/alpine-release 2>/dev/null | tr -d '\r' | head -1; }
+# Differenza fra due elenchi «nome versione»: + nuovo, → cambiato, - tolto.
+diff_pacchetti() {
+  awk 'NF < 2 { next }
+       NR == FNR { a[$1] = $2; next }
+       !($1 in a) { print "+ " $1 " " $2 " (nuovo)"; next }
+       a[$1] != $2 { print "  " $1 " " a[$1] " → " $2 }
+       { delete a[$1] }
+       END { for (k in a) print "- " k " " a[k] " (tolto)" }' <(printf '%s\n' "$1") <(printf '%s\n' "$2")
+}
+# Elenco nell'email (le prime 40 righe) e completo in logs/<nome>-<data>.txt
+aggiungi_elenco() {   # $1 titolo, $2 nome del file, $3 differenze
+  local n; n=$(printf '%s\n' "$3" | grep -c .)
+  printf '%s\n' "$3" > "logs/$2-$STAMP.txt"
+  ls -1t logs/"$2"-*.txt 2>/dev/null | tail -n +21 | xargs -r rm -f
+  aggiungi "   $1: $n"
+  aggiungi "$(printf '%s\n' "$3" | head -n 40 | sed 's/^/   /')"
+  (( n > 40 )) && aggiungi "     … e altri $((n - 40)) (elenco completo in logs/$2-$STAMP.txt)"
+  return 0
+}
+
 BEFORE=$(snapshot_versions)
 AFTER="$BEFORE"
 V_PRIMA="$(versione "$SERVICE")"
-log "versioni attuali: $BEFORE"
+NPM_PRIMA=$(pacchetti_npm)
+APK_PRIMA=$(pacchetti_alpine)
+ALPINE_PRIMA=$(alpine_ver)
+log "versioni attuali: $BEFORE${ALPINE_PRIMA:+ · Alpine $ALPINE_PRIMA}"
 
 # 1. Immagine base: c'è una versione nuova? (Docker tiene in cache quella scaricata la
 #    prima volta: senza pull le correzioni di Node e di Alpine non arrivano mai)
@@ -400,8 +450,30 @@ else
       peggiora ok
       aggiungi "✅ $NOME aggiornato ($(motivi)), prove passate:"
       v=$(versione "$SERVICE"); [[ -n "$v" && "$v" != "$V_PRIMA" ]] && aggiungi "   ${V_PRIMA:-—} → $v"
-      [[ -n "$MODIFICHE" ]] && { aggiungi "   Librerie cambiate:"; aggiungi "$MODIFICHE"; }
+      ALPINE_DOPO=$(alpine_ver)
+      [[ -n "$ALPINE_PRIMA" && -n "$ALPINE_DOPO" && "$ALPINE_PRIMA" != "$ALPINE_DOPO" ]] && aggiungi "   Alpine $ALPINE_PRIMA → $ALPINE_DOPO"
+      [[ -n "$MODIFICHE" ]] && { aggiungi "   Librerie di Tiditalk (package.json):"; aggiungi "$MODIFICHE"; }
       [[ -n "$DRIFT" ]] && aggiungi "   Riallineate nell'immagine: $DRIFT"
+      # tutte le librerie npm e i pacchetti di sistema: container di prima contro quello nuovo
+      NPM_DIFF=""; APK_DIFF=""
+      [[ -n "$NPM_PRIMA" ]] && NPM_DIFF=$(diff_pacchetti "$NPM_PRIMA" "$(pacchetti_npm)")
+      [[ -n "$APK_PRIMA" ]] && APK_DIFF=$(diff_pacchetti "$APK_PRIMA" "$(pacchetti_alpine)")
+      [[ -n "$NPM_DIFF" ]] && aggiungi_elenco "Tutte le librerie npm cambiate (anche le dipendenze)" "librerie-npm" "$NPM_DIFF"
+      [[ -n "$APK_DIFF" ]] && aggiungi_elenco "Pacchetti di sistema (Alpine) aggiornati" "pacchetti-alpine" "$APK_DIFF"
+      if [[ -z "$MODIFICHE" && -z "$NPM_DIFF" && -z "$APK_DIFF" && "$v" == "$V_PRIMA" ]]; then
+        aggiungi "   Versioni di Node, librerie e pacchetti di sistema uguali a prima:"
+        if [[ $BASE_CAMBIATA == 1 && $FILE_CAMBIATI == 0 ]]; then
+          aggiungi "   Docker ha solo ripubblicato l'immagine base, non è cambiato niente di quello che usa Tiditalk."
+        elif [[ -z "$FIRMA_BUILD" ]]; then
+          aggiungi "   primo giro dell'aggiornamento automatico: ha solo preso nota di com'è adesso."
+        else
+          aggiungi "   è cambiato solo il codice di Tiditalk (una patch copiata sul server)."
+        fi
+      fi
+      ADESSO="Node $(json_field "$AFTER" node)"
+      [[ -n "$ALPINE_DOPO" ]] && ADESSO+=" · Alpine $ALPINE_DOPO"
+      for k in mediasoup mediasoup-client express socket.io; do x=$(json_field "$AFTER" "$k"); [[ -n "$x" ]] && ADESSO+=" · $k $x"; done
+      aggiungi "   Versioni adesso: $ADESSO"
       RIPR="cd $DIR"
       for x in "${BAK[@]}"; do RIPR+=" && cp ${x#*=} ${x%%=*}"; done
       [[ -n "$OLD_ID" ]] && RIPR+=" && docker tag $ROLLBACK_TAG $IMG"
