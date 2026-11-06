@@ -86,6 +86,10 @@ module.exports = {
         { protocol: 'tcp', ip: '0.0.0.0', announcedAddress: process.env.ANNOUNCED_IP || null },
       ],
       initialAvailableOutgoingBitrate: 400000,
+      // Pavimento della banda stimata verso chi riceve (150 kbps = almeno lo strato video più basso).
+      // mediasoup dalla 3.32 lo chiama minOutgoingBitrate; fino alla 3.31 si chiamava
+      // minimumAvailableOutgoingBitrate (le versioni ignorano il nome che non conoscono).
+      minOutgoingBitrate: 150000,
       minimumAvailableOutgoingBitrate: 150000,
       maxSctpMessageSize: 262144,
       maxIncomingBitrate: 3000000, // era 1500000: strozzava r2 1080p/2Mbps. 3Mbps copre r0+r1+r2 (2.75Mbps) con margine
