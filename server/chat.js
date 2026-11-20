@@ -14,6 +14,13 @@
  *            della citazione li prende il server dalla cronologia.
  *  Scrivendo 'chatTyping' { on } → agli altri { peerId, name, on }. Il client
  *            lo ripete ogni ~3 s mentre scrive e lo fa scadere da solo.
+ *  1.9.0     'chatEdit' { msgId, text } e 'chatDelete' { msgId }: solo sui
+ *            propri messaggi. Il proprietario è la chiave dei sondaggi
+ *            (utente, biglietto o socket) tenuta in room.chatOwners, mai
+ *            mandata ai client: così si può modificare anche dopo aver
+ *            ricaricato la pagina. La modifica aggiorna anche le copie nei
+ *            fissati e nelle citazioni; l'eliminazione lascia «Messaggio
+ *            eliminato», toglie reazioni e fissato e svuota le citazioni.
  *
  * Agganci in index.js: snapshot() nella risposta di joinRoom, bind() con gli
  * altri handler del socket, onMessage() nel gestore 'chatMessage'.
@@ -27,6 +34,7 @@ const LIM = {
   QUOTE: 140,         // caratteri della citazione
   EMOJI_PER_MSG: 8,   // emoji diverse sotto lo stesso messaggio
   NAMES: 15,          // nomi mandati per ogni emoji (per il suggerimento)
+  TEXT: 2000,         // caratteri di un messaggio (come 'chatMessage' in index.js)
 };
 
 // token bucket (come makeRateLimiter in index.js, copia locale per non toccarlo)
@@ -77,7 +85,7 @@ function reactView(room, msgId, sid) {
   }
   return out;
 }
-/** Per chi entra (anche in ritardo): fissati e reazioni dei messaggi in cronologia. */
+/** Per chi entra (anche in ritardo): fissati, reazioni e quali messaggi sono suoi. */
 function snapshot(room, sid) {
   const reacts = {};
   if (room.chatReacts) {
@@ -87,14 +95,29 @@ function snapshot(room, sid) {
       if (v.length) reacts[msg.id] = v;
     }
   }
-  return { pins: pinsView(room), reacts };
+  const mine = [];
+  if (room.chatOwners) {
+    const me = room.voterKey(sid);
+    for (const msg of room.chatHistory || []) if (!msg.deleted && room.chatOwners.get(msg.id) === me) mine.push(msg.id);
+  }
+  return { pins: pinsView(room), reacts, mine };
+}
+// testo pulito come in 'chatMessage': niente byte nulli, al massimo LIM.TEXT
+const BAD_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+function cleanText(v) {
+  return typeof v === 'string' ? v.slice(0, LIM.TEXT).replace(BAD_CHARS, '').trim() : '';
 }
 
-// le reazioni dei messaggi usciti dalla cronologia non servono più
+// le reazioni (e i proprietari) dei messaggi usciti dalla cronologia non servono più
 function prune(room) {
-  if (!room.chatReacts || room.chatReacts.size <= (room.chatHistory || []).length + 20) return;
+  const n = (room.chatHistory || []).length + 20;
+  const big = (m) => m && m.size > n;
+  if (!big(room.chatReacts) && !big(room.chatOwners)) return;
   const alive = new Set((room.chatHistory || []).map(m => m.id));
-  for (const id of room.chatReacts.keys()) if (!alive.has(id)) room.chatReacts.delete(id);
+  for (const map of [room.chatReacts, room.chatOwners]) {
+    if (!big(map)) continue;
+    for (const id of map.keys()) if (!alive.has(id)) map.delete(id);
+  }
 }
 
 /** Eventi socket. Restituisce { onMessage } per il gestore 'chatMessage' di index.js. */
@@ -103,6 +126,7 @@ function bind(io, socket, { inRoom, room, peer }) {
     react: rlim(12, 4),    // reazioni: 12 di fila, 4/s
     pin: rlim(6, 1),       // fissa/sblocca: 6 di fila, 1/s
     typing: rlim(4, 0.5),  // «sta scrivendo»: 4 di fila, poi uno ogni 2 s
+    edit: rlim(6, 1),      // modifica / elimina: 6 di fila, 1/s
   };
   let typingOn = false;
   const cbOf = (cb) => (typeof cb === 'function' ? cb : () => { });
@@ -121,7 +145,7 @@ function bind(io, socket, { inRoom, room, peer }) {
     const msgId = safeId(d.msgId), e = validEmoji(d.emoji);
     if (!msgId || !e) return cb({ error: 'Reazione non valida' });
     const msg = findMsg(r, msgId);
-    if (!msg || msg.type !== 'text') return cb({ error: 'Messaggio non trovato' });
+    if (!msg || msg.type !== 'text' || msg.deleted) return cb({ error: 'Messaggio non trovato' });
     if (!r.chatReacts) r.chatReacts = new Map();
     let m = r.chatReacts.get(msgId);
     if (!m) { m = new Map(); r.chatReacts.set(msgId, m); }
@@ -161,12 +185,64 @@ function bind(io, socket, { inRoom, room, peer }) {
     } else {
       if (idx >= 0) return cb({ ok: true });
       const msg = findMsg(r, msgId);
-      if (!msg || msg.type !== 'text') return cb({ error: 'Messaggio non trovato' });
+      if (!msg || msg.type !== 'text' || msg.deleted) return cb({ error: 'Messaggio non trovato' });
       if (pins.length >= LIM.PINS) return cb({ error: 'Puoi fissare al massimo 3 messaggi: sbloccane uno' });
       pins.unshift({ id: msg.id, peerId: msg.peerId, name: msg.displayName, text: msg.message, ts: msg.timestamp, by: me.displayName, at: Date.now() });
       action = 'pin';
     }
     io.to(r.id).emit('chatPins', { pins: pinsView(r), action, msgId, by: me.displayName });
+    cb({ ok: true });
+  });
+
+  // 1.9.0 — il messaggio è mio? (stessa chiave dei sondaggi, vale anche dopo un ricaricamento)
+  function ownMsg(r, d, cb) {
+    if (!inRoom() || !isObj(d)) { cb({ error: 'Non in stanza' }); return null; }
+    if (!rl.edit.take()) { cb({ error: 'Troppe richieste' }); return null; }
+    const msgId = safeId(d.msgId);
+    const msg = msgId ? findMsg(r, msgId) : null;
+    if (!msg || msg.type !== 'text' || msg.deleted) { cb({ error: 'Messaggio non trovato' }); return null; }
+    const owner = r.chatOwners && r.chatOwners.get(msg.id);
+    if (!owner || owner !== r.voterKey(socket.id)) { cb({ error: 'Puoi modificare solo i tuoi messaggi' }); return null; }
+    return msg;
+  }
+
+  // Modifica di un proprio messaggio: testo nuovo a tutti, fissati e citazioni compresi
+  socket.on('chatEdit', (d, cb) => {
+    cb = cbOf(cb);
+    const r = room();
+    const msg = ownMsg(r, d, cb);
+    if (!msg) return;
+    const text = cleanText(d.text);
+    if (!text) return cb({ error: 'Il messaggio è vuoto' });
+    if (text === msg.message) return cb({ ok: true });
+    msg.message = text;
+    msg.edited = Date.now();
+    const quote = snippet(text, LIM.QUOTE);
+    let pinsChanged = false;
+    for (const p of r.chatPins || []) if (p.id === msg.id) { p.text = text; pinsChanged = true; }
+    for (const m of r.chatHistory || []) if (m.replyTo && m.replyTo.id === msg.id) m.replyTo.text = quote;
+    io.to(r.id).emit('chatEdited', { msgId: msg.id, text, edited: msg.edited, quote });
+    if (pinsChanged) io.to(r.id).emit('chatPins', { pins: pinsView(r) });
+    cb({ ok: true });
+  });
+
+  // Elimina per tutti un proprio messaggio: resta «Messaggio eliminato»
+  socket.on('chatDelete', (d, cb) => {
+    cb = cbOf(cb);
+    const r = room();
+    const msg = ownMsg(r, d, cb);
+    if (!msg) return;
+    msg.message = '';
+    msg.deleted = true;
+    delete msg.edited;
+    delete msg.replyTo;
+    if (r.chatReacts) r.chatReacts.delete(msg.id);
+    for (const m of r.chatHistory || []) if (m.replyTo && m.replyTo.id === msg.id) { m.replyTo.text = ''; m.replyTo.deleted = true; }
+    const pins = r.chatPins || [];
+    const idx = pins.findIndex(p => p.id === msg.id);
+    if (idx >= 0) pins.splice(idx, 1);
+    io.to(r.id).emit('chatDeleted', { msgId: msg.id });
+    if (idx >= 0) io.to(r.id).emit('chatPins', { pins: pinsView(r), action: 'unpin', msgId: msg.id });
     cb({ ok: true });
   });
 
@@ -184,10 +260,13 @@ function bind(io, socket, { inRoom, room, peer }) {
     onMessage(msg, extra) {
       const r = room();
       if (!r || !msg) return;
+      if (!r.chatOwners) r.chatOwners = new Map();
+      r.chatOwners.set(msg.id, r.voterKey(socket.id)); // 1.9.0: per modifica / elimina
+      prune(r);
       const replyId = safeId(extra && extra.replyTo);
       if (replyId && replyId !== msg.id) {
         const orig = findMsg(r, replyId);
-        if (orig && orig.type === 'text') msg.replyTo = { id: orig.id, peerId: orig.peerId, name: orig.displayName, text: snippet(orig.message, LIM.QUOTE) };
+        if (orig && orig.type === 'text' && !orig.deleted) msg.replyTo = { id: orig.id, peerId: orig.peerId, name: orig.displayName, text: snippet(orig.message, LIM.QUOTE) };
       }
       if (typingOn) {
         typingOn = false;

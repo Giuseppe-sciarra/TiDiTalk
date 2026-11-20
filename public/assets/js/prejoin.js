@@ -84,6 +84,19 @@ class PreJoin {
         this.selectedVideo   = localStorage.getItem('vc_videoId')   || null;
       }
 
+      // 1.9.0: «Entra» premuto mentre si chiedono ancora i permessi / parte l'anteprima
+      // (anche secondi, col popup del browser aperto) prima non faceva niente.
+      // Ora il clic resta in coda: il tasto dice «Un attimo…» ed entra appena è pronto.
+      const joinBtnEl = document.getElementById('pjJoinBtn');
+      let earlyJoin = null;
+      const onEarlyJoin = (e) => {
+        if (earlyJoin) return;
+        earlyJoin = { secondScreen: !!(e && e.currentTarget && e.currentTarget.id === 'pjSecondScreen') };
+        if (joinBtnEl) { joinBtnEl.dataset.pjLabel = joinBtnEl.textContent; joinBtnEl.textContent = (window.I18n?.t ? window.I18n.t('Un attimo…') : 'Un attimo…'); joinBtnEl.setAttribute('aria-busy', 'true'); }
+      };
+      joinBtnEl?.addEventListener('click', onEarlyJoin);
+      document.getElementById('pjSecondScreen')?.addEventListener('click', onEarlyJoin);
+
       // Mostra subito la schermata (senza preview): l'utente vede qualcosa mentre chiediamo i permessi
       document.getElementById('prejoinScreen').classList.remove('hidden');
       document.getElementById('loadingScreen').classList.add('hidden');
@@ -157,6 +170,8 @@ class PreJoin {
         const ss = !!(opts && opts.secondScreen === true);
         const name = nameInput.value.trim();
         if (!name) { nameInput.focus(); return; }
+        // 1.9.0: nome di un organizzatore (org.js paintNameWarn): anche con Invio non si entra
+        if (document.getElementById('pjJoinBtn')?.classList.contains('pj-join-blocked')) { nameInput.focus(); return; }
         localStorage.setItem('vc_displayName', name);
 
         // ⭐ Wake AudioContext qui, mentre siamo dentro un user gesture — sblocca autoplay in stanza
@@ -204,6 +219,11 @@ class PreJoin {
       document.getElementById('pjJoinBtn').addEventListener('click', () => join());
       document.getElementById('pjSecondScreen')?.addEventListener('click', () => join({ secondScreen: true }));
       nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
+      // 1.9.0: clic arrivato prima che fosse pronto → entra adesso
+      joinBtnEl?.removeEventListener('click', onEarlyJoin);
+      document.getElementById('pjSecondScreen')?.removeEventListener('click', onEarlyJoin);
+      if (joinBtnEl && joinBtnEl.dataset.pjLabel) { joinBtnEl.textContent = joinBtnEl.dataset.pjLabel; delete joinBtnEl.dataset.pjLabel; joinBtnEl.removeAttribute('aria-busy'); }
+      if (earlyJoin) join(earlyJoin.secondScreen ? { secondScreen: true } : undefined);
     });
   }
 

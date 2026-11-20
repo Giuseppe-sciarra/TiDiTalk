@@ -243,6 +243,22 @@ class FaceEffects {
     return this.outputStream;
   }
 
+  /** 1.9.0 — cambio di videocamera con l'effetto acceso: nuova sorgente, stessa uscita. */
+  async replaceSource(track) {
+    if (!track || !this.sourceVideo) return false;
+    const old = this._sourceTrackClone;
+    this._sourceTrackClone = track.clone();
+    this.sourceVideo.srcObject = new MediaStream([this._sourceTrackClone]);
+    await this.sourceVideo.play().catch(() => { });
+    try { old?.stop(); } catch (_) { }
+    await new Promise((res) => {
+      let tries = 0;
+      const check = () => { tries++; if (!this.sourceVideo || (this.sourceVideo.readyState >= 2 && this.sourceVideo.videoWidth > 0) || tries > 60) return res(); setTimeout(check, 33); };
+      check();
+    });
+    return true;
+  }
+
   _startLoop() {
     // Un frame alla volta: _renderFrame è async (drawImage + send a MediaPipe)
     let busy = false;

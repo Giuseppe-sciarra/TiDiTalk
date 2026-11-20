@@ -536,6 +536,11 @@
         if (def.rot) wrap.rotation.set(...def.rot.map(d => d * Math.PI / 180));
         eff.group = wrap; eff.hideHead = !!def.hideHead;
         this.faceGroup.add(wrap);
+      } else if (def.type === 'custom' && typeof def.build === 'function') {
+        // 1.9.0: accessorio personale (accessories.js): immagine caricata o modello .glb
+        const g = await def.build(THREE, h);
+        eff.group = g; eff.cranium = def.cranium; eff.neck = false;   // calotta: decide _fitEffect
+        this.faceGroup.add(g);
       } else {
         const mod = await import(`${FX}/${def.path}`);
         const g = await mod.default(THREE, h);

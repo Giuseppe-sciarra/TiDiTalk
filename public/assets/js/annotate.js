@@ -155,7 +155,9 @@
 
     // Rettangolo del contenuto video reale dentro il tile (object-fit: contain)
     _contentRect(s) {
-      const W = s.host.clientWidth, H = s.host.clientHeight;
+      // 1.9.0: con la camera di chi presenta affiancata (screencam.js) lo schermo occupa solo la parte sinistra
+      const split = parseFloat(s.host.dataset.tscSplit || '0') || 0;
+      const W = s.host.clientWidth * (1 - split), H = s.host.clientHeight;
       const vw = s.video?.videoWidth || 16, vh = s.video?.videoHeight || 9;
       const k = Math.min(W / vw, H / vh);
       const w = vw * k, h = vh * k;

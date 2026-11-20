@@ -685,6 +685,7 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 // .svg rimosso dalla whitelist: gli SVG possono contenere <script> e sarebbero
 // serviti da express.static → XSS stored nel dominio della videochat.
 const ALLOWED_UPLOAD_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp']);
+const VIDEO_UPLOAD_EXTS = new Set(['mp4', 'webm']); // 1.9.0: sfondi animati (solo kind 'background')
 
 // ⭐ FIX: `type: '*/*'` NON basta — se il browser manda il file senza header
 // Content-Type (succede con fetch + ArrayBuffer) body-parser salta il parsing e
@@ -694,7 +695,8 @@ app.post('/api/upload/:kind', authMiddleware, express.raw({ type: () => true, li
   if (!['logo', 'favicon', 'background', 'byebg', 'contact', 'byelogo'].includes(kind)) return res.status(400).json({ error: 'kind non valido' });
   if (kind !== 'background' && req.user.role !== 'admin') return res.status(403).json({ error: 'Serve un account amministratore' });
   const ext = String(req.query.ext || 'png').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4);
-  if (!ALLOWED_UPLOAD_EXTS.has(ext)) return res.status(400).json({ error: 'Formato non supportato (png/jpg/jpeg/webp)' });
+  const isVideoExt = kind === 'background' && VIDEO_UPLOAD_EXTS.has(ext);
+  if (!ALLOWED_UPLOAD_EXTS.has(ext) && !isVideoExt) return res.status(400).json({ error: kind === 'background' ? 'Formato non supportato (png/jpg/jpeg/webp, oppure video mp4/webm)' : 'Formato non supportato (png/jpg/jpeg/webp)' });
 
   // Body può arrivare come Buffer (express.raw) oppure oggetto vuoto {} se il client non imposta content-type
   const body = req.body;
@@ -706,8 +708,12 @@ app.post('/api/upload/:kind', authMiddleware, express.raw({ type: () => true, li
   const isPng = sig[0] === 0x89 && sig[1] === 0x50 && sig[2] === 0x4E && sig[3] === 0x47;
   const isJpg = sig[0] === 0xFF && sig[1] === 0xD8 && sig[2] === 0xFF;
   const isWebp = sig.toString('ascii', 0, 4) === 'RIFF' && sig.toString('ascii', 8, 12) === 'WEBP';
-  const okSig = (ext === 'png' && isPng) || ((ext === 'jpg' || ext === 'jpeg') && isJpg) || (ext === 'webp' && isWebp);
-  if (!okSig) return res.status(400).json({ error: 'Il contenuto del file non corrisponde a un\'immagine ' + ext });
+  // 1.9.0: video per gli sfondi animati — mp4 ('ftyp' al byte 4), webm (EBML 1A 45 DF A3)
+  const isMp4 = sig.toString('ascii', 4, 8) === 'ftyp';
+  const isWebm = sig[0] === 0x1A && sig[1] === 0x45 && sig[2] === 0xDF && sig[3] === 0xA3;
+  const okSig = (ext === 'png' && isPng) || ((ext === 'jpg' || ext === 'jpeg') && isJpg) || (ext === 'webp' && isWebp)
+    || (isVideoExt && ((ext === 'mp4' && isMp4) || (ext === 'webm' && isWebm)));
+  if (!okSig) return res.status(400).json({ error: 'Il contenuto del file non corrisponde a ' + (isVideoExt ? 'un video ' : 'un\'immagine ') + ext });
 
   // Filename con random crypto-safe (Date.now() era prevedibile → enumeration)
   const rand = crypto.randomBytes(8).toString('hex');
@@ -779,6 +785,8 @@ app.get('/api/backgrounds', (req, res) => {
     for (const f of fs.readdirSync(UPLOAD_DIR)) {
       if (f.startsWith('background-') && /\.(jpg|jpeg|png|webp|svg)$/i.test(f)) {
         uploads.push({ url: `/assets/uploads/${f}`, label: 'Personalizzato' });
+      } else if (f.startsWith('background-') && /\.(mp4|webm)$/i.test(f)) {
+        uploads.push({ url: `/assets/uploads/${f}`, label: 'Video', video: true }); // 1.9.0
       }
     }
   }
@@ -851,6 +859,13 @@ const _safeStr = (v, max = 200) => {
   return v.replace(/\u0000/g, '').slice(0, max);
 };
 const _safeBool = (v) => v === true || v === 1 || v === 'true';
+// 1.9.0 — caratteri invisibili e di controllo della direzione del testo (RLO, LRI…):
+// servivano a camuffare un nome («Mario» uguale a un altro con uno spazio invisibile)
+// o a girare al contrario il testo di un messaggio. Via da nomi e chat.
+const _BAD_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+const _cleanName = (v) => String(v == null ? '' : v).replace(_BAD_CHARS, '').replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').slice(0, 50).trim();
+// stesso nome per una persona: maiuscole, accenti e spazi non contano
+const _nameKey = (v) => _cleanName(v).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ');
 // Whitelist di tipi validi per mediaState
 const _MEDIA_STATE_TYPES = new Set(['audio', 'video']);
 const _MEDIA_TYPES = new Set(['audio', 'video', 'screen', 'screen-audio']);
@@ -1090,7 +1105,7 @@ io.on('connection', (socket) => {
 
       // Limiti lunghezza input (anti-flood)
       roomId = String(roomId).slice(0, 64);
-      displayName = String(displayName).slice(0, 50).trim();
+      displayName = _cleanName(displayName); // 1.9.0: niente caratteri invisibili / di direzione
       if (!displayName) throw new Error('displayName non valido');
 
       // Sanitizza roomId: solo A-Z 0-9 -
@@ -1145,6 +1160,16 @@ io.on('connection', (socket) => {
 
       // 1.8.0: riunione appena terminata per tutti: non si rientra
       if (org.isEnding(room)) return callback({ error: 'MEETING_ENDED', message: 'La riunione è terminata' });
+      // 1.9.0: un ospite non può presentarsi col nome di un organizzatore che è in stanza
+      if (isGuest) {
+        const k = _nameKey(displayName);
+        for (const p of room.peers.values()) {
+          if (!p.isGuest && p.id !== socket.id && _nameKey(p.displayName) === k) {
+            if (room.isFullyEmpty()) _destroyRoom(room);
+            return callback({ error: 'NAME_TAKEN', message: 'Questo nome è già usato da un organizzatore della riunione: aggiungi il cognome o un\'iniziale' });
+          }
+        }
+      }
       secondScreen = secondScreen === true;
 
       if (isGuest && !room.hasHost()) {
@@ -1328,6 +1353,14 @@ io.on('connection', (socket) => {
     socket.to(currentRoom.id).emit('forceMute', { by: currentPeer.displayName });
     callback({ ok: true });
   });
+  // 1.9.0: spegni la videocamera a tutti (come «silenzia tutti»: ognuno la può riaccendere)
+  socket.on('videoOffAll', (_d, callback) => {
+    if (typeof callback !== 'function') callback = () => { };
+    if (!_isHost()) return callback({ error: 'Solo gli organizzatori' });
+    if (!_checkRl('media', 'videoOffAll')) return callback({ error: 'Troppe richieste' });
+    socket.to(currentRoom.id).emit('forceVideoOff', { by: currentPeer.displayName });
+    callback({ ok: true });
+  });
   socket.on('kickPeer', ({ peerId } = {}, callback) => {
     if (typeof callback !== 'function') callback = () => { };
     if (!_isHost()) return callback({ error: 'Solo gli organizzatori' });
@@ -1337,6 +1370,10 @@ io.on('connection', (socket) => {
     if (!target.isGuest) return callback({ error: 'Non puoi rimuovere un altro organizzatore' });
     // chi viene rimosso perde il biglietto: se ricarica, ripassa dalla sala d'attesa
     currentRoom.revokeTicket(target.admitTicket);
+    currentRoom.admitted.delete(id);
+    // 1.9.0: e per tutta la riunione rientra solo se un organizzatore lo ammette,
+    // anche con la sala d'attesa spenta e anche da un'altra scheda con lo stesso nome
+    pinall.markBack(currentRoom, target.tabId, target.displayName, true);
     io.to(id).emit('kicked', { by: currentPeer.displayName });
     setTimeout(() => io.in(id).disconnectSockets(true), 400);
     callback({ ok: true });
@@ -1598,7 +1635,7 @@ io.on('connection', (socket) => {
     if (!_checkRl('chat', 'chatMessage')) return;
     // ⭐ FIX BUG 11+12: valida sia message che type. Senza, un client poteva
     // fingersi 'system' nel rendering della chat o mandare oggetti enormi.
-    const clean = _safeStr(message, 2000).trim();
+    const clean = _safeStr(message, 2000).replace(_BAD_CHARS, '').trim(); // 1.9.0: niente testo girato al contrario / invisibile
     if (!clean) return;
     const safeType = (type === 'system' || type === 'file') ? 'text' : _safeStr(type, 16);
     const finalType = ['text'].includes(safeType) ? safeType : 'text';

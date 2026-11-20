@@ -219,6 +219,107 @@ class DeviceSelector {
     this._stopMeters();
   }
 
+  /* ── 1.9.0: scorciatoie nel menu ───────────────────────────────────────
+     Videocamera: sfondo al volo (Nessuno, Sfocato, alcune foto, uno animato,
+     «Altri sfondi…» apre il pannello completo). Organizzatori: «Silenzia
+     tutti» nel menu del microfono e «Spegni il video a tutti» in quello della
+     videocamera, con un secondo tocco per confermare (niente finestre del browser). */
+  _renderQuick(type) {
+    const popup = document.getElementById('devicePopup');
+    let box = document.getElementById('devicePopupQuick');
+    const host = !!window.__isHostRole;
+    if (type !== 'videoinput' && !(type === 'audioinput' && host)) { box?.remove(); return; }
+    if (!box) { box = document.createElement('div'); box.id = 'devicePopupQuick'; box.className = 'device-popup-extra dp-quick'; }
+    popup.appendChild(box);   // sempre in fondo
+    const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let html = '';
+    if (type === 'videoinput') {
+      html += `<div class="device-popup-sep">${T('Sfondo')}</div><div class="dp-bg" role="group" aria-label="${esc(T('Sfondo'))}"></div>
+        <button type="button" class="dp-link-btn dp-bg-more">${T('Altri sfondi ed effetti…')}</button>`;
+    }
+    if (host) {
+      const lbl = type === 'videoinput' ? T('Spegni il video a tutti') : T('Silenzia tutti');
+      html += `<div class="device-popup-sep">${T('Per tutti')}</div>
+        <button type="button" class="dp-test-btn dp-all" data-act="${type === 'videoinput' ? 'videoOffAll' : 'muteAll'}">${type === 'videoinput'
+          ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M15.5 12.5V17a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1.5M9.5 6h4a2 2 0 0 1 2 2v1l5-3v11"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M9 9v2a3 3 0 0 0 5.1 2.1M15 10V5a3 3 0 0 0-5.7-1.3"/><path d="M19 11a7 7 0 0 1-1.2 3.9M5 11a7 7 0 0 0 11.3 5.5M12 18v3"/></svg>'}<span>${lbl}</span></button>`;
+    }
+    box.innerHTML = html;
+    if (!box._tdBound) { box._tdBound = true; box.addEventListener('click', (e) => e.stopPropagation()); box.addEventListener('touchend', (e) => e.stopPropagation()); }
+    if (type === 'videoinput') this._fillBgQuick(box.querySelector('.dp-bg'));
+    box.querySelector('.dp-bg-more')?.addEventListener('click', () => { this._close(); try { if (typeof openFxPanel === 'function') openFxPanel('bg'); } catch (_) { } }); // eslint-disable-line no-undef
+    const all = box.querySelector('.dp-all');
+    if (all) {
+      let armT = null;
+      all.addEventListener('click', () => {
+        if (!all.classList.contains('armed')) {
+          all.classList.add('armed');
+          all.querySelector('span').textContent = T('Tocca di nuovo per confermare');
+          clearTimeout(armT); armT = setTimeout(() => { all.classList.remove('armed'); all.querySelector('span').textContent = type === 'videoinput' ? T('Spegni il video a tutti') : T('Silenzia tutti'); }, 4000);
+          return;
+        }
+        clearTimeout(armT);
+        all.disabled = true;
+        const ev = all.dataset.act;
+        window._tdmeetSocket?.emit(ev, {}, (res) => {
+          all.disabled = false;
+          window.showToast?.(res?.error || T(ev === 'muteAll' ? 'Tutti silenziati' : 'Videocamere di tutti spente'), 2500);
+          this._close();
+        });
+      });
+    }
+  }
+
+  async _fillBgQuick(row) {
+    if (!row) return;
+    const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    if (!this._bgList) {
+      try { const d = await (await fetch('/api/backgrounds')).json(); this._bgList = [...(d.presets || [])].filter(b => !b.video); }
+      catch (_) { this._bgList = []; }
+    }
+    // righe sempre piene (4 per riga): Nessuno + Sfocato + 5 foto + 1 animato = 8, cioè 2 righe da 4.
+    // Con meno foto si aggiungono animati; se non bastano si scende alla riga piena di sotto.
+    const COLS = 4, WANT = 8;
+    const anims = window.BackgroundEffect?.ANIMS || [];
+    const P = this._bgList.length, A = anims.length, avail = 2 + P + A;
+    let tot = Math.min(WANT, avail);
+    if (tot >= COLS) tot -= tot % COLS;                                      // solo righe piene
+    const slots = tot - 2;
+    let useA = A ? Math.min(A, Math.max(1, slots - P)) : 0;
+    const useP = Math.min(P, Math.max(0, slots - useA));
+    useA = Math.min(A, slots - useP);
+    const pics = this._bgList.slice(0, useP), ans = anims.slice(0, Math.max(0, useA));
+    const items = [
+      { t: 'none', l: T('Nessuno'), ico: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/></svg>' },
+      { t: 'blur', l: T('Sfocato'), ico: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="9" r="3.2"/><path d="M5.5 20c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2"/><circle cx="4" cy="6" r=".9" fill="currentColor"/><circle cx="20" cy="6" r=".9" fill="currentColor"/><circle cx="3" cy="12" r=".9" fill="currentColor"/><circle cx="21" cy="12" r=".9" fill="currentColor"/></svg>' },
+      ...pics.map(b => ({ t: 'image', u: b.url, l: b.label, img: b.thumb || b.url })),
+      ...ans.map(a => ({ t: 'anim', u: 'anim:' + a.id, l: T(a.label), anim: a.id })),
+    ];
+    row.innerHTML = items.map(it => `<button type="button" class="dp-bg-it" data-t="${it.t}" data-u="${esc(it.u || '')}" data-tip="${esc(it.l)}" aria-label="${esc(it.l)}">${
+      it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async">` : it.anim ? '<canvas width="96" height="54" aria-hidden="true"></canvas>' : it.ico}</button>`).join('');
+    row.querySelectorAll('.dp-bg-it[data-t="anim"] canvas').forEach(cv => window.BackgroundEffect.drawAnimThumb(cv, cv.parentElement.dataset.u.slice(5), 6));
+    const paint = () => {
+      const curT = typeof _bgCurrentType !== 'undefined' ? _bgCurrentType : 'none';   // eslint-disable-line no-undef
+      const curU = typeof _bgCurrentUrl !== 'undefined' ? _bgCurrentUrl : null;       // eslint-disable-line no-undef
+      row.querySelectorAll('.dp-bg-it').forEach(b => {
+        const on = b.dataset.t === (curT || 'none') && (b.dataset.t === 'none' || b.dataset.t === 'blur' || b.dataset.u === curU);
+        b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    };
+    paint();
+    row.querySelectorAll('.dp-bg-it').forEach(b => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (typeof applyBackground !== 'function') return; // eslint-disable-line no-undef
+      row.classList.add('busy');
+      try { await applyBackground(b.dataset.t, b.dataset.u || null); } catch (_) { } // eslint-disable-line no-undef
+      row.classList.remove('busy');
+      paint();
+      try { if (typeof _fxSyncActive === 'function') _fxSyncActive(); } catch (_) { } // eslint-disable-line no-undef
+    }));
+  }
+
   /* ── Livelli e volume automatico ────────────────────────────────────────
      Il volume di SISTEMA (cursore d'ingresso del Mac, volume delle casse) non
      è leggibile né modificabile da una pagina web: nessun browser lo espone.
@@ -512,6 +613,8 @@ class DeviceSelector {
 
     // Livelli reali di microfono e casse + interruttore del volume automatico
     this._renderAudioExtras(type);
+    // 1.9.0: sfondo dal menu della videocamera, «silenzia / spegni il video a tutti» (organizzatori)
+    this._renderQuick(type);
 
     // ── Posizionamento ──────────────────────────────────────────────────────
     popup.classList.remove('hidden');
@@ -614,12 +717,13 @@ class DeviceSelector {
       // Un replaceTrack col track raw farebbe sparire l'effetto agli altri e freezerebbe
       // la pipeline (legge ancora la camera vecchia). Meglio bloccare e chiedere di
       // disattivare l'effetto prima di cambiare camera.
-      if (type === 'videoinput' &&
-          ((window.faceEffects && window.faceEffects.outputStream) ||
-           (window.backgroundEffect && window.backgroundEffect.outputStream))) {
-        window.showToast?.('Disattiva l\u2019effetto/sfondo prima di cambiare camera', 4000);
-        return;
-      }
+      // 1.9.0: con effetto viso o sfondo acceso la camera nuova entra nell'effetto
+      // (replaceSource): agli altri continua ad arrivare il video con l'effetto.
+      // Prima bisognava spegnere l'effetto per cambiare videocamera.
+      const _fx = type !== 'videoinput' ? null
+        : (window.backgroundEffect?.outputStream && typeof window.backgroundEffect.replaceSource === 'function') ? window.backgroundEffect
+        : (window.faceEffects?.outputStream && typeof window.faceEffects.replaceSource === 'function') ? window.faceEffects
+        : null;
 
       // STOP dei vecchi track PRIMA di richiederne di nuovi — su macOS Chrome
       // non libera il device se c'è un track attivo, e la richiesta ritorna lo
@@ -694,6 +798,20 @@ class DeviceSelector {
       // Sostituisce nel producer mediasoup
       const label    = type === 'audioinput' ? 'audio' : 'video';
       const producer = this.producers?.get(label);
+      if (_fx) {
+        // il producer resta sul canvas dell'effetto: cambia solo la sorgente
+        await _fx.replaceSource(newTrack);
+        const _off = !!document.getElementById('btnCamera')?.classList.contains('off');
+        newTrack.enabled = !_off;
+        if (_off) { try { _fx.setPaused?.(true); } catch (_) { } }
+        this.rawStream?.addTrack(newTrack);
+        window._localCamTrack = newTrack;
+        try { if (!sessionStorage.getItem('tdmeet_guest_token')) localStorage.setItem('vc_videoId', deviceId); } catch {}
+        window._tdmeetSelectedVideo = deviceId;
+        if (!actualId || actualId === deviceId) window.showToast?.('Dispositivo cambiato ✓');
+        document.dispatchEvent(new CustomEvent('tdt:devices'));
+        return;
+      }
       // mic: se la riduzione rumore RNNoise è attiva il nuovo microfono entra nel filtro
       const outTrack = (type === 'audioinput' && window.TdtNoise?.enabled) ? window.TdtNoise.setSource(newTrack) : newTrack;
       if (producer) await producer.replaceTrack({ track: outTrack });

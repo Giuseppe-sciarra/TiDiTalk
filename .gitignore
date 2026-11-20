@@ -36,3 +36,5 @@ Thumbs.db
 # Aggiornamento automatico (aggiorna-tutto.sh)
 .agg-tmp/
 .agg-ultima-build
+.agg-asset-*
+.agg-asset.*/

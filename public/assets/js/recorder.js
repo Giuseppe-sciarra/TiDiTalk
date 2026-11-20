@@ -183,18 +183,21 @@ class ClientRecorder {
     const cellH = H / rows;
     const padding = 6;
 
-    elements.forEach(({ videoEl, label, sid, contain }, i) => {
+    elements.forEach(({ videoEl, label, sid, contain, cam }, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       const x = col * cellW + padding;
       const y = row * cellH + padding;
-      const w = cellW - padding * 2;
+      const cw = cellW - padding * 2;
       const h = cellH - padding * 2;
+      // 1.9.0: camera di chi presenta affiancata → lo schermo sta nella parte sinistra della cella
+      const camSplit = cam && cam.split > 0 ? cam.split : 0;
+      const w = cw * (1 - camSplit);
 
       // Background cella
       ctx.fillStyle = '#1f222b';
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 8);
+      ctx.roundRect(x, y, cw, h, 8);
       ctx.fill();
 
       // Rettangolo del contenuto dentro la cella: serve anche per disegnare
@@ -247,6 +250,11 @@ class ClientRecorder {
         ctx.restore();
       }
 
+      // 1.9.0: camera di chi presenta dentro lo schermo (finestrella o colonna), come nella stanza
+      if (cam && cam.videoEl && cam.videoEl.readyState >= 2 && cam.videoEl.videoWidth > 0) {
+        try { this._drawScreenCam(ctx, cam, { x, y, w: cw, h }, content); } catch (_) { }
+      }
+
       // Label nome
       if (label) {
         const fontSize = Math.max(11, Math.min(14, h * 0.05));
@@ -274,6 +282,40 @@ class ClientRecorder {
     const brandName = window.__BRAND?.branding?.platformName || '';
     ctx.fillText(`● ${brandName}  ${mm}:${ss}`.trim(), W - 12, 10);
     ctx.textAlign = 'left';
+  }
+
+  // Camera dentro lo schermo: finestrella nella stessa posizione relativa della
+  // stanza (dentro la cella), oppure colonna a destra se è affiancata.
+  _drawScreenCam(ctx, cam, cell, content) {
+    const v = cam.videoEl;
+    const vr = v.videoWidth / v.videoHeight;
+    let bx, by, bw, bh;
+    if (cam.split > 0) {
+      const colX = cell.x + cell.w * (1 - cam.split);
+      const colW = cell.w * cam.split;
+      bw = colW * 0.92; bh = Math.min(bw / vr, cell.h * 0.92); bw = bh * vr;
+      bx = colX + (colW - bw) / 2 - colW * 0.02; by = cell.y + (cell.h - bh) / 2;
+    } else {
+      bw = Math.max(80, cam.rect.w * cell.w); bh = bw / vr;
+      if (bh > cell.h * 0.5) { bh = cell.h * 0.5; bw = bh * vr; }
+      bx = cell.x + cam.rect.x * cell.w; by = cell.y + cam.rect.y * cell.h;
+      bx = Math.max(cell.x + 6, Math.min(cell.x + cell.w - bw - 6, bx));
+      by = Math.max(cell.y + 6, Math.min(cell.y + cell.h - bh - 6, by));
+    }
+    const r = Math.min(14, bw * 0.08);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 6;
+    ctx.fillStyle = '#0b0c0f';
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, r); ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, r); ctx.clip();
+    ctx.drawImage(v, bx, by, bw, bh);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(bx + .5, by + .5, bw - 1, bh - 1, r); ctx.stroke();
+    ctx.restore();
   }
 
   _gridLayout(count) {

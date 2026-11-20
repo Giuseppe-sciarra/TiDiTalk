@@ -24,8 +24,15 @@
 #      va → ROLLBACK a package.json, package-lock.json e immagine di prima;
 #   5. stesso giro per coturn: riavvio solo se l'immagine è cambiata, controllo che resti
 #      su, altrimenti torna all'immagine di prima;
-#   6. pulizia di Docker che non tocca le immagini di rollback;
-#   7. email di riepilogo in testo semplice, solo se qualcosa si è aggiornato o è fallito
+#   6. asset di terze parti (1.9.0): setup-mediapipe.sh, setup-effects.sh e
+#      setup-backgrounds.sh girano SOLO quando serve — lo script è cambiato (es. dopo uno
+#      zip che porta un modello nuovo) o manca uno dei file che aveva scaricato. Scaricano
+#      in una cartella temporanea e i file veri si sostituiscono solo se è andato tutto
+#      bene (niente sfondi o effetti rotti se una CDN non risponde); i file sostituiti
+#      restano in backups/ per tornare indietro. Sono file delle CDN (MediaPipe, three.js,
+#      emoji, foto), con le versioni fissate negli script: niente codice da GitHub;
+#   7. pulizia di Docker che non tocca le immagini di rollback;
+#   8. email di riepilogo in testo semplice, solo se qualcosa si è aggiornato o è fallito
 #      (cosa, librerie, cosa no e perché, comandi per tornare indietro), spedita da Tiditalk
 #      col suo SMTP del .env (lo stesso mittente degli inviti).
 #
@@ -40,6 +47,7 @@
 #   UPDATE_BUSY_RETRIES=3         quante volte rimandare…
 #   UPDATE_BUSY_WAIT=900          …e ogni quanti secondi (900 = 15 minuti)
 #   AGG_ATTESA_SERVIZI=600        quanti secondi aspettare che coturn resti su con l'immagine nuova
+#   AGG_ASSET_TIMEOUT=1800        quanti secondi al massimo per ogni setup-*.sh (asset di terze parti)
 # ═════════════════════════════════════════════════════════════════════════════
 PROGETTO="tiditalk"
 NOME="Tiditalk"
@@ -89,7 +97,7 @@ HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:${APP_PORT}/api/health}"
 START_TS=$(date +%s)
 STAMP="$(date '+%Y%m%d-%H%M')"
 mkdir -p backups logs
-trap 'rm -rf "$DIR/.agg-tmp"' EXIT
+trap 'rm -rf "$DIR/.agg-tmp" "$DIR"/.agg-asset.*' EXIT
 
 # L'email la spedisce Tiditalk col suo mailer (server/mailer.js: SMTP del .env, stesso mittente
 # degli inviti). Destinatario: AGG_MAIL_A, poi UPDATE_NOTIFY_EMAIL, poi HOST_NOTIFY_EMAIL.
@@ -403,12 +411,12 @@ fi
 # 3. Dockerfile, librerie, codice o immagine base diversi da quelli dell'ultima build riuscita
 #    (es. dopo uno zip, o una build fallita ieri). Al primo giro non c'è la firma: si ricostruisce.
 #    Fuori dalla firma: quello che cambia mentre Tiditalk gira (caricamenti, sfondi personali)
-#    o che il compose monta da fuori (vendor).
+#    o che il compose monta da fuori e scaricano gli script setup-*.sh (vendor, effects).
 firma() {
   { cat Dockerfile .dockerignore 2>/dev/null
     find server public -type f ! -path '*/node_modules/*' ! -name '*.bak' ! -name '*.bak_*' ! -name '*.log' \
       ! -name '*.tmp.js' ! -name '.DS_Store' ! -path 'public/assets/uploads/*' ! -path 'public/assets/backgrounds/*' \
-      ! -path 'public/assets/vendor/*' -print0 2>/dev/null | LC_ALL=C sort -z | xargs -0 -r sha256sum
+      ! -path 'public/assets/vendor/*' ! -path 'public/assets/effects/*' -print0 2>/dev/null | LC_ALL=C sort -z | xargs -0 -r sha256sum
     for b in "${BASI[@]}"; do docker image inspect -f '{{.Id}}' "$b" 2>/dev/null; done; } | sha256sum | cut -c1-16
 }
 FIRMA_BUILD=$(cat .agg-ultima-build 2>/dev/null || true)
@@ -564,6 +572,78 @@ aggiorna_immagine() {   # $1 servizio
 }
 mapfile -t TUTTI < <(docker compose config --services 2>/dev/null)
 for s in "${TUTTI[@]}"; do [[ "$s" == "$SERVICE" ]] || aggiorna_immagine "$s"; done
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Asset di terze parti (1.9.0): gli script setup-*.sh, solo quando serve
+#   • quando: lo script è cambiato rispetto all'ultima volta che è andato bene (una patch
+#     porta un modello nuovo o una versione nuova), oppure manca (o è vuoto) uno dei file
+#     che aveva scaricato. Al primo giro non c'è l'elenco: gira una volta per script.
+#   • come: lo script gira in una cartella temporanea (.agg-asset.*), con i suoi percorsi
+#     relativi; se esce con errore o scrive FALLITO/VUOTO non si tocca niente (riprova la
+#     notte dopo). Se è andato tutto bene si copiano solo i file nuovi o diversi; quelli
+#     sostituiti vanno prima in backups/asset-<script>-<data>.tar.gz.
+#   • l'elenco di quello che ha scaricato e l'impronta dello script stanno in .agg-asset-<nome>.
+#   • non cancella MAI niente: se il download non va, o la CDN non ha più un file, quello
+#     che c'è resta com'è; i file che lo script non scarica più restano al loro posto.
+#   • i file finiscono in cartelle che il compose monta da fuori (vendor, effects,
+#     backgrounds): nessuna ricostruzione, i browser li prendono alla prossima apertura.
+# ═════════════════════════════════════════════════════════════════════════════
+ASSET_TIMEOUT="$(pick AGG_ASSET_TIMEOUT)"; [[ "$ASSET_TIMEOUT" =~ ^[0-9]+$ ]] || ASSET_TIMEOUT=1800
+aggiorna_asset() {   # $1 script setup-*.sh
+  local sc="$1" nome impronta elenco motivo mancanti tmp rc lg nuovi=() diversi=() f bk n
+  nome="$(basename "$sc" .sh)"; elenco=".agg-asset-$nome"
+  impronta=$(sha256sum "$sc" | cut -c1-16)
+  motivo=""
+  if [[ ! -s "$elenco" ]]; then motivo="primo giro"
+  elif [[ "$(head -1 "$elenco")" != "$impronta" ]]; then motivo="lo script è cambiato"
+  else
+    mancanti=$(tail -n +2 "$elenco" | while IFS= read -r f; do [[ -s "$f" ]] || echo "$f"; done)
+    [[ -n "$mancanti" ]] && motivo="mancano $(printf '%s\n' "$mancanti" | grep -c .) file"
+  fi
+  if [[ -z "$motivo" ]]; then log "$sc: asset a posto"; return 0; fi
+  if [[ $DRY_RUN == 1 ]]; then log "dry-run: lancerei $sc ($motivo) in una cartella temporanea"; return 0; fi
+  log "$sc: lo lancio ($motivo)…"
+  tmp=$(mktemp -d "$DIR/.agg-asset.XXXXXX") || { non_aggiornato "$sc: non riesco a creare la cartella temporanea" errore; return 0; }
+  cp "$sc" "$tmp/"
+  lg="logs/asset-$nome-$STAMP.log"
+  ( cd "$tmp" && timeout "$ASSET_TIMEOUT" bash "./$(basename "$sc")" ) > "$lg" 2>&1; rc=$?
+  if [[ $rc != 0 ]] || grep -qE '(^|[[:space:]])(FALLITO|VUOTO)([[:space:]]|$)' "$lg" || [[ -z "$(cd "$tmp" && find public -type f -size +0 2>/dev/null | head -1)" ]]; then
+    log "❌ $sc non è andato del tutto bene (codice $rc, $lg): non tocco i file di adesso"
+    non_aggiornato "asset di $sc ($motivo): download non riuscito del tutto, restano i file di prima; riprova la notte dopo" errore \
+      "$(tr -d '\r' < "$lg" | grep -iE 'fallito|vuoto|error|curl|timeout' | tail -n 8)"
+    rm -rf "$tmp"; return 0
+  fi
+  # file nuovi o diversi (gli altri restano come sono: niente riscritture inutili)
+  while IFS= read -r -d '' f; do
+    f="${f#./}"
+    if [[ ! -e "$f" ]]; then nuovi+=("$f")
+    elif ! cmp -s "$tmp/$f" "$f"; then diversi+=("$f"); fi
+  done < <(cd "$tmp" && find public -type f -size +0 -print0)
+  if (( ${#diversi[@]} )); then
+    bk="backups/asset-$nome-$STAMP.tar.gz"
+    tar czf "$bk" "${diversi[@]}" 2>/dev/null || bk=""
+    ls -1t "backups/asset-$nome-"*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f   # le ultime 5
+  fi
+  for f in "${nuovi[@]}" "${diversi[@]}"; do
+    mkdir -p "$(dirname "$f")"
+    cp "$tmp/$f" "$f.agg-new" && mv -f "$f.agg-new" "$f"   # sostituzione atomica: mai un file a metà
+  done
+  { echo "$impronta"; (cd "$tmp" && find public -type f -size +0 | LC_ALL=C sort); } > "$elenco"
+  rm -rf "$tmp"
+  n=$(( ${#nuovi[@]} + ${#diversi[@]} ))
+  if (( n )); then
+    log "✅ $sc: ${#nuovi[@]} file nuovi, ${#diversi[@]} aggiornati ($motivo)"
+    { for f in "${nuovi[@]}"; do echo "nuovo      $f"; done; for f in "${diversi[@]}"; do echo "aggiornato $f"; done; } > "logs/asset-$nome-$STAMP.txt"
+    aggiornato "asset di terze parti, $sc: ${#nuovi[@]} file nuovi, ${#diversi[@]} aggiornati ($motivo; elenco in logs/asset-$nome-$STAMP.txt)"
+    [[ -n "${bk:-}" ]] && indietro "cd $DIR && tar xzf $bk"
+  else
+    log "$sc: scaricato tutto, già uguale a quello che c'era ($motivo)"
+  fi
+  return 0
+}
+for sc in setup-mediapipe.sh setup-effects.sh setup-backgrounds.sh; do
+  [[ -f "$sc" ]] && aggiorna_asset "$sc"
+done
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Pulizia di Docker (senza `prune -a`: le immagini di rollback restano)

@@ -81,6 +81,37 @@ body.tdt-room .tc-pin-x svg { width: 14px; height: 14px; }
 .tc-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .tc-tools-sep { width: 1px; height: 18px; background: var(--hair-2); margin: 0 3px; }
 body:not(.tc-host) .tc-tool-pin { display: none; }
+/* 1.9.0 — «⋯» sui miei messaggi: seconda pagina con Modifica / Elimina per tutti */
+.tc-own { display: none; align-items: center; gap: 2px; }
+.tc-tools.tc-own-on > :not(.tc-own) { display: none; }
+.tc-tools.tc-own-on > .tc-own { display: inline-flex; animation: tc-in .16s var(--ease); }
+.tc-own-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 11px 0 9px; border-radius: 999px;
+  background: transparent; border: 0; cursor: pointer;
+  font: 500 12.5px/1 var(--font); color: var(--paper); white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+.tc-own-btn:hover { background: var(--hair-2); }
+.tc-own-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tc-own-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.tc-own-del { color: var(--danger, #e5484d); }
+.tc-own-del.armed { background: var(--danger, #e5484d); color: #fff; }
+.tc-own-del.armed:hover { background: color-mix(in srgb, var(--danger, #e5484d) 88%, #000); }
+/* «modificato» accanto all'ora */
+.tc-edited { font-style: italic; opacity: .8; }
+.tc-edited::before { content: '·'; font-style: normal; margin-right: 4px; }
+/* «Messaggio eliminato» */
+.chat-msg.tc-deleted .msg-bubble {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-style: italic; color: var(--paper-3) !important;
+  background: transparent !important; border: 1px dashed var(--hair-2) !important;
+  box-shadow: none !important;
+}
+.tc-deleted-ico { display: inline-flex; opacity: .8; }
+.tc-deleted-ico svg { width: 14px; height: 14px; }
+.tc-quote.tc-quote-gone .tc-quote-text { font-style: italic; opacity: .75; }
+.tc-editbar .tc-replybar-body { border-left-color: var(--accent); }
 .chat-msg.tc-open .msg-tts-btn { opacity: 1; }
 
 /* ── Reazioni col conteggio ─────────────────────────────────────────────── */
@@ -187,10 +218,11 @@ body.tdt-room .tc-replybar-x svg { width: 14px; height: 14px; }
 @media (max-width: 640px) {
   .tc-pins { padding: 8px 8px 9px; }
   .tc-tool { width: 36px; height: 36px; }
+  .tc-own-btn { height: 36px; padding: 0 12px 0 10px; font-size: 13.5px; }
   .tc-tool-e { font-size: 20px; }
   .tc-chip { height: 30px; padding: 0 10px 0 8px; }
   body.tdt-room .tc-pin-x { width: 36px; height: 36px; min-width: 36px; }
   body.tdt-room .tc-replybar-x { width: 36px; height: 36px; min-width: 36px; }
   :root[data-theme="light"] body.tdt-room .tc-pins { background: color-mix(in srgb, var(--accent) 7%, var(--ink-2)) !important; }
-  :root[data-theme="light"] body.tdt-room .tc-replybar { background: var(--ink-2) !important; }
+  :root[data-theme="light"] body.tdt-room .tc-replybar, :root[data-theme="light"] body.tdt-room .tc-editbar { background: var(--ink-2) !important; }
 }

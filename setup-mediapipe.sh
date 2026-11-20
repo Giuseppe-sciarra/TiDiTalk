@@ -36,11 +36,12 @@ FILES=(
 )
 
 # SelfieSegmentation per sfondi virtuali (blur + immagini)
+# 1.9.0: tolti selfie_segmentation_solution_packed_assets(.data/_loader.js), che nel
+# pacchetto non ci sono (davano sempre FALLITO): l'aggiornamento notturno li prendeva per
+# un download non riuscito e non avrebbe mai aggiornato gli altri file
 SEG_FILES=(
   "selfie_segmentation.js"
   "selfie_segmentation.binarypb"
-  "selfie_segmentation_solution_packed_assets.data"
-  "selfie_segmentation_solution_packed_assets_loader.js"
   "selfie_segmentation_solution_simd_wasm_bin.js"
   "selfie_segmentation_solution_simd_wasm_bin.wasm"
   "selfie_segmentation_solution_wasm_bin.js"
@@ -141,6 +142,8 @@ for f in vision_wasm_internal.js vision_wasm_internal.wasm vision_wasm_nosimd_in
   curl -fsSL -o "$DEST_TASKS/wasm/$f" "$TB/wasm/$f"
 done
 curl -fsSL -o "$DEST_TASKS/face_landmarker.task" "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+# 1.9.0: separazione persona / sfondo per gli sfondi virtuali (Apache-2.0, ~250 KB)
+curl -fsSL -o "$DEST_TASKS/selfie_segmenter.tflite" "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite"
 echo "→ three.js ${THREE_VER} in $DEST_THREE"
 H="https://cdn.jsdelivr.net/npm/three@${THREE_VER}"
 curl -fsSL -o "$DEST_THREE/three.module.js" "$H/build/three.module.js"

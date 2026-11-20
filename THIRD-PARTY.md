@@ -24,7 +24,7 @@ third-party components, each under its own license.
 | Component | License | Script |
 |-----------|---------|--------|
 | [MediaPipe Face Mesh / Selfie Segmentation](https://github.com/google-ai-edge/mediapipe) | Apache-2.0 | `setup-mediapipe.sh` |
-| [MediaPipe Tasks Vision](https://github.com/google-ai-edge/mediapipe) (Face Landmarker: 3D head pose and 52 expressions, used by the 3D face effects) | Apache-2.0 | `setup-mediapipe.sh` |
+| [MediaPipe Tasks Vision](https://github.com/google-ai-edge/mediapipe) (Face Landmarker: 3D head pose and 52 expressions, used by the 3D face effects; Image Segmenter with the selfie segmenter model, used by the virtual backgrounds since 1.9.0) | Apache-2.0 | `setup-mediapipe.sh` |
 | [three.js](https://threejs.org) (3D rendering of the face effects) | MIT | `setup-mediapipe.sh` |
 | [Twemoji](https://github.com/jdecked/twemoji) graphics used by face effects | CC-BY 4.0 — © Twitter, Inc and other contributors | `setup-effects.sh` |
 | Background photos (56, with thumbnails) from [Unsplash](https://unsplash.com) | [Unsplash License](https://unsplash.com/license) — free to use, no attribution required | `setup-backgrounds.sh` |

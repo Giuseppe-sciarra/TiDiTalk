@@ -380,17 +380,48 @@
     if (n === 1) return T('C\'è già {0}').replace('{0}', () => shown[0]);
     return T('Ci sono già {0} e {1}').replace('{0}', () => shown.slice(0, -1).join(', ')).replace('{1}', () => shown[n - 1]);
   }
-  let whoTimer = null;
+  let whoTimer = null, whoRoom = null, nameT = null;
+  // 1.9.0 — nome già usato nella riunione: avviso sotto il campo (un ospite non può
+  // prendere il nome di un organizzatore: il tasto Entra si ferma finché non lo cambia)
+  function paintNameWarn(d) {
+    const input = pj('pjName'); if (!input) return;
+    let w = pj('pjNameWarn');
+    if (!w) {
+      w = document.createElement('div');
+      w.id = 'pjNameWarn'; w.className = 'pj-name-warn hidden';
+      w.setAttribute('role', 'status'); w.setAttribute('aria-live', 'polite');
+      input.insertAdjacentElement('afterend', w);
+      input.setAttribute('aria-describedby', 'pjNameWarn');
+    }
+    const guest = !!sessionStorage.getItem('tdmeet_guest_token');
+    const block = !!(d && d.takenByHost && guest);
+    const on = !!(d && d.taken);
+    w.classList.toggle('hidden', !on);
+    w.classList.toggle('pj-name-warn-block', block);
+    if (on) w.textContent = block
+      ? T('Questo nome è già usato da un organizzatore della riunione: aggiungi il cognome o un\'iniziale')
+      : T('C\'è già qualcuno con questo nome nella riunione: aggiungi il cognome o un\'iniziale, così vi distinguono');
+    input.classList.toggle('pj-name-dup', on);
+    const btn = pj('pjJoinBtn');
+    if (btn) { btn.disabled = block; btn.classList.toggle('pj-join-blocked', block); }
+  }
+  function myTab() { try { return sessionStorage.getItem('tdt_tab') || ''; } catch (_) { return ''; } }
+  function whoUrl(roomId) {
+    const nm = (pj('pjName')?.value || '').trim();
+    return '/api/room/' + encodeURIComponent(roomId) + '/who' + (nm ? '?name=' + encodeURIComponent(nm.slice(0, 50)) + '&tab=' + encodeURIComponent(myTab()) : '');
+  }
   async function pollWho(roomId) {
     const box = pj('pjWho'); if (!box) return;
+    whoRoom = roomId;
     if (pj('prejoinScreen')?.classList.contains('hidden')) { clearTimeout(whoTimer); return; }
     const gt = sessionStorage.getItem('tdmeet_guest_token');
     const at = localStorage.getItem('tdmeet_token');
     try {
-      const r = await fetch('/api/room/' + encodeURIComponent(roomId) + '/who', { headers: gt ? { 'x-guest-token': gt } : (at ? { 'x-auth-token': at } : {}), cache: 'no-store' });
+      const r = await fetch(whoUrl(roomId), { headers: gt ? { 'x-guest-token': gt } : (at ? { 'x-auth-token': at } : {}), cache: 'no-store' });
       if (r.status === 401 || r.status === 400) { box.classList.add('hidden'); return; } // link non valido: niente nomi, niente richieste
       if (r.ok) {
         const d = await r.json();
+        paintNameWarn(d);
         const names = (Array.isArray(d.names) ? d.names : []).map(x => String(x).slice(0, 50)).filter(Boolean);
         const txt = names.length ? listNames(names, +d.count || names.length) : T('Non c\'è ancora nessuno');
         box.querySelector('.pj2-who-txt').textContent = txt;
@@ -422,6 +453,12 @@
     if (!name || name._tdOrg) return;
     name._tdOrg = true;
     name.addEventListener('input', syncPreviewName);
+    // 1.9.0: controllo del nome mentre si scrive (con calma: una richiesta dopo 700 ms fermi)
+    name.addEventListener('input', () => {
+      clearTimeout(nameT);
+      if (!(name.value || '').trim()) { paintNameWarn(null); return; }
+      nameT = setTimeout(() => { if (whoRoom) { clearTimeout(whoTimer); pollWho(whoRoom); } }, 700);
+    });
     syncPreviewName();
     ['pjAudioSelect', 'pjVideoSelect', 'pjSpeakerSelect'].forEach(id => {
       const s = pj(id); if (!s) return;

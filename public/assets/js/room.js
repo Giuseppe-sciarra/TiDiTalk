@@ -276,6 +276,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // FIX: cattura il risultato di joinRoom (prima non veniva salvato → res undefined)
     const joinRes = await joinRoom(micMuted, camOff);
+    if (joinRes && joinRes.error === 'NAME_TAKEN') return; // 1.9.0: si ricarica e torna al pre-ingresso
 
     // ── LOBBY: server ha risposto "waitingForHost" ────────────────────────────
     // Il guest è in lobby server-side. Niente transport/producer creati.
@@ -293,6 +294,7 @@ window.addEventListener('DOMContentLoaded', async () => {
           setLoading('Ingresso in stanza...');
           document.getElementById('loadingScreen').classList.remove('hidden');
           const res2 = await joinRoom(micMuted, camOff);
+          if (res2 && res2.error === 'NAME_TAKEN') return; // 1.9.0: torna al pre-ingresso
           if (res2 && res2.error) throw new Error(res2.error);
           if (res2 && res2.waitingForHost) {
             // l'host è uscito subito: torna in attesa e riarma l'ascolto
@@ -924,9 +926,11 @@ try {
  * grandi → 1080p. Tanti → piccole → scala giù. Il risultato viene poi tagliato da
  * _maxSpatial per non sovraccaricare dispositivi/reti deboli. */
 function _desiredLayerForTile(tile, videoOff) {
-  if (videoOff || !tile || tile.classList.contains('lv-hide')) return { sl: 0, tl: 1 };
+  // 1.9.0: camera dentro lo schermo condiviso (screencam.js) → qualità per la sua finestrella
+  const _inScreen = !videoOff && tile && window.TdtScreenCam?.boxFor?.(tile.dataset.peerId);
+  if (videoOff || !tile || (tile.classList.contains('lv-hide') && !_inScreen)) return { sl: 0, tl: 1 };
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = (tile.clientWidth || 0) * dpr;
+  const w = ((_inScreen ? _inScreen.clientWidth : tile.clientWidth) || 0) * dpr;
   let sl, tl;
   if (w <= 0)        { sl = 1; tl = 2; }   // non ancora misurabile → media di sicurezza
   else if (w >= 850) { sl = 2; tl = 2; }   // riquadro grande → 1080p
@@ -1231,11 +1235,10 @@ async function initSocket() {
       console.warn('[socket] disconnesso:', reason);
       if (_leaving) return; // uscita voluta (o rimozione/rifiuto): niente banner "riprovo"
       _wasDisconnected = true;
-      // Mostra banner "connessione persa" (persistente fino al reconnect)
+      // 1.9.0: scheda al centro (prima una pillola rossa in alto) — cosa succede, i
+      // tentativi, cosa controllare e «Ricarica ora». Resta fino al ritorno.
       _reconnectToast?.remove();
-      _reconnectToast = document.createElement('div');
-      _reconnectToast.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#e5534b;color:#fff;padding:10px 18px;border-radius:999px;z-index:99999;font-family:inherit;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-      _reconnectToast.textContent = 'Connessione persa, riprovo…';
+      _reconnectToast = _reconnectCard();
       document.body.appendChild(_reconnectToast);
     });
 
@@ -1255,9 +1258,7 @@ async function initSocket() {
     });
 
     socket.io.on('reconnect_attempt', (attempt) => {
-      if (_reconnectToast) {
-        _reconnectToast.textContent = `Connessione persa, riprovo (tentativo ${attempt})…`;
-      }
+      if (_reconnectToast) _reconnectToast._setAttempt?.(attempt);
     });
 
     // ⭐ Indicatore qualità rete: il server manda il livello (3=buona 2=media
@@ -1379,6 +1380,13 @@ async function initSocket() {
       if (window._tdIsMicMuted?.()) { _enforceMicState(); return; }
       try { window._tdSetMicMuted?.(true); } catch (_) { }
       showToast(`🔇 ${by || 'L\'organizzatore'} ha silenziato tutti`, 3500);
+    });
+
+    // 1.9.0: un organizzatore ha spento le videocamere di tutti (si può riaccendere)
+    socket.on('forceVideoOff', ({ by } = {}) => {
+      if (camOff) return;
+      document.getElementById('btnCamera')?.click();
+      showToast(`📷 ${by || 'L\'organizzatore'} ha spento le videocamere di tutti: puoi riaccenderla quando vuoi`, 4500);
     });
 
     socket.on('peerMediaState', ({ peerId, type, status }) => {
@@ -1510,6 +1518,40 @@ async function initSocket() {
   });
 }
 
+// 1.9.0 — «Connessione persa»: scheda al centro con i tentativi e «Ricarica ora»
+function _reconnectCard() {
+  const T = (x) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(x) : x;
+  const el = document.createElement('div');
+  el.className = 'tdt-reconnect';
+  el.setAttribute('role', 'alertdialog');
+  el.setAttribute('aria-live', 'assertive');
+  el.innerHTML = `<div class="tdt-rc-card">
+      <div class="tdt-rc-ring" aria-hidden="true"><span></span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.8a15 15 0 0 1 19 0"/><path d="M5.6 12.4a10 10 0 0 1 12.8 0"/><path d="M8.8 15.9a5 5 0 0 1 6.4 0"/><circle cx="12" cy="19.2" r="1" fill="currentColor"/></svg></div>
+      <div class="tdt-rc-title"></div>
+      <div class="tdt-rc-text"></div>
+      <div class="tdt-rc-hint"></div>
+      <button type="button" class="tdt-rc-btn"></button>
+    </div>`;
+  const title = el.querySelector('.tdt-rc-title'), text = el.querySelector('.tdt-rc-text'), hint = el.querySelector('.tdt-rc-hint');
+  const paint = (attempt) => {
+    el._attempt = attempt;
+    const off = navigator.onLine === false;
+    title.textContent = T(off ? 'Sei senza rete' : 'Connessione persa');
+    text.textContent = attempt ? T('Riprovo da solo… tentativo {0}').replace('{0}', attempt) : T('Riprovo da solo…');
+    hint.textContent = T(off ? 'Controlla il Wi-Fi o i dati del telefono: appena torna la rete rientri nella riunione da solo.' : 'Di solito torna in pochi secondi. Se non succede, controlla la rete o ricarica la pagina.');
+  };
+  paint(0);
+  el._setAttempt = paint;
+  const onNet = () => paint(el._attempt || 0);
+  window.addEventListener('online', onNet); window.addEventListener('offline', onNet);
+  const btn = el.querySelector('.tdt-rc-btn');
+  btn.textContent = T('Ricarica ora');
+  btn.addEventListener('click', () => { try { _saveRejoin('reconnect'); } catch (_) { } location.reload(); });
+  const rm = el.remove.bind(el);
+  el.remove = () => { window.removeEventListener('online', onNet); window.removeEventListener('offline', onNet); el.classList.add('out'); setTimeout(rm, 220); };
+  return el;
+}
+
 // ─── Join Room ────────────────────────────────────────────────────────────────
 async function joinRoom(micMuted = false, camOff = false) {
   const authToken = localStorage.getItem('tdmeet_token');
@@ -1532,6 +1574,8 @@ async function joinRoom(micMuted = false, camOff = false) {
   }
   if (res.error === 'MEETING_ENDED') { showGuestStopScreen('La riunione è terminata', 'L\'organizzatore ha chiuso la riunione per tutti.'); return res; }
   if (res.error === 'ROOM_LOCKED') { showGuestStopScreen('Stanza bloccata', res.message || 'L\'organizzatore ha bloccato l\'ingresso di nuovi partecipanti.'); return res; }
+  // 1.9.0: nome di un organizzatore → si torna al pre-ingresso, che dice di cambiarlo
+  if (res.error === 'NAME_TAKEN') { showToast(res.message || 'Questo nome è già usato: cambialo', 5000); setTimeout(() => location.reload(), 1600); return res; }
   if (res.error) throw new Error(res.error);
 
   // ── LOBBY: server dice di aspettare l'host. Niente setup mediasoup. ──────
@@ -2553,11 +2597,14 @@ function getRecorderVideoElements() {
   // 1.5.2: camera spenta (propria o altrui) → avatar, non un riquadro nero o
   // l'ultimo fotogramma congelato (il <video> nascosto tiene ancora lo stream)
   const vis = (v) => v && v.srcObject && v.style.display !== 'none' ? v : null;
+  // 1.9.0: camere messe dentro lo schermo di chi presenta (screencam.js): non si ripetono nella griglia
+  const _camIn = new Map();
+  document.querySelectorAll('.video-tile.screenshare').forEach(tile => { const c = window.TdtScreenCam?.recordCam?.(tile); if (c) _camIn.set(c.id, c); });
   const lv = document.getElementById('video-local');
-  if (lv) elements.push({ videoEl: camOff ? null : vis(lv), label: DISPLAY_NAME + ' (Tu)' });
+  if (lv && !_camIn.has('local')) elements.push({ videoEl: camOff ? null : vis(lv), label: DISPLAY_NAME + ' (Tu)' });
   peers.forEach((peer, peerId) => {
     const v = document.getElementById(`video-${peerId}`);
-    if (v) elements.push({ videoEl: peer.videoOff ? null : vis(v), label: peer.displayName });
+    if (v && !_camIn.has(peerId)) elements.push({ videoEl: peer.videoOff ? null : vis(v), label: peer.displayName });
   });
   // ⭐ Schermi condivisi: passo anche il "sid" della superficie, così il
   // registratore ci disegna sopra annotazioni e puntatore laser. Niente
@@ -2568,7 +2615,7 @@ function getRecorderVideoElements() {
     const pid = tile.dataset.peerId || '';
     const sid = pid === 'local-screen' ? socket?.id : pid.replace(/-screen$/, '');
     const who = pid === 'local-screen' ? DISPLAY_NAME : (peers.get(sid)?.displayName || '');
-    elements.push({ videoEl: el, label: who ? `Schermo di ${who}` : 'Schermo condiviso', sid, contain: true });
+    elements.push({ videoEl: el, label: who ? `Schermo di ${who}` : 'Schermo condiviso', sid, contain: true, cam: window.TdtScreenCam?.recordCam?.(tile) || null });
   });
   return elements;
 }
@@ -3668,6 +3715,7 @@ function toggleChat() {
 function sendChatMessage() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim(); if (!msg) return;
+  if (window.TdtChat?.submitEdit?.(msg)) return; // 1.9.0: sto modificando un mio messaggio → salva
   const payload = { message: msg };
   window.TdtChat?.outgoing(payload); // 1.8.2: risposta con citazione (aggiunge replyTo)
   socket?.emit('chatMessage', payload); input.value = '';
@@ -3818,9 +3866,43 @@ function markActiveBackground() {
   document.querySelectorAll('.bg-item').forEach(el => {
     const type = el.dataset.bgType;
     const url = el.dataset.bgUrl;
-    const isActive = (type === _bgCurrentType) && (type !== 'image' || url === _bgCurrentUrl);
+    // 1.9.0: video e animati si riconoscono dall'indirizzo come le immagini
+    const isActive = (type === _bgCurrentType) && (type === 'none' || type === 'blur' || url === _bgCurrentUrl);
     el.classList.toggle('active', isActive);
   });
+  document.dispatchEvent(new CustomEvent('tdt:background', { detail: { type: _bgCurrentType, url: _bgCurrentUrl } }));
+}
+// 1.9.0 — sfondi animati disegnati da backgroundEffect.js: miniatura che si muove al passaggio del mouse
+function _fillAnimBackgrounds() {
+  const grid = document.getElementById('bgAnimGrid');
+  if (!grid || grid.dataset.ready || !window.BackgroundEffect?.ANIMS) return;
+  grid.dataset.ready = '1';
+  grid.innerHTML = window.BackgroundEffect.ANIMS.map(a => `
+    <button class="bg-item bg-anim" data-bg-type="anim" data-bg-url="anim:${escapeHtml(a.id)}" aria-label="${escapeHtml(a.label)}">
+      <canvas width="192" height="108" aria-hidden="true"></canvas>
+      <span class="bg-label">${escapeHtml(a.label)}</span>
+    </button>`).join('');
+  grid.querySelectorAll('.bg-item').forEach(btn => {
+    const cv = btn.querySelector('canvas'), id = btn.dataset.bgUrl.slice(5);
+    window.BackgroundEffect.drawAnimThumb(cv, id, 6);
+    let raf = 0, t0 = 0;
+    const play = (ts) => { if (!t0) t0 = ts; window.BackgroundEffect.drawAnimThumb(cv, id, 6 + (ts - t0) / 1000 * 3); raf = requestAnimationFrame(play); };
+    btn.addEventListener('pointerenter', () => { cancelAnimationFrame(raf); t0 = 0; raf = requestAnimationFrame(play); });
+    btn.addEventListener('pointerleave', () => { cancelAnimationFrame(raf); raf = 0; });
+    btn.addEventListener('click', async () => { await applyBackground('anim', btn.dataset.bgUrl); _fxSyncActive(); });
+  });
+}
+// sfondi scelti dal proprio computer senza caricarli (ospiti, o caricamento non riuscito): solo in questa scheda
+const _localBackgrounds = [];
+function _bgItemHtml(b) {
+  const thumb = b.video
+    ? `<video src="${escapeHtml(b.url)}" muted loop playsinline preload="metadata" aria-hidden="true"></video><span class="bg-play" aria-hidden="true"></span>`
+    : `<img src="${escapeHtml(b.thumb || b.url)}" alt="${escapeHtml(b.label)}" loading="lazy" decoding="async">`;
+  return `
+      <button class="bg-item${b.video ? ' bg-video' : ''}" data-bg-type="${b.video ? 'video' : 'image'}" data-bg-url="${escapeHtml(b.url)}" aria-label="${escapeHtml(b.label)}">
+        ${thumb}
+        <span class="bg-label">${escapeHtml(b.label)}</span>
+      </button>`;
 }
 
 async function loadBackgroundPresets() {
@@ -3829,19 +3911,18 @@ async function loadBackgroundPresets() {
   try {
     const r = await fetch('/api/backgrounds');
     const data = await r.json();
-    const all = [...(data.presets || []), ...(data.uploads || [])];
+    const all = [...(data.presets || []), ...(data.uploads || []), ..._localBackgrounds];
+    _fillAnimBackgrounds(); // 1.9.0
     if (all.length === 0) {
       grid.innerHTML = '<div class="bg-loading">Nessuno sfondo disponibile: usa «Carica» qui sopra.</div>';
       return;
     }
-    grid.innerHTML = all.map(b => `
-      <button class="bg-item" data-bg-type="image" data-bg-url="${escapeHtml(b.url)}" aria-label="${escapeHtml(b.label)}">
-        <img src="${escapeHtml(b.thumb || b.url)}" alt="${escapeHtml(b.label)}" loading="lazy" decoding="async">
-        <span class="bg-label">${escapeHtml(b.label)}</span>
-      </button>
-    `).join('');
+    grid.innerHTML = all.map(_bgItemHtml).join('');
     grid.querySelectorAll('.bg-item').forEach(btn => {
-      btn.addEventListener('click', async () => { await applyBackground('image', btn.dataset.bgUrl); _fxSyncActive(); });
+      btn.addEventListener('click', async () => { await applyBackground(btn.dataset.bgType, btn.dataset.bgUrl); _fxSyncActive(); });
+      // video: anteprima che si muove al passaggio del mouse
+      const v = btn.querySelector('video');
+      if (v) { btn.addEventListener('pointerenter', () => v.play().catch(() => { })); btn.addEventListener('pointerleave', () => { v.pause(); }); }
     });
   } catch (e) {
     grid.innerHTML = '<div class="bg-loading">Errore nel caricamento sfondi</div>';
@@ -3857,28 +3938,40 @@ async function loadBackgroundPresets() {
 async function handleBackgroundUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
+  e.target.value = '';  // reset per poter ricaricare lo stesso file
   if (file.size > 8 * 1024 * 1024) { showToast('File troppo grande (max 8MB)'); return; }
+  const isVideo = /^video\//.test(file.type) || /\.(mp4|webm)$/i.test(file.name);
+  const type = isVideo ? 'video' : 'image';
+  // 1.9.0: chi non ha un account (ospiti) o se il caricamento non va: lo sfondo si usa
+  // lo stesso, dal proprio computer, solo in questa scheda (prima: «Upload fallito»)
+  const useLocal = async (why) => {
+    const url = URL.createObjectURL(file);
+    _localBackgrounds.unshift({ url, label: (window.I18n?.t ? window.I18n.t('Solo qui') : 'Solo qui'), video: isVideo, local: true });
+    await loadBackgroundPresets();
+    await applyBackground(type, url);
+    _fxSyncActive();
+    showToast(why || 'Sfondo usato solo su questo dispositivo, per questa riunione', 3500);
+  };
+  const token = localStorage.getItem('tdmeet_token');
+  if (!token || sessionStorage.getItem('tdmeet_guest_token')) { await useLocal(); return; }
   showToast('Caricamento sfondo...');
   try {
-    const ext = file.name.split('.').pop().toLowerCase();
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
     const buffer = await file.arrayBuffer();
-    // Upload richiede auth: usa il token salvato se presente
-    const token = localStorage.getItem('tdmeet_token');
-    const headers = {};
-    if (token) headers['x-auth-token'] = token;
     const r = await fetch(`/api/upload/background?ext=${ext}`, {
-      method: 'POST', headers, body: buffer,
+      method: 'POST', headers: { 'x-auth-token': token }, body: buffer,
     });
-    const data = await r.json();
+    const data = await r.json().catch(() => ({}));
     if (data.url) {
       await loadBackgroundPresets();
-      await applyBackground('image', data.url);
+      await applyBackground(type, data.url);
       _fxSyncActive();
+    } else if (r.status === 401 || r.status === 403) {
+      await useLocal();
     } else {
       showToast('Upload fallito: ' + (data.error || 'errore'));
     }
-  } catch (err) { showToast('Upload fallito: ' + err.message); }
-  e.target.value = '';  // reset per poter ricaricare lo stesso file
+  } catch (err) { await useLocal('Caricamento non riuscito: lo sfondo vale solo su questo dispositivo'); }
 }
 
 async function _applyBackgroundImpl(type, imageUrl) {

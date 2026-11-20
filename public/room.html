@@ -34,6 +34,7 @@
   <link rel="stylesheet" href="/assets/css/screenaudio.css" />
   <link rel="stylesheet" href="/assets/css/fxsearch.css" />
   <link rel="stylesheet" href="/assets/css/tilemenu183.css" />
+  <link rel="stylesheet" href="/assets/css/screencam.css" />
   %%BRAND_HEAD%%
   <script>
     // Log silenziati (tranne errori). Per debug: console.log = console._log
@@ -233,12 +234,14 @@
             <label class="fx-item fx-item-ico fx-upload" for="bgUploadInput" title="Usa una tua immagine">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M12 16V9M8.8 12.2L12 9l3.2 3.2"/></svg>
               <span class="bg-label">Carica</span>
-              <input type="file" id="bgUploadInput" accept="image/jpeg,image/png,image/webp" hidden>
+              <input type="file" id="bgUploadInput" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden>
             </label>
           </div>
           <h4 class="fx-h">Sfondi</h4>
           <div class="fx-grid fx-grid-img" id="bgPresetsGrid"><div class="bg-loading">Caricamento...</div></div>
-          <div class="fx-hint">Le tue immagini: fino a 8 MB, meglio 1920×1080.</div>
+          <h4 class="fx-h">Animati</h4>
+          <div class="fx-grid fx-grid-img" id="bgAnimGrid"></div>
+          <div class="fx-hint">Le tue immagini o un breve video in loop (mp4 o webm): fino a 8 MB, meglio 1920×1080.</div>
         </section>
         <section class="fx-sec hidden" data-sec="face3d">
           <div id="effects3dPickerGrid"></div>
@@ -449,6 +452,8 @@
   <script src="/assets/js/callSettings.js"></script>
   <script src="/assets/js/bar183.js"></script>
   <script src="/assets/js/tilemenu183.js"></script>
+  <script src="/assets/js/screencam.js"></script>
+  <script src="/assets/js/accessories.js"></script>
 </body>
 
 </html>

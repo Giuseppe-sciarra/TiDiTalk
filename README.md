@@ -82,6 +82,9 @@ cloud, your branding.
 - While someone presents, the participants sit **in a row above the shared
   screen**, smaller as more people join
 - The presenter decides whether everyone can draw or only presenter and hosts
+- **The presenter's camera inside the shared screen**: in a corner you can drag
+  (double-click for bigger), side by side, or in the row — each viewer chooses,
+  and recordings show it the same way
 - Local **recording** that includes annotations and laser pointer; leaving the
   room waits for the file to be saved
 
@@ -93,7 +96,8 @@ cloud, your branding.
   everyone, marked *answering now* and *answered* by the host, downloadable
   for Excel)
 - **Chat** with **pinned messages** (hosts, up to 3), **reactions** on each
-  message, **reply with a quote**, clickable links and *"… is typing"*
+  message, **reply with a quote**, **edit and delete for everyone** your own
+  messages, clickable links and *"… is typing"*
 - **Notifications at the bottom left** for joins, leaves, chat (reply without
   opening the chat) and recording, with the person's initials and the time
 - **Zoom on a shared screen** (− % +, Ctrl + wheel or pinch, drag, minimap) and
@@ -135,21 +139,28 @@ cloud, your branding.
   speaker highlight, mic/camera/hand/leave. Opens by itself when you switch tab
 - Virtual backgrounds (blur, 56 photos — offices, homes, libraries, Italy,
   nature, space, abstract, video games — synthwave and pixel-art
-  illustrations, or your own image), color styles and face
+  illustrations, **animated backgrounds**, a **video loop** or your own
+  image), with clean edges from MediaPipe's selfie segmenter in a Web Worker
+  and blur on Safari too; color styles and face
   effects (MediaPipe) in a **side panel with a live preview**, opened from More
-  or from the button on your own tile
+  or from the button on your own tile. The quickest backgrounds are also in the
+  **camera menu ▾**, and you can switch camera with an effect on
 - **411 3D face effects like Meet** (characters that copy your expressions,
   animals with real fur and kawaii animals, costumes, cute accessories, fun and
   Halloween effects that react to your smile, mouth and eyebrows, wigs, beards,
   hats, glasses, painted masks, scenes with your face in a frame)
   that follow the head in 3D: MediaPipe Face Landmarker in a Web Worker +
   three.js, all served locally. A search box at the top finds an effect by
-  name in any of the app's languages, by section, or just "animals". The
-  classic 2D effects stay in their own tab
-- **Call settings window** with sections: audio & video devices, room rules
-  (hosts), recording quality, appearance, shortcuts, info
+  name in any of the app's languages, by section, or just "animals". **Your own
+  accessories**: a logo or sticker (PNG) or a `.glb` model, placed on the head,
+  forehead, eyes, nose, mouth or cheek. The classic 2D effects stay in their
+  own tab
+- **Call settings window** with sections: audio & video devices with a **live
+  camera preview**, room rules (hosts), recording quality, appearance,
+  shortcuts, info — and a **search box** (arrows + Enter)
 - Microphone popup with **live mic and speaker levels** and a switch for
-  automatic gain control
+  automatic gain control; hosts can **mute everyone** or **turn off everyone's
+  video** from the microphone and camera menus
 - **Microphone watchdog**: a mic silenced by the OS or another app, or dead
   after a device change, is reopened without interrupting the call
 - Per-tile connection quality with detailed stats, data saver mode; native
@@ -201,6 +212,7 @@ nano .env        # at least: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USER
 # 2. Third-party assets (MediaPipe for backgrounds/effects and the 3D face
 #    effects, three.js, emoji images, background photos from Unsplash).
 #    Updating from 1.6.x: run setup-mediapipe.sh again for the 3D effects
+#    (and from 1.8.x for the new background model in 1.9.0)
 bash setup-mediapipe.sh
 bash setup-effects.sh
 bash setup-backgrounds.sh
@@ -298,6 +310,13 @@ Every night `aggiorna-tutto.sh`:
    lock file and image — **automatic rollback**;
 6. updates **coturn** when a new image is out, with the same check and a
    return to the previous image if it doesn't stay up;
+   then refreshes the **third-party assets** (`setup-mediapipe.sh`,
+   `setup-effects.sh`, `setup-backgrounds.sh`) only when needed — the script
+   changed with a patch, or a file it downloaded is missing. It downloads into a
+   temporary folder and replaces files only if everything went fine: if a CDN
+   doesn't answer nothing is deleted or changed, and it tries again the next
+   night. Replaced files go to `backups/asset-*.tar.gz`. No code from GitHub,
+   versions stay pinned in the scripts;
 7. sends the report: a table of what changed, tagged **major / minor /
    patch**, what happened (app, Node, coturn) and the exact command to go back;
 8. cleans Docker safely: keeps the last `UPDATE_KEEP_ROLLBACK` rollback images
@@ -305,7 +324,7 @@ Every night `aggiorna-tutto.sh`:
    older than 7 days. It never runs `prune -a`.
 
 Backups: `backups/` (last 10). Log: `logs/aggiorna-tutto.log` (plus
-`logs/build.log`, `logs/npm-risoluzione.log`).
+`logs/build.log`, `logs/npm-risoluzione.log`, `logs/asset-*.log`).
 
 | Variable | Default | Meaning |
 |----------|---------|---------|

@@ -45,16 +45,29 @@ function _broadcast(io, room) { io.to(room.id).emit('pinAll', { pins: _view(room
 /** Chiave per riconoscere chi rientra: la scheda (tabId) o, senza, il nome. */
 function _key(tabId, name) { return tabId ? 't:' + tabId : 'n:' + String(name || '').toLowerCase(); }
 
-/** joinRoom: questo ospite è stato rimandato in sala d'attesa e non è ancora stato riammesso? */
+/** Chiave del nome (maiuscole, accenti e spazi non contano). */
+function _nkey(name) { return 'n:' + String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+/** Segna un ospite da far riaspettare: rimandato in sala d'attesa (10 minuti) o
+ *  rimosso (1.9.0, kick = per tutta la riunione, riconosciuto da scheda E nome). */
+function markBack(room, tabId, name, kick) {
+  const st = _st(room);
+  const v = { t: Date.now(), kick: !!kick };
+  st.back.set(_key(tabId, name), v);
+  if (kick) st.back.set(_nkey(name), v);
+  while (st.back.size > 200) st.back.delete(st.back.keys().next().value);
+}
+
+/** joinRoom: questo ospite è stato rimandato in sala d'attesa (o rimosso) e non è ancora stato riammesso? */
 function mustWait(room, tabId, name, socketId) {
   const st = room && room._tm183;
   if (!st || !st.back.size) return false;
   const now = Date.now();
-  for (const [k, t] of st.back) if (now - t > BACK_TTL_MS) st.back.delete(k);
-  const k = _key(tabId, name);
-  if (!st.back.has(k)) return false;
+  for (const [k, v] of st.back) if (!v.kick && now - v.t > BACK_TTL_MS) st.back.delete(k);
+  const keys = [_key(tabId, name), _nkey(name)].filter(k => st.back.has(k));
+  if (!keys.length) return false;
   // riammesso dall'organizzatore: da qui in poi entra come gli altri
-  if (room.admitted.has(socketId)) { st.back.delete(k); return false; }
+  if (room.admitted.has(socketId)) { for (const k of keys) st.back.delete(k); return false; }
   return true;
 }
 
@@ -119,9 +132,7 @@ function bindSocket(socket, ctx) {
     // niente biglietto: al rientro (la pagina si ricarica) aspetta di nuovo
     room.revokeTicket(target.admitTicket);
     room.admitted.delete(id);
-    const st = _st(room);
-    st.back.set(_key(target.tabId, target.displayName), Date.now());
-    while (st.back.size > 200) st.back.delete(st.back.keys().next().value);
+    markBack(room, target.tabId, target.displayName, false);
     io.to(id).emit('sentToLobby', { by: ctx.peer().displayName });
     console.log(`[tilemenu] ${ctx.peer().displayName} ha rimandato ${target.displayName} in sala d'attesa (${room.id})`);
     // il client si ricarica da solo; se non lo fa, lo stacchiamo comunque
@@ -130,4 +141,4 @@ function bindSocket(socket, ctx) {
   });
 }
 
-module.exports = { bindSocket, afterJoin, mustWait };
+module.exports = { bindSocket, afterJoin, mustWait, markBack };

@@ -12,3 +12,5 @@ backups
 logs
 .agg-tmp
 .agg-ultima-build
+.agg-asset-*
+.agg-asset.*

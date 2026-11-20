@@ -253,3 +253,21 @@ body.tdt-room .pj2 .pj-more-btn.hidden { display: none; }
   body.tdt-room .pj2-title { font-size: 26px; margin: 0; }
   body.tdt-room .pj2 .prejoin-name-input { font-size: 16px; }
 }
+
+/* 1.9.0 — nome già usato nella riunione (pre-ingresso) */
+body.tdt-room .pj-name-warn {
+  display: flex; gap: 7px; align-items: flex-start;
+  margin: 7px 2px 0;
+  font: 500 12.5px/1.4 var(--font); color: var(--warn, #e8b04a);
+  animation: pjWarnIn .22s var(--ease, ease);
+}
+body.tdt-room .pj-name-warn::before {
+  content: ''; flex: 0 0 14px; height: 14px; margin-top: 2px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l9.5 16.5h-19z'/%3E%3Cpath d='M12 10v4.5M12 17.6v.1'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l9.5 16.5h-19z'/%3E%3Cpath d='M12 10v4.5M12 17.6v.1'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+body.tdt-room .pj-name-warn.hidden { display: none; }
+body.tdt-room .pj-name-warn.pj-name-warn-block { color: var(--danger, #e5534b); }
+body.tdt-room .prejoin-name-input.pj-name-dup { border-color: color-mix(in srgb, var(--warn, #e8b04a) 70%, transparent) !important; }
+body.tdt-room .pj-join-blocked { opacity: .5; cursor: not-allowed; }
+@keyframes pjWarnIn { from { opacity: 0; transform: translateY(-3px); } }

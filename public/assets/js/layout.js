@@ -155,7 +155,7 @@
 
     all.forEach(t => {
       if (t.classList.contains('lv-out')) {
-        t.classList.remove('lv-out', 'lv-hide', 'lv-float', 'lv-over');
+        t.classList.remove('lv-out', 'lv-hide', 'lv-float', 'lv-over', 'lv-inscreen');
       }
     });
 
@@ -197,6 +197,17 @@
     }
     lastHidden = hidden;
     if (hidden.length) grid.dataset.lvNote = '1'; else delete grid.dataset.lvNote;
+
+    // 1.9.0: camera di chi presenta già dentro il suo schermo (screencam.js) → fuori
+    // dalla fila, così non si vede due volte. Mai il riquadro grande scelto da te;
+    // il tuo riquadro solo se sta nella griglia (finestrella e nascosto hanno le loro regole).
+    const inScreen = window.TdtScreenCam?.embedded?.() || [];
+    if (inScreen.length) people.forEach(t => {
+      const id = t.dataset.peerId;
+      if (!inScreen.includes(id) || id === cur || t.classList.contains('lv-out')) return;
+      if (t === self && e.self !== 'grid') return;
+      out(t, 'lv-hide', 'lv-inscreen');
+    });
 
     // 2) il tuo riquadro
     let cand = people.filter(t => !t.classList.contains('lv-out'));

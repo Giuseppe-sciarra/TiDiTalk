@@ -1,0 +1,93 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TIDITALK 1.9.0 — Camera di chi presenta dentro lo schermo (screencam.js)
+   Finestrella nell'angolo (spostabile) · colonna affiancata · menu «Camera».
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.tdt-room .video-tile.screenshare { position: relative; }
+
+/* ── finestrella ───────────────────────────────────────────────────────── */
+.tsc-cam {
+  --tsc-ar: 1.7778;
+  position: absolute; z-index: 7;
+  width: clamp(120px, 21%, 300px);
+  aspect-ratio: var(--tsc-ar);
+  max-height: 46%;
+  border-radius: 14px; overflow: hidden;
+  background: #0b0c0f;
+  border: 1px solid rgba(255, 255, 255, .16);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .8), 0 0 0 1px rgba(0, 0, 0, .35);
+  cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  animation: tsc-in .32s var(--ease, cubic-bezier(.2, .8, .2, 1)) both;
+  transition: width .25s var(--ease, ease), box-shadow .2s, transform .2s var(--ease, ease);
+}
+.tsc-cam.tsc-big { width: clamp(180px, 34%, 480px); max-height: 62%; }
+.tsc-cam:hover { box-shadow: 0 22px 46px -16px rgba(0, 0, 0, .85), 0 0 0 2px var(--accent-line, rgba(155, 125, 220, .55)); }
+.tsc-cam.tsc-dragging { cursor: grabbing; transform: scale(1.03); transition: box-shadow .2s, transform .15s; }
+body.tdt-room .tsc-cam video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; transform: none; border-radius: 0; pointer-events: none;
+}
+body.tdt-room .tsc-cam.tsc-mirror video { transform: scaleX(-1); }
+.tsc-name {
+  position: absolute; left: 7px; bottom: 7px; max-width: calc(100% - 14px);
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(10, 11, 14, .62); color: #fff;
+  font: 500 11px/1.2 var(--font, system-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+@keyframes tsc-in { from { opacity: 0; transform: translateY(8px) scale(.94); } }
+
+/* ── affiancata: lo schermo a sinistra, la camera nella colonna a destra ── */
+body.tdt-room .video-tile.screenshare.tsc-split > video { width: 74% !important; }
+body.tdt-room .video-tile.screenshare.tsc-split > .sz-stage { right: 26%; }
+.video-tile.screenshare.tsc-split .tsc-cam {
+  left: auto !important; top: 50% !important; right: 1.2%;
+  width: 23.6%; max-height: 92%;
+  transform: translateY(-50%);
+  cursor: default;
+  animation-name: tsc-in-side;
+}
+.video-tile.screenshare.tsc-split .tsc-cam:hover { box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .8), 0 0 0 1px rgba(0, 0, 0, .35); }
+@keyframes tsc-in-side { from { opacity: 0; transform: translate(12px, -50%); } }
+
+/* la minimappa dello zoom non finisce sotto la camera */
+.video-tile.tsc-has-cam:not(.tsc-split) .sz-map { right: auto; left: 12px; }
+.video-tile.tsc-split .sz-map { right: calc(26% + 12px); }
+
+/* ── tasto «Camera» tra gli strumenti dello schermo ─────────────────────── */
+.stage-btn.tsc-btn { gap: 6px; padding: 0 10px 0 11px; }
+.stage-btn.tsc-btn svg:last-child { opacity: .7; margin-left: -1px; }
+
+/* ── menu ─────────────────────────────────────────────────────────────── */
+.tsc-menu {
+  position: fixed; z-index: 400; min-width: 210px;
+  padding: 6px;
+  background: var(--ink-2, #1b1d23); color: var(--paper, #fff);
+  border: 1px solid var(--hair-2, rgba(255, 255, 255, .12)); border-radius: 14px;
+  box-shadow: var(--shadow-2, 0 24px 60px -20px rgba(0, 0, 0, .7));
+  animation: tsc-menu-in .18s var(--ease, ease) both;
+}
+@keyframes tsc-menu-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+.tsc-menu-h { padding: 6px 10px 7px; font: 600 11.5px/1.2 var(--font, system-ui); color: var(--paper-3, #999); letter-spacing: .02em; }
+.tsc-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 10px; border: 0; border-radius: 9px;
+  background: transparent; color: inherit; cursor: pointer; text-align: left;
+  font: 500 13.5px/1.2 var(--font, system-ui);
+}
+.tsc-item:hover, .tsc-item:focus-visible { background: var(--hair-2, rgba(255, 255, 255, .08)); outline: none; }
+.tsc-item.on { color: var(--accent-text, #c9b5ff); }
+.tsc-item.on::after {
+  content: ''; margin-left: auto; width: 14px; height: 14px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.tsc-item-ico { display: inline-flex; color: var(--paper-2, #ccc); }
+.tsc-item.on .tsc-item-ico { color: inherit; }
+
+@media (max-width: 640px) {
+  .tsc-cam { width: clamp(96px, 28%, 200px); border-radius: 11px; }
+  .tsc-cam.tsc-big { width: clamp(130px, 42%, 300px); }
+  .tsc-name { font-size: 10px; padding: 2px 6px; }
+  .tsc-item { padding: 12px 10px; font-size: 14.5px; }
+}

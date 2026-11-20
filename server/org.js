@@ -130,6 +130,10 @@ function refuseProduce(peer, mediaType) {
   return !!(peer && peer.secondScreen && (mediaType === 'audio' || mediaType === 'video'));
 }
 
+// come _nameKey di index.js: maiuscole, accenti, spazi e caratteri invisibili non contano
+const _BAD_NAME = /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+const _nameKey = (v) => (typeof v === 'string' ? v : '').replace(_BAD_NAME, '').slice(0, 50).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
 // ── HTTP: chi c'è già (pre-ingresso) ───────────────────────────────────────
 // Solo i nomi, e solo a chi ha un link valido per QUESTA stanza (token ospite)
 // o è un utente registrato. Niente id, stati o altro.
@@ -155,8 +159,18 @@ function installHttp(app, { rooms, verifyToken, verifyGuestToken, db }) {
     hits.set(key, h);
     const room = rooms.get(roomId);
     const names = room ? [...room.peers.values()].map(p => String(p.displayName || '').slice(0, 50)).filter(Boolean) : [];
+    // 1.9.0: il nome che sto per usare c'è già? (?name=…&tab=… — la propria scheda,
+    // es. dopo una ricarica, non conta). takenByHost: è di un organizzatore → un
+    // ospite non può usarlo (joinRoom lo rifiuta con NAME_TAKEN).
+    let taken = false, takenByHost = false;
+    const nk = _nameKey(req.query.name);
+    const tab = typeof req.query.tab === 'string' ? req.query.tab.slice(0, 64) : '';
+    if (room && nk) for (const p of room.peers.values()) {
+      if (tab && p.tabId === tab) continue;
+      if (_nameKey(p.displayName) === nk) { taken = true; if (!p.isGuest) takenByHost = true; }
+    }
     res.set('Cache-Control', 'no-store');
-    res.json({ names: names.slice(0, 12), count: names.length });
+    res.json({ names: names.slice(0, 12), count: names.length, taken, takenByHost });
   });
 }
 

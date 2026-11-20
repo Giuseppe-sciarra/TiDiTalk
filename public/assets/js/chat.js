@@ -15,10 +15,15 @@
  * • Link: solo http/https (e www.), aperti in una scheda nuova con
  *   rel="noopener noreferrer". Il testo resta testo: niente innerHTML.
  * • «Marco sta scrivendo…» sopra il campo, con limiti di frequenza.
+ * • 1.9.0 — sui propri messaggi «⋯» → Modifica (il testo torna nel campo,
+ *   Invio salva, Esc annulla; sotto compare «modificato») ed Elimina per
+ *   tutti (secondo tocco per confermare; resta «Messaggio eliminato»).
+ *   Il server controlla che il messaggio sia davvero tuo, anche dopo un
+ *   ricaricamento della pagina (snapshot.mine).
  *
  * Agganci in room.js: bind(socket), load(res.chat), decorate(div, msg) in
  * appendChatMessage, outgoing(payload) in sendChatMessage.
- * Server: chatReact · chatPin · chatTyping (server/chat.js).
+ * Server: chatReact · chatPin · chatTyping · chatEdit · chatDelete (server/chat.js).
  */
 (function () {
   const T = (s) => (window.I18n && typeof window.I18n.t === 'function') ? window.I18n.t(s) : s;
@@ -36,7 +41,9 @@
   const reacts = new Map();    // id messaggio → [{ e, n, mine, who }]
   const typers = new Map();    // peerId → { name, until }
   let reply = null;            // { id, name, text } del messaggio a cui si risponde
-  let pinsEl = null, replyEl = null, typingEl = null, typingTick = null;
+  let editing = null;          // 1.9.0: { id, draft } del messaggio che sto modificando
+  const mine = new Set();      // 1.9.0: id dei miei messaggi (modificabili)
+  let pinsEl = null, replyEl = null, editEl = null, typingEl = null, typingTick = null;
   let myTypingAt = 0, myIdleT = null;
 
   const isHost = () => !!window.__isHostRole;
@@ -67,6 +74,10 @@
     pin: SVG('<path d="M9 3.5h6l-1 5.5 3.5 3.5v1.5h-11V12.5L10 9z"/><path d="M12 14v6.5"/>'),
     unpin: SVG('<path d="M9 3.5h6l-1 5.5 3.5 3.5v1.5h-11V12.5L10 9z"/><path d="M12 14v6.5"/><path d="M4 4l16 16"/>'),
     close: SVG('<path d="M7 7l10 10M17 7L7 17"/>'),
+    more: SVG('<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>'),
+    back: SVG('<path d="M14.5 6.5L9 12l5.5 5.5"/>'),
+    edit: SVG('<path d="M4.5 19.5l1-4L15.8 5.2a2 2 0 0 1 2.9 0l.1.1a2 2 0 0 1 0 2.9L8.5 18.5z"/><path d="M13.5 7.5l3 3"/>'),
+    trash: SVG('<path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/><path d="M10.2 10.8v5.4M13.8 10.8v5.4"/>'),
   };
 
   // ── Link sicuri ──────────────────────────────────────────────────────────
@@ -161,7 +172,43 @@
     pb.addEventListener('click', (ev) => { ev.stopPropagation(); togglePin(msg.id); closeTools(); });
     bar.appendChild(pb);
     paintPinBtn(div, pb);
+    if (mine.has(msg.id)) addOwnTools(div, bar);
     return bar;
+  }
+  // 1.9.0 — «⋯» sui miei messaggi: seconda pagina della barretta con Modifica ed Elimina per tutti
+  function addOwnTools(div, bar) {
+    if (bar.querySelector('.tc-tool-more')) return;
+    const mb = el('button', 'tc-tool tc-tool-more', { type: 'button', 'data-tip': 'Altre azioni', 'aria-label': 'Altre azioni', 'aria-expanded': 'false' });
+    mb.innerHTML = ICON.more;
+    mb.addEventListener('click', (ev) => { ev.stopPropagation(); ownPage(bar, true); });
+    bar.appendChild(mb);
+    const page = el('div', 'tc-own', { role: 'group' });
+    const back = el('button', 'tc-tool', { type: 'button', 'data-tip': 'Indietro', 'aria-label': 'Indietro' });
+    back.innerHTML = ICON.back;
+    back.addEventListener('click', (ev) => { ev.stopPropagation(); ownPage(bar, false); });
+    const eb = el('button', 'tc-own-btn', { type: 'button' });
+    eb.innerHTML = ICON.edit + '<span>' + T('Modifica') + '</span>';
+    eb.addEventListener('click', (ev) => { ev.stopPropagation(); ownPage(bar, false); closeTools(); startEdit(div._tcMsg); });
+    const db = el('button', 'tc-own-btn tc-own-del', { type: 'button' });
+    const paintDel = (armed) => { db.classList.toggle('armed', armed); db.innerHTML = ICON.trash + '<span>' + T(armed ? 'Sì, elimina per tutti' : 'Elimina per tutti') + '</span>'; };
+    paintDel(false);
+    let armT = null;
+    db.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (!db.classList.contains('armed')) { paintDel(true); clearTimeout(armT); armT = setTimeout(() => paintDel(false), 4000); return; }
+      clearTimeout(armT); paintDel(false); ownPage(bar, false); closeTools();
+      remove(div.dataset.msgId);
+    });
+    bar._tcResetDel = () => { clearTimeout(armT); paintDel(false); };
+    page.append(back, eb, db);
+    bar.appendChild(page);
+  }
+  function ownPage(bar, on) {
+    bar.classList.toggle('tc-own-on', on);
+    const mb = bar.querySelector('.tc-tool-more'); if (mb) mb.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (!on && bar._tcResetDel) bar._tcResetDel();
+    const f = on ? bar.querySelector('.tc-own-btn') : bar.querySelector('.tc-tool-more');
+    if (f && bar.contains(document.activeElement)) f.focus();
   }
   function paintPinBtn(div, pb) {
     pb = pb || div.querySelector('.tc-tool-pin');
@@ -174,10 +221,84 @@
   }
   function closeTools(except) {
     document.querySelectorAll('.chat-msg.tc-open').forEach(m => { if (m !== except) m.classList.remove('tc-open'); });
+    document.querySelectorAll('.tc-tools.tc-own-on').forEach(b => { if (!except || !except.contains(b)) ownPage(b, false); });
+  }
+
+  // ── 1.9.0: modifica ed elimina dei miei messaggi ─────────────────────────
+  function startEdit(msg) {
+    if (!msg || !mine.has(msg.id)) return;
+    const i = input(); if (!i) return;
+    if (reply) cancelReply();
+    if (!editing) editing = { id: msg.id, draft: i.value };
+    else editing.id = msg.id;
+    paintEdit(msg);
+    i.value = msg.message;
+    i.focus();
+    try { i.setSelectionRange(i.value.length, i.value.length); } catch (_) { }
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  function cancelEdit(keepText) {
+    if (!editing) return;
+    const i = input();
+    const draft = editing.draft;
+    editing = null;
+    paintEdit(null);
+    if (i && !keepText) { i.value = draft || ''; i.dispatchEvent(new Event('input', { bubbles: true })); }
+  }
+  function paintEdit(msg) {
+    if (!editEl) return;
+    editEl.classList.toggle('hidden', !editing);
+    if (!editing || !msg) return;
+    editEl.querySelector('.tc-replybar-text').textContent = snippet(msg.message, QUOTE_MAX);
+  }
+  /** Da room.js (sendChatMessage): se sto modificando, salva al posto di inviare. */
+  function submitEdit(text) {
+    if (!editing) return false;
+    const id = editing.id;
+    const m = msgEl(id), cur = m && m._tcMsg;
+    if (!socket || !cur || cur.deleted) { cancelEdit(true); return false; }
+    const draft = editing.draft;
+    editing = null; paintEdit(null);
+    stopMyTyping();
+    const i = input();
+    if (text !== cur.message) {
+      socket.emit('chatEdit', { msgId: id, text }, (res) => { if (res && res.error) toast(res.error, 3500); });
+    }
+    if (i) { i.value = draft || ''; i.dispatchEvent(new Event('input', { bubbles: true })); }
+    return true;
+  }
+  function remove(msgId) {
+    if (!socket || !msgId) return;
+    if (editing && editing.id === msgId) cancelEdit();
+    socket.emit('chatDelete', { msgId }, (res) => { if (res && res.error) toast(res.error, 3500); });
+  }
+  function paintEdited(div, msg) {
+    const meta = div.querySelector('.msg-meta'); if (!meta) return;
+    let b = meta.querySelector('.tc-edited');
+    if (!msg.edited || msg.deleted) { if (b) b.remove(); return; }
+    if (!b) { b = el('span', 'tc-edited'); meta.appendChild(b); }
+    b.textContent = T('modificato');
+    try { b.dataset.tip = fmt('Modificato alle {0}', new Date(msg.edited).toLocaleTimeString(window.I18n?.locale || undefined, { hour: '2-digit', minute: '2-digit' })); } catch (_) { }
+  }
+  function paintDeleted(div) {
+    div.classList.add('tc-deleted');
+    div.classList.remove('tc-pinned', 'tc-open');
+    div.querySelectorAll(':scope .tc-tools, :scope > .tc-reacts, :scope > .tc-quote, :scope .msg-tts-btn').forEach(n => n.remove());
+    const bubble = div.querySelector('.msg-bubble');
+    if (bubble) {
+      bubble.textContent = '';
+      bubble.appendChild(el('span', 'tc-deleted-ico', { 'aria-hidden': 'true' })).innerHTML = ICON.trash;
+      bubble.appendChild(document.createTextNode(T('Messaggio eliminato')));
+    }
+    paintEdited(div, { deleted: true });
+  }
+  function quotesOf(id) {
+    return Array.from(document.querySelectorAll('#chatMessages .tc-quote[data-quote-id]')).filter(q => q.dataset.quoteId === id);
   }
 
   // ── Risposta ─────────────────────────────────────────────────────────────
   function startReply(msg) {
+    if (editing) cancelEdit();
     reply = { id: msg.id, name: msg.peerId === myId() ? T('Tu') : msg.displayName, text: snippet(msg.message, QUOTE_MAX) };
     paintReply();
     const i = input(); if (i) i.focus();
@@ -191,9 +312,9 @@
     replyEl.querySelector('.tc-replybar-text').textContent = reply.text;
   }
   function quoteBlock(q) {
-    const b = el('button', 'tc-quote', { type: 'button', 'data-i18n-skip': '', translate: 'no' });
+    const b = el('button', 'tc-quote' + (q.deleted ? ' tc-quote-gone' : ''), { type: 'button', 'data-i18n-skip': '', translate: 'no', 'data-quote-id': q.id });
     const who = el('span', 'tc-quote-who'); who.textContent = q.peerId === myId() ? T('Tu') : q.name;
-    const txt = el('span', 'tc-quote-text'); txt.textContent = q.text;
+    const txt = el('span', 'tc-quote-text'); txt.textContent = q.deleted ? T('Messaggio eliminato') : q.text;
     b.append(who, txt);
     b.setAttribute('aria-label', T('Vai al messaggio') + ': ' + (q.peerId === myId() ? T('Tu') : q.name));
     b.addEventListener('click', (ev) => { ev.stopPropagation(); jumpTo(q.id); });
@@ -298,14 +419,32 @@
     x.innerHTML = ICON.close;
     x.addEventListener('click', () => { cancelReply(); const i = input(); if (i) i.focus(); });
     replyEl.appendChild(x);
+    // 1.9.0: «Modifica messaggio» sopra il campo (stesso aspetto della risposta)
+    editEl = el('div', 'tc-replybar tc-editbar hidden', { 'data-i18n-skip': '', translate: 'no' });
+    editEl.innerHTML = `<span class="tc-replybar-ico" aria-hidden="true">${ICON.edit}</span><span class="tc-replybar-body"><span class="tc-replybar-who"></span><span class="tc-replybar-text"></span></span>`;
+    editEl.querySelector('.tc-replybar-who').textContent = T('Modifica messaggio');
+    const ex = el('button', 'btn-icon tc-replybar-x', { type: 'button' });
+    ex.dataset.tip = T('Annulla modifica'); ex.setAttribute('aria-label', T('Annulla modifica'));
+    ex.innerHTML = ICON.close;
+    ex.addEventListener('click', () => { cancelEdit(); const i = input(); if (i) i.focus(); });
+    editEl.appendChild(ex);
     panel.insertBefore(typingEl, area);
     panel.insertBefore(replyEl, area);
+    panel.insertBefore(editEl, area);
 
     const i = input();
     if (i) {
       i.addEventListener('input', myTyping);
       i.addEventListener('blur', () => { if (!i.value.trim()) stopMyTyping(); });
-      i.addEventListener('keydown', (e) => { if (e.key === 'Escape' && reply) { e.preventDefault(); e.stopPropagation(); cancelReply(); } });
+      i.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && editing) { e.preventDefault(); e.stopPropagation(); cancelEdit(); return; }
+        if (e.key === 'Escape' && reply) { e.preventDefault(); e.stopPropagation(); cancelReply(); }
+        // freccia su a campo vuoto: modifica l'ultimo mio messaggio (come Slack / Teams)
+        if (e.key === 'ArrowUp' && !editing && !i.value && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+          const own = Array.from(document.querySelectorAll('#chatMessages .chat-msg[data-msg-id]')).reverse().find(m => mine.has(m.dataset.msgId) && m._tcMsg && !m._tcMsg.deleted);
+          if (own) { e.preventDefault(); startEdit(own._tcMsg); }
+        }
+      });
     }
     // telefono: tocco sul fumetto = barretta delle azioni; tocco altrove la chiude
     msgs.addEventListener('click', (e) => {
@@ -323,8 +462,12 @@
     if (!div || !msg || !msg.id || msg.type === 'system') return;
     mount();
     div.dataset.msgId = msg.id;
+    div._tcMsg = msg;
+    if (msg.deleted) { paintDeleted(div); return; }
+    if (msg.peerId && msg.peerId === myId()) mine.add(msg.id);
     const bubble = div.querySelector('.msg-bubble');
     if (bubble) linkify(bubble, msg.message);
+    paintEdited(div, msg);
     if (msg.replyTo && msg.replyTo.id) div.insertBefore(quoteBlock(msg.replyTo), div.querySelector('.msg-bubble-wrap'));
     if (pins.some(p => p.id === msg.id)) div.classList.add('tc-pinned');
     (div.querySelector('.msg-bubble-wrap') || div).appendChild(buildTools(div, msg));
@@ -336,6 +479,13 @@
     mount();
     document.body.classList.toggle('tc-host', isHost());
     pins = (data && Array.isArray(data.pins)) ? data.pins.slice(0, MAX_PINS) : [];
+    // 1.9.0: i miei messaggi anche dopo un ricaricamento (il server sa chi li ha scritti)
+    if (data && Array.isArray(data.mine)) for (const id of data.mine) {
+      if (typeof id !== 'string') continue;
+      mine.add(id);
+      const m = msgEl(id), bar = m && m.querySelector('.tc-tools');
+      if (bar) addOwnTools(m, bar);
+    }
     reacts.clear();
     if (data && data.reacts) for (const k of Object.keys(data.reacts)) reacts.set(k, data.reacts[k]);
     const was = nearBottom();
@@ -344,6 +494,7 @@
     keepBottom(was);
   }
   function outgoing(payload) {
+    if (editing) cancelEdit(true);
     stopMyTyping();
     // invio da fuori (es. dalle notifiche) a chat chiusa: niente citazione e la risposta in corso resta
     if (reply && chatIsOpen()) { payload.replyTo = reply.id; cancelReply(); }
@@ -371,7 +522,40 @@
       paintTyping();
     });
     s.on('peerLeft', ({ peerId } = {}) => { if (typers.delete(peerId)) paintTyping(); });
+    // 1.9.0 — modificato / eliminato per tutti
+    s.on('chatEdited', ({ msgId, text, edited, quote } = {}) => {
+      if (typeof msgId !== 'string' || typeof text !== 'string') return;
+      const was = nearBottom();
+      const m = msgEl(msgId);
+      if (m && m._tcMsg && !m._tcMsg.deleted) {
+        m._tcMsg.message = text;
+        m._tcMsg.edited = Number(edited) || Date.now();
+        const bubble = m.querySelector('.msg-bubble');
+        if (bubble) linkify(bubble, text);
+        paintEdited(m, m._tcMsg);
+        if (editing && editing.id === msgId) paintEdit(m._tcMsg);
+      }
+      const q = typeof quote === 'string' ? quote : snippet(text, QUOTE_MAX);
+      for (const b of quotesOf(msgId)) { const t = b.querySelector('.tc-quote-text'); if (t) t.textContent = q; }
+      if (reply && reply.id === msgId) { reply.text = q; paintReply(); }
+      keepBottom(was);
+    });
+    s.on('chatDeleted', ({ msgId } = {}) => {
+      if (typeof msgId !== 'string') return;
+      const was = nearBottom();
+      reacts.delete(msgId);
+      mine.delete(msgId);
+      if (editing && editing.id === msgId) cancelEdit();
+      if (reply && reply.id === msgId) cancelReply();
+      const m = msgEl(msgId);
+      if (m) { if (m._tcMsg) { m._tcMsg.deleted = true; m._tcMsg.message = ''; delete m._tcMsg.edited; } paintDeleted(m); }
+      for (const b of quotesOf(msgId)) {
+        b.classList.add('tc-quote-gone');
+        const t = b.querySelector('.tc-quote-text'); if (t) t.textContent = T('Messaggio eliminato');
+      }
+      keepBottom(was);
+    });
   }
 
-  window.TdtChat = { bind, load, decorate, outgoing, linkify };
+  window.TdtChat = { bind, load, decorate, outgoing, linkify, submitEdit };
 })();

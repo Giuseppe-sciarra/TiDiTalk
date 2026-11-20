@@ -86,6 +86,9 @@ tuo marchio.
 - Mentre qualcuno presenta, i partecipanti stanno **in fila sopra lo schermo
   condiviso**, più piccoli quante più persone ci sono
 - Chi presenta decide se possono disegnare tutti o solo lui e gli organizzatori
+- **La camera di chi presenta dentro lo schermo condiviso**: in un angolo da
+  spostare (doppio clic per ingrandirla), affiancata, o nella fila — lo sceglie
+  chi guarda, e la registrazione la mostra allo stesso modo
 - **Registrazione** locale che include disegni e puntatore laser; uscendo dalla
   stanza si aspetta che il file sia salvato
 
@@ -97,8 +100,8 @@ tuo marchio.
   anonime, si votano, l'organizzatore le segna «in risposta» e «risposta data»
   e le scarica per Excel)
 - **Chat** con **messaggi fissati** (dagli organizzatori, fino a 3),
-  **reazioni** su ogni messaggio, **risposta con citazione**, link cliccabili e
-  «… sta scrivendo»
+  **reazioni** su ogni messaggio, **risposta con citazione**, **modifica ed
+  elimina per tutti** i propri messaggi, link cliccabili e «… sta scrivendo»
 - **Notifiche in basso a sinistra** per ingressi, uscite, chat (rispondi senza
   aprire la chat) e registrazione, con le iniziali della persona e l'orario
 - **Zoom sullo schermo condiviso** (− % +, Ctrl + rotellina o pizzico,
@@ -143,9 +146,12 @@ tuo marchio.
   cambi scheda
 - Sfondi virtuali (sfocatura, 56 foto — uffici, case, biblioteche, Italia,
   natura, spazio, astratti, videogiochi — illustrazioni synthwave e pixel art,
-  o una tua immagine), stili colore ed effetti
+  **sfondi animati**, un **video in loop** o una tua immagine), con bordi puliti
+  grazie al selfie segmenter di MediaPipe in un Web Worker e sfocatura anche su
+  Safari; stili colore ed effetti
   viso (MediaPipe) in un **pannello laterale con anteprima**, da Altro o dal
-  pulsante sul proprio riquadro
+  pulsante sul proprio riquadro. Gli sfondi più usati sono anche nel **menu ▾
+  della videocamera**, e si cambia videocamera con l'effetto acceso
 - **411 effetti viso 3D come Meet** (personaggi che copiano le tue espressioni,
   animali col pelo vero e animaletti kawaii, costumi, accessori carini, effetti
   divertenti e di Halloween che reagiscono a sorriso, bocca e sopracciglia,
@@ -153,12 +159,17 @@ tuo marchio.
   una cornice) che seguono la testa in 3D: MediaPipe Face Landmarker in un Web
   Worker + three.js, tutto servito in locale. Una casella in cima trova un
   effetto per nome in tutte le lingue dell'app, per sezione o semplicemente
-  «animali». Gli effetti 2D classici restano nella loro scheda
+  «animali». **Accessori personali**: un logo o uno sticker (PNG) o un modello
+  `.glb`, sopra la testa, sulla fronte, sugli occhi, sul naso, sulla bocca o
+  sulla guancia. Gli effetti 2D classici restano nella loro scheda
 - **Finestra Impostazioni della chiamata** a sezioni: dispositivi audio e
-  video, regole della stanza (organizzatori), qualità registrazione, aspetto,
-  scorciatoie, info
+  video con **anteprima dal vivo della camera**, regole della stanza
+  (organizzatori), qualità registrazione, aspetto, scorciatoie, info — e una
+  **casella di ricerca** (frecce + Invio)
 - Popup del microfono con **livelli in tempo reale di microfono e casse** e
-  interruttore della regolazione automatica del volume
+  interruttore della regolazione automatica del volume; gli organizzatori
+  possono **silenziare tutti** o **spegnere il video a tutti** dai menu di
+  microfono e videocamera
 - **Controllo del microfono**: se il sistema o un'altra app lo silenziano, o
   muore dopo un cambio dispositivo, viene riaperto senza interrompere la chiamata
 - Qualità della connessione per ogni riquadro con statistiche, risparmio dati;
@@ -210,6 +221,7 @@ nano .env        # almeno: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USERS,
 # 2. Asset di terze parti (MediaPipe per sfondi/effetti e per gli effetti
 #    viso 3D, three.js, immagini emoji, foto degli sfondi da Unsplash).
 #    Aggiornando dalla 1.6.x: rilancia setup-mediapipe.sh per gli effetti 3D
+#    (e dalla 1.8.x per il nuovo modello degli sfondi della 1.9.0)
 bash setup-mediapipe.sh
 bash setup-effects.sh
 bash setup-backgrounds.sh
@@ -310,6 +322,13 @@ Ogni notte `aggiorna-tutto.sh`:
    immagine precedenti — **rollback automatico**;
 6. aggiorna **coturn** se è uscita un'immagine nuova, con lo stesso controllo e
    ritorno all'immagine di prima se non resta su;
+   poi gli **asset di terze parti** (`setup-mediapipe.sh`, `setup-effects.sh`,
+   `setup-backgrounds.sh`) solo quando serve — lo script è cambiato con una
+   patch, o manca un file che aveva scaricato. Scarica in una cartella
+   temporanea e sostituisce i file solo se è andato tutto bene: se una CDN non
+   risponde non cancella e non cambia niente, e riprova la notte dopo. I file
+   sostituiti vanno in `backups/asset-*.tar.gz`. Niente codice da GitHub, le
+   versioni restano quelle fissate negli script;
 7. manda il riepilogo: tabella di cosa è cambiato con etichetta
    **major / minor / patch**, cosa è successo (app, Node, coturn) e il comando
    esatto per tornare indietro;
@@ -318,7 +337,7 @@ Ogni notte `aggiorna-tutto.sh`:
    e cache di build più vecchia di 7 giorni. Non usa mai `prune -a`.
 
 Backup: `backups/` (ultimi 10). Log: `logs/aggiorna-tutto.log` (e
-`logs/build.log`, `logs/npm-risoluzione.log`).
+`logs/build.log`, `logs/npm-risoluzione.log`, `logs/asset-*.log`).
 
 | Variabile | Default | Significato |
 |-----------|---------|-------------|

@@ -1,5 +1,113 @@
 # Changelog
 
+## 1.9.0
+
+Virtual backgrounds rebuilt, the presenter's camera inside the shared screen,
+edit and delete chat messages, your own 3D accessories (a logo or a .glb
+model), backgrounds right in the camera menu, a security pass, and smaller
+touches to the call screen.
+
+### Added
+- **Virtual backgrounds, rebuilt**:
+  - person/background separation now uses MediaPipe Tasks `ImageSegmenter`
+    (selfie segmenter) in a **Web Worker**, so the call, chat and drawing
+    don't slow down. It falls back to the page and then to the old
+    SelfieSegmentation, so backgrounds keep working even if
+    `setup-mediapipe.sh` hasn't been run again;
+  - **cleaner edges**: higher-resolution mask, a tighter transition curve
+    (no halo), smoothing between frames (no flicker), and detached blobs
+    removed (a bright curtain no longer counts as part of you). The picture is
+    drawn at 30 fps with the latest mask, even when the separation runs slower;
+  - until the first mask is ready the whole frame is **blurred**: the real
+    room never shows, not even for a moment;
+  - on a slow or software GPU the separation switches to the CPU by itself
+    and keeps the faster one; with a slow CPU it analyses a smaller image;
+  - **animated backgrounds**: Aurora, Lights, Waves, Studio, Sunset, drawn in
+    code (nothing to download, no licences), with a moving thumbnail on hover;
+  - **video backgrounds**: a short mp4/webm loop, uploaded by hosts (max 8 MB,
+    checked by content) or picked from your own computer. Guests can use their
+    own image or video locally, just for that meeting (before: "Upload failed");
+  - **blur on Safari** too (no `ctx.filter` there): same look, done by
+    shrinking and enlarging the frame, which is also lighter everywhere;
+  - switch background without restarting the camera (as before), and now
+    **switch camera with a background or face effect on**: the new camera goes
+    into the effect and the others keep seeing it (before you had to turn the
+    effect off)
+- **Backgrounds in the camera menu ▾**: None, Blur, five photos and an
+  animated one, in two full centred rows of four, plus *More backgrounds and
+  effects…* for the whole panel
+- **Presenter's camera inside the shared screen**: in the corner (drag it with
+  the mouse or a finger, double-click to make it bigger), side by side, or in
+  the row as before. *Camera* button on the shared screen and in Settings →
+  Appearance; a viewer's own choice, nothing sent to the server, no extra
+  bandwidth. The presenter's tile leaves the row so it doesn't show twice;
+  recordings show the camera inside the screen the same way; drawings stay
+  aligned with the side-by-side column
+- **Edit and delete for everyone in the chat**: *⋯* on your own messages →
+  *Edit* (the text goes back in the box, Enter saves, Esc cancels, *edited*
+  next to the time; ↑ in an empty box edits your last message) and *Delete for
+  everyone* (second tap to confirm, leaves *Message deleted*). Pinned copies
+  and quotes follow the change. The server checks the message is really yours,
+  also after a page reload
+- **Your own 3D accessories** (3D effects tab → *Your accessories*): an image
+  (a company logo or a sticker, PNG with a transparent background) or a `.glb`
+  model from a file or an https link. Six positions (on top of the head,
+  forehead, eyes, nose, mouth, cheek), size and height; hats fit by themselves
+  (brimmed hats bigger and lower), glasses sit on the eyes with the arms behind
+  the head. Kept in the browser (up to 12), nothing goes to the server
+- **Mute everyone / Turn off everyone's video** right in the microphone and
+  camera menus ▾ (hosts, second tap to confirm). Everyone can turn their
+  camera back on
+- **Search the settings**: a box at the top of the call settings, in every
+  language of the app, with synonyms ("webcam", "echo", "dark"…); arrows and
+  Enter jump to the setting and highlight it, Esc clears
+- **Live camera preview** in Settings → Audio & video, with your background or
+  effect; with the camera off, *Turn on* right there
+- **Name already in use** shown under the name in the pre-join screen
+- **Nightly update refreshes the third-party assets by itself**:
+  `aggiorna-tutto.sh` runs `setup-mediapipe.sh`, `setup-effects.sh` and
+  `setup-backgrounds.sh` only when needed — the script changed (a patch brings
+  a new model, like this release) or a file it downloaded is missing. It
+  downloads into a temporary folder and replaces files only if everything went
+  fine: if a CDN doesn't answer, nothing is deleted or changed and it tries
+  again the next night. Replaced files are kept in `backups/asset-*.tar.gz`
+  (the command to restore them is in the email). These folders are mounted from
+  outside, so no rebuild is needed
+
+### Changed
+- **Connection lost** is now a card in the middle of the screen with the
+  attempts, what to check (also "you're offline") and *Reload now*, instead of
+  a red pill at the top
+
+### Security
+- **A removed guest comes back only if a host admits them** again, for the
+  whole meeting, even with the waiting room off and from another tab with the
+  same name (before they could rejoin straight away from the invite link)
+- **A guest can't use the name of an organizer** who is in the meeting
+  (the pre-join screen says so and Join waits; the server refuses it anyway)
+- **Invisible and text-direction characters** (zero-width spaces, RLO…) are
+  removed from names and chat: they could disguise a name or reverse a
+  message
+- Checked against the bug classes fixed recently in MiroTalk SFU: no tokens
+  in what other participants receive, chat sender set by the server, waiting
+  room not bypassable, poll votes and limits checked, moderator actions
+  checked on the server, uploads checked by content, nothing sensitive in the
+  logs
+
+### Fixed
+- **Join pressed before the preview was ready did nothing** (the browser was
+  still asking for permissions or starting the camera): the click now waits
+  and joins as soon as it's ready, with *Please wait…* on the button
+
+- `setup-mediapipe.sh` no longer asks for two SelfieSegmentation files that the
+  package doesn't have (they always showed as failed)
+
+### Updating
+- The new background model (`selfie_segmenter.tflite`, ~250 KB, Apache-2.0)
+  arrives with the next nightly update, or right away with
+  `bash setup-mediapipe.sh`. Without it backgrounds still work with the old
+  engine
+
 ## 1.8.9
 
 Hats, headbands and costumes sit on the real head in real calls, 19 new 3D

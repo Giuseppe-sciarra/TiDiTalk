@@ -35,7 +35,9 @@
       <div class="cs-box" role="dialog" aria-modal="true">
         <aside class="cs-nav">
           <div class="cs-nav-title">Impostazioni</div>
+          <div class="cs-search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input type="search" id="csSearch" autocomplete="off" spellcheck="false"></div>
           <div class="cs-nav-list"></div>
+          <div class="cs-results hidden" role="listbox"></div>
         </aside>
         <div class="cs-main">
           <div class="cs-head"><h3 class="cs-title"></h3><button type="button" class="cs-x" aria-label="Chiudi">×</button></div>
@@ -46,7 +48,14 @@
     modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
     modal.querySelector('.cs-x').addEventListener('click', close);
     modal.querySelector('.cs-nav-list').addEventListener('click', (e) => { const b = e.target.closest('[data-sec]'); if (b) show(b.dataset.sec); });
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) { e.stopPropagation(); close(); } }, true);
+    bindSearch();
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !modal || modal.classList.contains('hidden')) return;
+      e.stopPropagation();
+      const inp = modal.querySelector('#csSearch');
+      if (inp && inp.value) { e.preventDefault(); clearSearch(); inp.focus(); return; }   // 1.9.0: Esc prima svuota la ricerca
+      close();
+    }, true);
     // le scorciatoie della stanza (m, v, c…) non devono scattare scrivendo nel pannello
     modal.addEventListener('keydown', (e) => e.stopPropagation());
   }
@@ -65,7 +74,96 @@
     modal.querySelector('.cs-title').textContent = T(SECTIONS().find(s => s[0] === id)[1]);
     const body = modal.querySelector('.cs-body');
     body.scrollTop = 0;
-    ({ av: renderAv, room: renderRoom, rec: renderRec, look: renderLook, keys: renderKeys, info: renderInfo })[id](body);
+    stopPreview();
+    return ({ av: renderAv, room: renderRoom, rec: renderRec, look: renderLook, keys: renderKeys, info: renderInfo })[id](body);
+  }
+
+  // ── 1.9.0: cerca nelle impostazioni ──────────────────────────────────────
+  // Elenco fisso: [sezione, voce, dove portare (selettore), parole in più]. Si cerca nella
+  // lingua dell'app, in italiano e nelle traduzioni; frecce + Invio, Esc svuota.
+  const INDEX = [
+    ['av', 'Microfono', '#csMic', 'mic microphone ingresso input'],
+    ['av', 'Livello', '#csMicBar', 'volume level meter'],
+    ['av', 'Videocamera', '#csCam', 'webcam camera video'],
+    ['av', 'Anteprima: solo tu ti vedi', '#csPreview', 'anteprima preview specchio io'],
+    ['av', 'Uscita audio (casse o cuffie)', '#csSpk', 'altoparlante speaker cuffie headphones output'],
+    ['av', 'Cancellazione dell\'eco', '#csAec', 'eco echo'],
+    ['av', 'Volume del microfono automatico', '#csAgc', 'agc gain automatico'],
+    ['av', 'Riduzione rumore avanzata (RNNoise)', '#csRnn', 'rumore noise rnnoise tastiera ventola'],
+    ['av', 'Specchia il mio video', '#csMirror', 'specchio mirror'],
+    ['room', 'Sala d\'attesa', '#csWait', 'lobby attesa waiting', true],
+    ['room', 'Blocca la stanza', '#csLock', 'lock blocca chiudi', true],
+    ['room', 'Possono condividere lo schermo', '#csGss', 'ospiti schermo screen share', true],
+    ['room', 'Tutti possono disegnare sullo schermo condiviso', '#csAnn', 'disegno annotazioni draw', true],
+    ['room', 'Silenzia tutti', '#csMuteAll', 'mute muto tutti', true],
+    ['room', 'Copia link d\'invito', '#csInvite', 'invito link invite', true],
+    ['rec', 'Qualità video', '.cs-radio-list', 'registrazione recording qualità bitrate'],
+    ['rec', 'Avvia / ferma registrazione', '#csRecGo', 'registra record'],
+    ['look', 'Tema', '#csTheme', 'scuro chiaro dark light theme'],
+    ['look', 'Vista', '#csLayout', 'griglia relatore grid layout'],
+    ['look', 'Risparmio dati', '#csDs', 'dati banda data saver'],
+    ['look', 'Camera di chi presenta', '#csScreenCam', 'presentazione schermo camera angolo affiancata'],
+    ['look', 'Suoni di notifica', '#csSnd', 'suoni sound notifiche'],
+    ['look', 'Lingua', '#csLang', 'lingua language english italiano'],
+    ['keys', 'Scorciatoie', '.cs-keys', 'tasti keyboard shortcut'],
+    ['info', 'Copia link', '#csCopy', 'link riunione'],
+    ['info', 'Qualità della connessione', '#csNet', 'rete network connessione'],
+    ['info', 'Versione', '.cs-info', 'versione version'],
+  ];
+  const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  let resIdx = 0, resList = [];
+  function hay(e) {
+    const tr = window.APP_TRANSLATIONS || {}, t = tr[e[1]] || {}, st = tr[(SECTIONS().find(x => x[0] === e[0]) || [])[1]] || {};
+    return norm([e[1], T(e[1]), t.en, t.fr, t.de, e[3], (SECTIONS().find(x => x[0] === e[0]) || [])[1], st.en, st.fr, st.de].join(' '));
+  }
+  function runSearch() {
+    const inp = modal.querySelector('#csSearch'), list = modal.querySelector('.cs-nav-list'), box = modal.querySelector('.cs-results');
+    const q = norm(inp.value);
+    if (!q) { box.classList.add('hidden'); list.classList.remove('hidden'); resList = []; return; }
+    const words = q.split(' ');
+    resList = INDEX.filter(e => (!e[4] || isHost()) && words.every(w => hay(e).split(' ').some(h => h.startsWith(w) || (w.length > 3 && h.includes(w)))));
+    resIdx = 0;
+    list.classList.add('hidden'); box.classList.remove('hidden');
+    box.innerHTML = resList.length
+      ? resList.map((e, i) => `<button type="button" class="cs-res${i === 0 ? ' on' : ''}" role="option" aria-selected="${i === 0}" data-i="${i}"><span>${esc(T(e[1]))}</span><small>${esc(T((SECTIONS().find(x => x[0] === e[0]) || [])[1] || ''))}</small></button>`).join('')
+      : `<div class="cs-res-none">${T('Nessuna impostazione trovata')}</div>`;
+  }
+  function moveRes(d) {
+    if (!resList.length) return;
+    resIdx = (resIdx + d + resList.length) % resList.length;
+    modal.querySelectorAll('.cs-res').forEach((b, i) => { b.classList.toggle('on', i === resIdx); b.setAttribute('aria-selected', i === resIdx ? 'true' : 'false'); if (i === resIdx) b.scrollIntoView({ block: 'nearest' }); });
+  }
+  async function goRes(i) {
+    const e = resList[i]; if (!e) return;
+    clearSearch();
+    await show(e[0]);
+    // le sezioni che caricano qualcosa (dispositivi) disegnano dopo: si aspetta il controllo
+    let el = null;
+    for (let k = 0; k < 20 && !(el = modal.querySelector('.cs-body ' + e[2])); k++) await new Promise(r => setTimeout(r, 100));
+    if (!el) return;
+    const row = el.closest('.cs-switch, .cs-field, .cs-group, .cs-preview') || el;
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.classList.remove('cs-flash'); void row.offsetWidth; row.classList.add('cs-flash');
+    setTimeout(() => row.classList.remove('cs-flash'), 1800);
+    const f = el.matches('input, select, button') ? el : el.querySelector('input, select, button');
+    try { f?.focus({ preventScroll: true }); } catch (_) { }
+  }
+  function clearSearch() {
+    const inp = modal?.querySelector('#csSearch'); if (!inp || !inp.value) return;
+    inp.value = ''; runSearch();
+  }
+  function bindSearch() {
+    const inp = modal.querySelector('#csSearch');
+    inp.placeholder = T('Cerca nelle impostazioni');
+    inp.setAttribute('aria-label', T('Cerca nelle impostazioni'));
+    inp.addEventListener('input', runSearch);
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); moveRes(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); moveRes(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); goRes(resIdx); }
+      else if (e.key === 'Escape' && inp.value) { e.preventDefault(); e.stopPropagation(); clearSearch(); }
+    });
+    modal.querySelector('.cs-results').addEventListener('click', (e) => { const b = e.target.closest('.cs-res'); if (b) goRes(+b.dataset.i); });
   }
 
   // ── Audio e video ────────────────────────────────────────────────────────
@@ -87,6 +185,11 @@
     const rnnOk = !!window.TdtNoise?.supported?.();
     const rnnOn = !!(window.TdtNoise?.enabled || window.TdtNoise?.wanted?.());
     body.innerHTML = `
+      <div class="cs-preview" id="csPreview">
+        <video autoplay muted playsinline></video>
+        <div class="cs-preview-off"><span class="cs-preview-off-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M15.5 12.5V17a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1.5M9.5 6h4a2 2 0 0 1 2 2v1l5-3v11"/></svg></span><span>${T('Videocamera spenta')}</span><button type="button" class="cs-btn cs-btn-accent" id="csPvOn">${T('Accendi')}</button></div>
+        <span class="cs-preview-tag">${T('Anteprima: solo tu ti vedi')}</span>
+      </div>
       <div class="cs-group">
         <div class="cs-field"><label for="csMic">Microfono</label><select id="csMic" class="cs-select">${opts(d.audioinput, micId, T('Microfono'))}</select></div>
         <div class="cs-meter-row"><span class="dp-lbl">Livello</span><div class="dp-meter"><i id="csMicBar"></i></div></div>
@@ -110,7 +213,28 @@
       const v = document.getElementById('video-local'); if (v) v.style.transform = e.target.checked ? 'scaleX(-1)' : 'none'; // 1.5.2: prima prendeva lo schermo condiviso
     });
     startMicMeter(body);
+    startPreview(body);
   }
+  // 1.9.0 — anteprima dal vivo della propria camera (con sfondo o effetto, com'è nel proprio riquadro)
+  let pvTimer = null;
+  function startPreview(body) {
+    stopPreview();
+    const box = body.querySelector('#csPreview'); if (!box) return;
+    const v = box.querySelector('video');
+    body.querySelector('#csPvOn')?.addEventListener('click', () => document.getElementById('btnCamera')?.click());
+    const sync = () => {
+      if (!box.isConnected) { stopPreview(); return; }
+      const lv = document.getElementById('video-local');
+      const off = document.getElementById('btnCamera')?.classList.contains('off') || !lv || !lv.srcObject;
+      box.classList.toggle('off', !!off);
+      if (!off && v.srcObject !== lv.srcObject) { v.srcObject = lv.srcObject; v.play?.().catch(() => { }); }
+      if (off && v.srcObject) v.srcObject = null;
+      v.style.transform = ls.get('tdt_mirror', '1') !== '0' ? 'scaleX(-1)' : 'none';
+    };
+    sync();
+    pvTimer = setInterval(sync, 700);
+  }
+  function stopPreview() { clearInterval(pvTimer); pvTimer = null; }
   let meterStop = null;
   function startMicMeter(body) {
     stopMicMeter();
@@ -213,6 +337,11 @@
         </div>
         ${sw('csDs', T('Risparmio dati'), !!window._tdDataSaver?.get(), T('Ricevi i video a bassa risoluzione: utile con connessioni lente o da telefono.'))}
       </div>
+      ${window.TdtScreenCam ? `<div class="cs-group">
+        <div class="cs-group-title">Camera di chi presenta</div>
+        <div class="cs-seg" id="csScreenCam">${window.TdtScreenCam.MODES.map(k => `<button type="button" data-v="${k}" class="${window.TdtScreenCam.getMode() === k ? 'on' : ''}"><span>${T(window.TdtScreenCam.LABEL[k])}</span></button>`).join('')}</div>
+        <small class="cs-hint">${T('Mentre qualcuno presenta: la sua camera dentro lo schermo condiviso (nell\'angolo, da spostare col mouse, o affiancata) oppure nella fila con gli altri. Vale anche per la registrazione.')}</small>
+      </div>` : ''}
       <div class="cs-group">
         <div class="cs-group-title">Suoni e lingua</div>
         ${sw('csSnd', T('Suoni di notifica'), !window.sounds?.muted, T('Ingressi, uscite, chat e reazioni.'))}
@@ -229,6 +358,11 @@
       const now = document.getElementById('videoGrid')?.dataset.spotlight === 'true';
       if (window.TdtLayout) window.TdtLayout.setMode(b.dataset.v === 'spot' ? 'sidebar' : 'grid'); // 1.8.0
       else if ((b.dataset.v === 'spot') !== now) document.getElementById('btnLayout')?.click();
+      renderLook(body);
+    });
+    body.querySelector('#csScreenCam')?.addEventListener('click', (e) => { // 1.9.0 (screencam.js)
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      window.TdtScreenCam?.setMode(b.dataset.v);
       renderLook(body);
     });
     body.querySelector('#csDs').addEventListener('change', () => window._tdDataSaver?.toggle());
@@ -272,7 +406,7 @@
     modal.classList.remove('hidden');
     show(sec || section);
   }
-  function close() { if (!modal) return; modal.classList.add('hidden'); stopMicMeter(); }
+  function close() { if (!modal) return; modal.classList.add('hidden'); stopMicMeter(); stopPreview(); clearSearch(); }
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnCallSettings')?.addEventListener('click', () => open());
