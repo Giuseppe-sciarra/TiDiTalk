@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.9.2
+
+The Docker build no longer depends on a setting npm is retiring.
+
+### Changed
+- **Node headers for native modules**: the Dockerfile copies the headers that
+  are already in the image into node-gyp's own cache
+  (`~/.cache/node-gyp/<version>`, with the `installVersion` read from npm's
+  node-gyp) instead of pointing node-gyp at them with `npm_config_nodedir`.
+  npm 11 warned that this variable "will stop working in the next major
+  version of npm": with npm 12 node-gyp would have gone back to downloading the
+  headers from unofficial-builds.nodejs.org, and the build would have failed
+  whenever that site is down (the better-sqlite3 problem fixed in 1.5.3). The
+  warning is gone. Today better-sqlite3 13.2 ships prebuilt binaries and
+  nothing compiles with node-gyp, but any native module that does (or a future
+  better-sqlite3 that compiles again) finds the headers without downloading
+
+### Tested
+- The Dockerfile rehearsed on Alpine with Node 26, with the Node header sites
+  unreachable and node-gyp forced to compile better-sqlite3 from source:
+  without the cache it fails trying to download the headers, with it it
+  compiles (SQLite 3.54.1) without downloading anything. Then the whole build
+  (mediasoup worker compiled on musl), bundle, prune and the runtime image
+  running the tests
+
+### Updating
+- Only the Dockerfile changed (plus version number and README): copy the patch
+  and run `docker compose up -d --build`
+
 ## 1.9.1
 
 Everything third-party brought up to date and kept there: the nightly update

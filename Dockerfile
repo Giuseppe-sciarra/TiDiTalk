@@ -5,13 +5,23 @@ FROM node:26-alpine AS builder
 RUN apk add --no-cache \
     python3 py3-pip make g++ gcc linux-headers udev
 
+# Header di Node per i moduli nativi che si compilano con node-gyp (oggi nessuno:
+# better-sqlite3 13.2 ha i binari già pronti; servono se uno torna a compilarsi): sono
+# GIÀ nell'immagine (/usr/local/include/node). Senza, node-gyp li scarica da
+# unofficial-builds.nodejs.org (l'immagine alpine punta lì) e, se quel sito non risponde,
+# la build fallisce (es. better-sqlite3 13.0.0/13.0.1: "gyp ERR! … FetchError … headers.tar.gz").
+# 1.9.2: si copiano dove node-gyp li cerca prima di scaricarli (~/.cache/node-gyp/<versione>
+# con il suo «installVersion», letto dal node-gyp di npm), invece della variabile
+# npm_config_nodedir: npm 11 avvisa che con npm 12 quella smette di funzionare.
+RUN v="$(node -p process.versions.node)" \
+ && iv="$(node -p "require('/usr/local/lib/node_modules/npm/node_modules/node-gyp/package.json').installVersion" 2>/dev/null || echo 11)" \
+ && d="${HOME:-/root}/.cache/node-gyp/$v" \
+ && mkdir -p "$d/include" \
+ && cp -a /usr/local/include/node "$d/include/" \
+ && echo "$iv" > "$d/installVersion" \
+ && echo "header di Node $v per node-gyp in $d (installVersion $iv)"
+
 WORKDIR /app/server
-# Header di Node per i moduli nativi: sono GIÀ nell'immagine (/usr/local/include/node).
-# Senza questa riga node-gyp li scarica da unofficial-builds.nodejs.org (l'immagine
-# alpine punta lì) e, se quel sito non risponde, la build fallisce anche quando non
-# c'è niente da compilare (es. better-sqlite3 13.0.0/13.0.1: "gyp ERR! configure
-# error … FetchError … headers.tar.gz").
-ENV npm_config_nodedir=/usr/local
 COPY server/package*.json server/bundle-entry.js ./
 # 1.9.1: npm 11 (con Node 26) lancia gli script d'installazione solo dei pacchetti in
 # "allowScripts" di package.json (better-sqlite3, mediasoup, esbuild: senza, mancherebbero
