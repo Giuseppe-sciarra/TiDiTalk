@@ -154,7 +154,7 @@ cloud, your branding.
   name in any of the app's languages, by section, or just "animals". **Your own
   accessories**: a logo or sticker (PNG) or a `.glb` model, placed on the head,
   forehead, eyes, nose, mouth or cheek. The classic 2D effects stay in their
-  own tab
+  own tab and use the same Face Landmarker
 - **Call settings window** with sections: audio & video devices with a **live
   camera preview**, room rules (hosts), recording quality, appearance,
   shortcuts, info — and a **search box** (arrows + Enter)
@@ -209,11 +209,14 @@ cd TiDiTalk
 cp .env.template .env
 nano .env        # at least: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USERS, SMTP_*
 
-# 2. Third-party assets (MediaPipe for backgrounds/effects and the 3D face
-#    effects, three.js, emoji images, background photos from Unsplash).
-#    Updating from 1.6.x: run setup-mediapipe.sh again for the 3D effects
-#    (and from 1.8.x for the new background model in 1.9.0)
+# 2. Third-party browser assets, always at their latest version (MediaPipe
+#    Tasks and models for face effects and backgrounds, three.js, RNNoise,
+#    emoji data, interface fonts, emoji images, background photos from
+#    Unsplash). The nightly update keeps them up to date by itself
 bash setup-mediapipe.sh
+bash setup-rnnoise.sh
+bash setup-emoji.sh      # needs Node.js, or Docker (a throwaway node container)
+bash setup-fonts.sh
 bash setup-effects.sh
 bash setup-backgrounds.sh
 
@@ -295,8 +298,9 @@ everything over to the new names.
 Every night `aggiorna-tutto.sh`:
 
 1. postpones if a meeting is in progress (3 × 15 minutes, then proceeds);
-2. downloads the latest `node:22-alpine` base image, so security fixes in Node
-   and Alpine (like the Brotli one of October 2026) actually arrive;
+2. downloads the latest `node:26-alpine` base image (Node 26 LTS since 1.9.1),
+   so security fixes in Node and Alpine (like the Brotli one of October 2026)
+   actually arrive;
 3. upgrades **every** dependency in `server/package.json` to its latest
    version, majors included, together with `package-lock.json`. This runs in a
    throwaway container that only gets those two files. A dependency with an
@@ -310,13 +314,18 @@ Every night `aggiorna-tutto.sh`:
    lock file and image — **automatic rollback**;
 6. updates **coturn** when a new image is out, with the same check and a
    return to the previous image if it doesn't stay up;
-   then refreshes the **third-party assets** (`setup-mediapipe.sh`,
-   `setup-effects.sh`, `setup-backgrounds.sh`) only when needed — the script
-   changed with a patch, or a file it downloaded is missing. It downloads into a
-   temporary folder and replaces files only if everything went fine: if a CDN
-   doesn't answer nothing is deleted or changed, and it tries again the next
-   night. Replaced files go to `backups/asset-*.tar.gz`. No code from GitHub,
-   versions stay pinned in the scripts;
+   then refreshes the **third-party browser assets** (`setup-mediapipe.sh`,
+   `setup-rnnoise.sh`, `setup-emoji.sh`, `setup-fonts.sh`, `setup-effects.sh`,
+   `setup-backgrounds.sh`): every night it asks for the latest versions
+   (`--versioni`, a few lookups, no downloads) and runs a script when a **new
+   version** of MediaPipe, three.js, RNNoise, emojibase, the Google fonts,
+   Twemoji or a model is out (majors included), when the script changed with a
+   patch, or when a file it downloaded is missing. It downloads into a temporary folder and replaces
+   files only if everything went fine: if a CDN or the npm registry doesn't
+   answer nothing is deleted or changed, and it tries again the next night
+   (after 3 nights in a row it's reported as an error). Replaced files go to
+   `backups/asset-*.tar.gz`, version changes are listed in the email. No code
+   from GitHub;
 7. sends the report: a table of what changed, tagged **major / minor /
    patch**, what happened (app, Node, coturn) and the exact command to go back;
 8. cleans Docker safely: keeps the last `UPDATE_KEEP_ROLLBACK` rollback images

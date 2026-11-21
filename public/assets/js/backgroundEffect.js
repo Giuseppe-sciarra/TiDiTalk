@@ -1,9 +1,8 @@
 // backgroundEffect.js — Sfondi virtuali
 // 1.9.0: separazione persona / sfondo rifatta.
 //   • MediaPipe Tasks ImageSegmenter (selfie_segmenter) in un worker
-//     (bg-worker.js), poi sulla pagina se il worker non va, e in ultimo il
-//     vecchio SelfieSegmentation se manca il modello nuovo (setup-mediapipe.sh
-//     non rilanciato): lo sfondo funziona comunque.
+//     (bg-worker.js), poi sulla pagina se il worker non va. (1.9.1: tolto il
+//     vecchio SelfieSegmentation, che Google non aggiorna più.)
 //   • Bordi più puliti: maschera a risoluzione più alta, curva che stringe la
 //     zona di passaggio (niente alone), media tra un fotogramma e l'altro
 //     (niente tremolio), un filo di sfumatura sul bordo.
@@ -54,7 +53,7 @@ function cleanMask(d, w, h) {
 
   // ── Separazione persona / sfondo (condivisa: si carica una volta sola) ────
   const seg = {
-    mode: null, delegate: null, worker: null, lm: null, legacy: null, busy: false, _init: null,
+    mode: null, delegate: null, worker: null, lm: null, busy: false, _init: null,
     onMask: null, cost: 0, initMs: 0, avg: 0, n: 0, small: false, _tried: null,
     init() {
       if (this._init) return this._init;
@@ -89,20 +88,14 @@ function cleanMask(d, w, h) {
               });
               try { this.lm = await make(pref); this.delegate = pref; }
               catch (e) { this.lm = await make('CPU'); this.delegate = 'CPU'; }
+              this._makeMain = make;
               this.mode = 'main';
             };
             if (window.tdMediapipeLock) await window.tdMediapipeLock(run); else await run();
           } catch (e) { console.warn('[sfondo] separazione nuova non disponibile:', e?.message); }
         }
-        if (!this.mode) {
-          // vecchio SelfieSegmentation (vendor/mediapipe_selfie): c'è sempre
-          if (typeof SelfieSegmentation === 'undefined') throw new Error('MediaPipe SelfieSegmentation non caricato');
-          const s = new SelfieSegmentation({ locateFile: (file) => `${VENDOR}/mediapipe_selfie/${file}` });
-          s.setOptions({ modelSelection: 1, selfieMode: false });
-          s.onResults((r) => this._legacyResult(r));
-          if (window.tdMediapipeLock) await window.tdMediapipeLock(() => s.initialize()); else await s.initialize();
-          this.legacy = s; this.mode = 'legacy'; this.delegate = 'legacy';
-        }
+        if (!this.mode) throw new Error(haveModel ? 'separazione persona / sfondo non disponibile su questo browser'
+                                                  : 'manca il modello degli sfondi (selfie_segmenter.tflite): lancia setup-mediapipe.sh');
         this.initMs = Math.round(performance.now() - t0);
         console.log(`[sfondo] separazione pronta: ${this.mode}/${this.delegate} in ${this.initMs} ms`);
       })().catch(e => { this._init = null; throw e; });
@@ -123,10 +116,6 @@ function cleanMask(d, w, h) {
         createImageBitmap(src, { resizeWidth: w, resizeHeight: h, resizeQuality: 'medium' })
           .then(bmp => this.worker.postMessage({ type: 'frame', bitmap: bmp, ts }, [bmp]))
           .catch(() => { this.busy = false; });
-        return;
-      }
-      if (this.mode === 'legacy') {
-        this.legacy.send({ image: src }).catch(() => { }).finally(() => { this.busy = false; });
         return;
       }
       // tasks sulla pagina
@@ -152,13 +141,21 @@ function cleanMask(d, w, h) {
       // i primi fotogrammi non contano: la prima volta la grafica prepara i suoi programmi (anche secondi)
       this.n++; if (this.n > 3) this.avg = this.n === 4 ? this.cost : this.avg * 0.8 + this.cost * 0.2;
       if (m && m.data && this.onMask) this.onMask({ kind: 'alpha', w: m.w, h: m.h, data: m.data });
-      if (this.n === 16) this._adapt();
+      // 1.9.1: sulla pagina un fotogramma lento blocca tutto (chiamata, chat): lì si decide
+      // prima, appena dopo il riscaldamento, se il conto è pesante
+      if (this.n === 16 || (this.mode === 'main' && this.n === 6 && this.avg > 150)) this._adapt();
     },
     // Scheda grafica lenta o finta (Chrome senza accelerazione: WebGL emulato) → il
     // calcolo "GPU" va più piano del processore: si prova la CPU e si tiene la più veloce.
     // Con la CPU ancora lenta si analizza un'immagine più piccola.
     async _adapt() {
-      if (this.mode !== 'worker') { if (this.avg > 60) this.small = true; return; }
+      if (this._adapting) return;
+      this._adapting = true;
+      try { await this._adapt2(); } finally { this._adapting = false; }
+    },
+    async _adapt2() {
+      // 1.9.1: anche sulla pagina (Safari prima della 17, senza worker) si prova la CPU
+      // quando la grafica è lenta: è l'unico ripiego rimasto, deve reggere da solo
       if (this.delegate === 'GPU' && this.avg > 70 && !this._tried) {
         this._tried = { GPU: this.avg };
         await this._reinit('CPU');
@@ -170,6 +167,17 @@ function cleanMask(d, w, h) {
       console.log(`[sfondo] separazione: ${this.delegate}, ${Math.round(this.avg)} ms per fotogramma${this.small ? ', immagine ridotta' : ''}`);
     },
     async _reinit(d) {
+      if (this.mode === 'main') {
+        try {
+          const old = this.lm;
+          const make = () => this._makeMain(d);
+          this.lm = window.tdMediapipeLock ? await window.tdMediapipeLock(make) : await make();
+          this.delegate = d;
+          try { old?.close?.(); } catch (_) { }
+          this.busy = false; this.n = 0; this.avg = 0;
+        } catch (e) { console.warn('[sfondo] cambio di calcolo non riuscito:', e?.message); }
+        return;
+      }
       const old = this.worker;
       try {
         await new Promise((resolve, reject) => {
@@ -185,9 +193,6 @@ function cleanMask(d, w, h) {
         try { old.terminate(); } catch (_) { }
         this.busy = false; this.n = 0; this.avg = 0;
       } catch (e) { console.warn('[sfondo] cambio di calcolo non riuscito:', e?.message); }
-    },
-    _legacyResult(r) {
-      if (r && r.segmentationMask && this.onMask) this.onMask({ kind: 'image', image: r.segmentationMask });
     },
   };
 
@@ -396,7 +401,7 @@ function cleanMask(d, w, h) {
     }
 
     _startLoop() {
-      const every = this._isMobile ? 90 : (seg.mode === 'legacy' ? 50 : 40);   // separazione: 11 / 20-25 al secondo
+      const every = this._isMobile ? 90 : 40;   // separazione: 11 / 25 al secondo
       let last = 0;
       const tick = () => {
         if (!this.sourceVideo || !this.ctx) return;
@@ -419,14 +424,6 @@ function cleanMask(d, w, h) {
     // maschera nuova: bordo stretto (curva) e media col fotogramma prima (niente tremolio)
     _onMask(m) {
       if (!this.sourceVideo) return;
-      if (m.kind === 'image') {
-        const im = m.image, w = im.width, h = im.height;
-        if (this._maskCanvas.width !== w || this._maskCanvas.height !== h) { this._maskCanvas.width = w; this._maskCanvas.height = h; }
-        this._maskCtx.clearRect(0, 0, w, h);
-        this._maskCtx.drawImage(im, 0, 0, w, h);
-        this._hasMask = true; this._maskKind = 'image'; this._maskSrc = this._maskCanvas;
-        return;
-      }
       const { w, h, data } = m;
       this._lastRaw = m;
       if (this._maskCanvas.width !== w || this._maskCanvas.height !== h || !this._maskImg) {

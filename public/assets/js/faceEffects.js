@@ -9,20 +9,22 @@ function _rnd(i, k = 0) { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5
  * Overlay AR vettoriali che si adattano alla geometria del viso.
  *
  * Tecniche:
- *   - MediaPipe FaceMesh 468 landmark (servito localmente da /assets/vendor/mediapipe/)
+ *   - 468 punti del viso dal Face Landmarker di MediaPipe Tasks (1.9.1: lo stesso degli
+ *     effetti 3D, nel worker di faceAR.js; prima c'era il FaceMesh vecchio, abbandonato)
  *   - Calcolo yaw/pitch/roll dai landmark per orientamento 3D
  *   - Scala adattiva basata sulla larghezza del viso (distanza tra le tempie)
  *   - Overlay disegnati su canvas con forme vettoriali (path + gradienti)
  *   - Deformazione prospettica leggera (skew su asse roll/yaw)
  *
  * Pipeline:
- *   camera → FaceMesh → canvas con overlay vettoriali → captureStream() → producer
+ *   camera → Face Landmarker → canvas con overlay vettoriali → captureStream() → producer
  */
 class FaceEffects {
   constructor() {
     this.active = null;
-    this.faceMesh = null;
     this.loaded = false;
+    this._trkSeen = -1;
+    this._pts = null;
     this.lastLandmarks = null;
     this.sourceVideo = null;
     this.sourceStream = null;
@@ -30,9 +32,8 @@ class FaceEffects {
     this.ctx = null;
     this.outputStream = null;
     this.rafId = null;
-    this._sendBusy = false;
     this._lastSend = 0;
-    this._sendInterval = 50;
+    this._sendInterval = 33;     // 1.9.1: il rilevamento gira nel worker, si può chiedere a 30 fps
     // ⭐ Color Styles: filtro colore applicato all'intero frame (stile Google Meet).
     // Indipendente dall'overlay: può essere attivo anche senza effetto viso.
     this.style = 'none';
@@ -137,54 +138,30 @@ class FaceEffects {
     ];
   }
 
-  // ─── Init MediaPipe (da asset locali) ─────────────────────────────────────
+  // ─── Rilevamento del viso (1.9.1) ─────────────────────────────────────────
+  // Lo stesso Face Landmarker (MediaPipe Tasks) degli effetti 3D, nel worker di
+  // faceAR.js: prima qui c'era il FaceMesh vecchio (@mediapipe/face_mesh, che Google
+  // non aggiorna più). I primi 468 punti sono gli stessi, nello stesso ordine.
   async _loadMediaPipe() {
     if (this.loaded) return;
-
-    const localBase = '/assets/vendor/mediapipe';
-
-    // Carica script principale
-    if (typeof FaceMesh === 'undefined') {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = `${localBase}/face_mesh.js`;
-        s.onload = res;
-        s.onerror = () => rej(new Error('Impossibile caricare face_mesh.js — esegui setup-mediapipe.sh'));
-        document.head.appendChild(s);
-      });
-    }
-
-    if (typeof FaceMesh === 'undefined') throw new Error('FaceMesh non disponibile');
-
-    this.faceMesh = new FaceMesh({
-      // Punta ai file locali
-      locateFile: (f) => `${localBase}/${f}`,
-    });
-    this.faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: false,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
-    this.faceMesh.onResults((results) => {
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        this.lastLandmarks = results.multiFaceLandmarks[0];
-      } else {
-        this.lastLandmarks = null;
-      }
-      this._sendBusy = false;
-    });
-
-    // 1.7.0: in fila con gli altri caricamenti MediaPipe (vedi tdMediapipeLock in faceAR.js)
-    if (window.tdMediapipeLock) await window.tdMediapipeLock(() => this.faceMesh.initialize());
-    else await this.faceMesh.initialize();
+    const trk = window.TdtFaceTracker;
+    if (!trk) throw new Error('rilevamento del viso non disponibile (faceAR.js non caricato)');
+    await trk.init();
+    this._trkSeen = -1;
     this.loaded = true;
   }
 
+  // punti del tracker (Float32Array x,y,z…) → [{x,y,z}] come li vuole il disegno
+  _toPoints(L) {
+    const n = Math.min(468, (L.length / 3) | 0);
+    if (!this._pts || this._pts.length !== n) this._pts = Array.from({ length: n }, () => ({ x: 0, y: 0, z: 0 }));
+    for (let i = 0; i < n; i++) { const q = this._pts[i]; q.x = L[i * 3]; q.y = L[i * 3 + 1]; q.z = L[i * 3 + 2]; }
+    return this._pts;
+  }
+
   async apply(stream) {
-    // 1.7.0: il FaceMesh vecchio serve solo agli effetti classici (emoji 2D);
-    // per quelli 3D c'è FaceAR, che si carica in setEffect. Qui lo si carica
-    // solo se un effetto classico è già selezionato, altrimenti al bisogno.
+    // Il rilevamento del viso si prepara qui solo se è già scelto un effetto
+    // classico; per quelli 3D ci pensa FaceAR in setEffect, altrimenti al bisogno.
     if (this.active && !FaceEffects.is3D(this.active)) await this._loadMediaPipe();
     this._stopPipeline();
 
@@ -310,15 +287,16 @@ class FaceEffects {
       }
       return;
     }
-    // 1.7.0: mentre un effetto 3D si prepara (this.ar non ancora pronto) qui non si deve
-    // caricare il FaceMesh vecchio: si mostra solo il video finché il 3D non è pronto
+    // mentre un effetto 3D si prepara (this.ar non ancora pronto) si mostra solo il video
     if (this.active && this.active !== 'none' && !FaceEffects.is3D(this.active)) {
       const now = performance.now();
       if (!this.loaded) { if (!this._mpLoading) { this._mpLoading = this._loadMediaPipe().catch(e => console.warn('[FaceEffects]', e)); } return; }
-      if (!this._sendBusy && now - this._lastSend >= this._sendInterval) {
-        this._sendBusy = true;
-        this._lastSend = now;
-        this.faceMesh.send({ image: v }).then(() => { this._sendBusy = false; }, () => { this._sendBusy = false; });
+      const trk = window.TdtFaceTracker;
+      if (now - this._lastSend >= this._sendInterval) { this._lastSend = now; trk.push(v, now); }
+      if (trk.version !== this._trkSeen) {
+        this._trkSeen = trk.version;
+        const L = trk.latest && trk.latest.lms;
+        this.lastLandmarks = L ? this._toPoints(L) : null;
       }
       if (this.lastLandmarks) {
         this._drawOverlay(this.ctx, this.lastLandmarks, w, h);

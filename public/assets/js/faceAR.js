@@ -47,12 +47,10 @@
      worker non blocca la pagina (connessione col server, chat, video). Se il
      browser non ha i worker a moduli si ricade sul thread principale.
      L'ultimo risultato è in tracker.latest = { lms, mtx, bs, names, ts }. */
-  /* MediaPipe vecchio (effetti classici, sfondi) e nuovo (Tasks, effetti 3D) usano la
-     stessa variabile globale "Module" mentre si caricano sulla pagina: il nuovo la svuota
-     a fine caricamento e il vecchio, se sta scaricando i suoi file in quel momento, si
-     rompe ("Module.dataFileDownloads"). Succede solo quando il rilevamento 3D gira sulla
-     pagina (Safari prima della 17: niente WebGL nel worker). I caricamenti si mettono in
-     fila: uno alla volta, al massimo 60 s di attesa per quello prima. */
+  /* I caricamenti di MediaPipe sulla pagina (rilevamento del viso e separazione dello
+     sfondo, quando il worker non va: Safari prima della 17) usano la stessa variabile
+     globale "Module": si mettono in fila, uno alla volta, al massimo 60 s di attesa per
+     quello prima. (Nato nella 1.7.0 per il MediaPipe vecchio, tolto nella 1.9.1.) */
   let _mpQueue = Promise.resolve();
   window.tdMediapipeLock = (fn) => {
     const prev = Promise.race([_mpQueue, new Promise(r => setTimeout(r, 60000))]);
@@ -149,6 +147,10 @@
       this.busy = false;
     },
   };
+
+  // 1.9.1: lo stesso rilevamento serve anche agli effetti classici 2D (faceEffects.js),
+  // che prima usavano il FaceMesh vecchio (@mediapipe/face_mesh, abbandonato da Google)
+  window.TdtFaceTracker = tracker;
 
   // nomi dei 52 blendshape ARKit (li usa anche MediaPipe) + alias comodi
   const BS_ALIAS = { smile: ['mouthSmileLeft', 'mouthSmileRight'], blink: ['eyeBlinkLeft', 'eyeBlinkRight'], browUp: ['browInnerUp', 'browOuterUpLeft', 'browOuterUpRight'] };

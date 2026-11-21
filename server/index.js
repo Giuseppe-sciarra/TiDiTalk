@@ -196,10 +196,13 @@ if (_corsOrigins.length > 0) {
 app.use(express.json({ inflate: false }));
 
 // Serve mediasoup-client dal bundle compilato in build
+// 1.9.1: tolto il ripiego sulla CDN (mediasoup-client 3.7.19 del 2021, e i pacchetti nuovi
+// quel file non ce l'hanno più): con Docker il bundle c'è sempre, senza si fa con
+// «npm run bundle-client» nella cartella server.
 app.get('/assets/js/mediasoup-client.min.js', (req, res) => {
   const p = path.join(__dirname, '../public/assets/js/mediasoup-client.min.js');
   if (fs.existsSync(p)) return res.sendFile(p);
-  res.redirect('https://cdn.jsdelivr.net/npm/mediasoup-client@3.7.19/lib/mediasoup-client.min.js');
+  res.status(503).type('text/plain').send('mediasoup-client.min.js mancante: ricostruisci con Docker oppure lancia «npm run bundle-client» nella cartella server');
 });
 
 // ⭐ FIX ordine middleware: il nosniff su /assets/uploads era registrato DOPO

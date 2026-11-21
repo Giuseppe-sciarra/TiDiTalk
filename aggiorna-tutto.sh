@@ -3,7 +3,7 @@
 # aggiorna-tutto.sh — aggiornamento AUTOMATICO di Tiditalk, ogni notte
 # ─────────────────────────────────────────────────────────────────────────────
 # Cosa aggiorna:
-#   • app: Node 22 all'ultima patch + Alpine (con l'immagine base node:22-alpine) e TUTTE le
+#   • app: Node 26 LTS all'ultima patch + Alpine (con l'immagine base node:26-alpine) e TUTTE le
 #     librerie di server/package.json all'ultima versione, major comprese
 #     (npm-check-updates --target latest), insieme al package-lock.json;
 #     le dipendenze con un limite (es. "mediasoup": ">=3.14 <4") restano come sono: è il
@@ -24,13 +24,15 @@
 #      va → ROLLBACK a package.json, package-lock.json e immagine di prima;
 #   5. stesso giro per coturn: riavvio solo se l'immagine è cambiata, controllo che resti
 #      su, altrimenti torna all'immagine di prima;
-#   6. asset di terze parti (1.9.0): setup-mediapipe.sh, setup-effects.sh e
-#      setup-backgrounds.sh girano SOLO quando serve — lo script è cambiato (es. dopo uno
-#      zip che porta un modello nuovo) o manca uno dei file che aveva scaricato. Scaricano
-#      in una cartella temporanea e i file veri si sostituiscono solo se è andato tutto
-#      bene (niente sfondi o effetti rotti se una CDN non risponde); i file sostituiti
-#      restano in backups/ per tornare indietro. Sono file delle CDN (MediaPipe, three.js,
-#      emoji, foto), con le versioni fissate negli script: niente codice da GitHub;
+#   6. asset di terze parti del browser (MediaPipe, three.js, RNNoise, emoji, font, Twemoji,
+#      foto): ogni notte chiede le ultime versioni (setup-*.sh --versioni, niente download) e
+#      lancia setup-mediapipe.sh, setup-rnnoise.sh, setup-emoji.sh, setup-fonts.sh,
+#      setup-effects.sh o setup-backgrounds.sh quando è uscita una versione nuova (major
+#      comprese, dalla 1.9.1), lo script è cambiato (es. dopo uno zip) o manca uno dei file
+#      che aveva scaricato. Scaricano in una cartella temporanea e i file veri si
+#      sostituiscono solo se è andato tutto bene (niente sfondi o effetti rotti se una CDN
+#      non risponde: resta tutto com'è e riprova la notte dopo); i file sostituiti restano
+#      in backups/ per tornare indietro. Sono file delle CDN, niente codice da GitHub;
 #   7. pulizia di Docker che non tocca le immagini di rollback;
 #   8. email di riepilogo in testo semplice, solo se qualcosa si è aggiornato o è fallito
 #      (cosa, librerie, cosa no e perché, comandi per tornare indietro), spedita da Tiditalk
@@ -329,7 +331,7 @@ log "versioni attuali: $BEFORE${ALPINE_PRIMA:+ · Alpine $ALPINE_PRIMA}"
 # 1. Immagine base: c'è una versione nuova? (Docker tiene in cache quella scaricata la
 #    prima volta: senza pull le correzioni di Node e di Alpine non arrivano mai)
 mapfile -t BASI < <(basi)
-[[ ${#BASI[@]} -gt 0 ]] || BASI=("node:22-alpine")
+[[ ${#BASI[@]} -gt 0 ]] || BASI=("node:26-alpine")
 BASE="${BASI[0]}"
 BASE_CAMBIATA=0
 for b in "${BASI[@]}"; do
@@ -574,45 +576,89 @@ mapfile -t TUTTI < <(docker compose config --services 2>/dev/null)
 for s in "${TUTTI[@]}"; do [[ "$s" == "$SERVICE" ]] || aggiorna_immagine "$s"; done
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Asset di terze parti (1.9.0): gli script setup-*.sh, solo quando serve
-#   • quando: lo script è cambiato rispetto all'ultima volta che è andato bene (una patch
-#     porta un modello nuovo o una versione nuova), oppure manca (o è vuoto) uno dei file
-#     che aveva scaricato. Al primo giro non c'è l'elenco: gira una volta per script.
+# Asset di terze parti (1.9.0, versioni nuove dalla 1.9.1): gli script setup-*.sh
+#   • ogni notte chiede le ultime versioni (setup-*.sh --versioni: poche domande al registro
+#     npm, a jsDelivr e a Google, niente download) e le confronta con quelle che ha già;
+#   • lancia lo script quando: è uscita una versione nuova (MediaPipe, three.js, RNNoise,
+#     emojibase, font di Google, Twemoji, un modello nuovo), lo script è cambiato (una patch
+#     porta foto o file nuovi), oppure manca
+#     (o è vuoto) uno dei file che aveva scaricato. Al primo giro gira una volta per script;
+#   • se non riesce a sapere le versioni (CDN o registro che non rispondono) non tocca niente
+#     e riprova la notte dopo; dopo 3 notti di fila lo segnala come errore nell'email;
 #   • come: lo script gira in una cartella temporanea (.agg-asset.*), con i suoi percorsi
 #     relativi; se esce con errore o scrive FALLITO/VUOTO non si tocca niente (riprova la
 #     notte dopo). Se è andato tutto bene si copiano solo i file nuovi o diversi; quelli
-#     sostituiti vanno prima in backups/asset-<script>-<data>.tar.gz.
-#   • l'elenco di quello che ha scaricato e l'impronta dello script stanno in .agg-asset-<nome>.
+#     sostituiti vanno prima in backups/asset-<script>-<data>.tar.gz;
+#   • l'impronta dello script, le versioni (righe «# ») e l'elenco dei file scaricati stanno
+#     in .agg-asset-<nome>;
 #   • non cancella MAI niente: se il download non va, o la CDN non ha più un file, quello
-#     che c'è resta com'è; i file che lo script non scarica più restano al loro posto.
+#     che c'è resta com'è; i file che lo script non scarica più restano al loro posto;
+#   • se si torna indietro col comando dell'email, la notte dopo non riaggiorna alla stessa
+#     versione: riprova solo quando ne esce un'altra (o se manca un file);
 #   • i file finiscono in cartelle che il compose monta da fuori (vendor, effects,
-#     backgrounds): nessuna ricostruzione, i browser li prendono alla prossima apertura.
+#     backgrounds): nessuna ricostruzione, i browser li prendono alla prossima apertura;
+#   • setup-emoji.sh prepara i file con Node.js: se sull'host non c'è usa un container usa e
+#     getta con l'immagine node che c'è già, senza rete.
 # ═════════════════════════════════════════════════════════════════════════════
 ASSET_TIMEOUT="$(pick AGG_ASSET_TIMEOUT)"; [[ "$ASSET_TIMEOUT" =~ ^[0-9]+$ ]] || ASSET_TIMEOUT=1800
+# $1 versioni di prima, $2 versioni di adesso (righe «nome versione») → righe «nome prima → dopo»
+cambi_versioni() {
+  awk 'function c(x) { return (length(x) > 24 ? substr(x, 1, 8) "…" : x) }
+       NR == FNR { if ($1 != "") p[$1] = $2; next }
+       $1 != "" && p[$1] != $2 { print $1 " " (p[$1] == "" ? "(nuovo)" : c(p[$1])) " → " c($2) }' \
+    <(printf '%s\n' "$1") <(printf '%s\n' "$2")
+}
 aggiorna_asset() {   # $1 script setup-*.sh
-  local sc="$1" nome impronta elenco motivo mancanti tmp rc lg nuovi=() diversi=() f bk n
-  nome="$(basename "$sc" .sh)"; elenco=".agg-asset-$nome"
+  local sc="$1" nome impronta elenco ko motivo mancanti tmp rc lg nuovi=() diversi=() f bk n
+  local ver_prima="" ver_ora="" ver_usate cambi="" k
+  nome="$(basename "$sc" .sh)"; elenco=".agg-asset-$nome"; ko=".agg-asset-$nome.ko"
   impronta=$(sha256sum "$sc" | cut -c1-16)
+  # ultime versioni a monte (gli script vecchi, senza --versioni, non le sanno dire)
+  if grep -q -- '--versioni' "$sc"; then
+    tmp=$(mktemp -d "$DIR/.agg-asset.XXXXXX") || { non_aggiornato "$sc: non riesco a creare la cartella temporanea" errore; return 0; }
+    cp "$sc" "$tmp/"
+    if ! ( cd "$tmp" && timeout 180 bash "./$(basename "$sc")" --versioni ) > "$tmp/.versioni" 2>&1; then
+      k=$(( $(cat "$ko" 2>/dev/null | grep -E '^[0-9]+$' || echo 0) + 1 ))
+      [[ $DRY_RUN == 1 ]] || echo "$k" > "$ko"
+      log "⚠ $sc: non riesco a sapere le ultime versioni (CDN o registro non rispondono): lascio tutto com'è, riprovo la notte dopo"
+      non_aggiornato "asset di $sc: non riesco a sapere se ci sono versioni nuove (CDN o registro npm non rispondono$( (( k > 1 )) && echo ", $k notti di fila")); i file restano come sono, riprova la notte dopo" \
+        "$( (( k >= 3 )) && echo errore || echo info)" "$(tr -d '\r' < "$tmp/.versioni" | grep -iE 'fallito|curl|timeout' | tail -n 5)"
+      rm -rf "$tmp"; return 0
+    fi
+    ver_ora=$(grep '^VERSIONE ' "$tmp/.versioni" | cut -d' ' -f2- | LC_ALL=C sort)
+    rm -rf "$tmp"; tmp=""
+    [[ $DRY_RUN == 1 ]] || rm -f "$ko"
+  fi
+  [[ -s "$elenco" ]] && ver_prima=$(grep '^# ' "$elenco" | cut -c3- | LC_ALL=C sort)
   motivo=""
   if [[ ! -s "$elenco" ]]; then motivo="primo giro"
   elif [[ "$(head -1 "$elenco")" != "$impronta" ]]; then motivo="lo script è cambiato"
+  elif [[ "$ver_ora" != "$ver_prima" ]]; then
+    if [[ -z "$ver_prima" ]]; then motivo="prima notte col controllo delle versioni"
+    else cambi=$(cambi_versioni "$ver_prima" "$ver_ora"); motivo="versione nuova: $(printf '%s\n' "$cambi" | paste -sd ';' | sed 's/;/, /g')"; fi
   else
-    mancanti=$(tail -n +2 "$elenco" | while IFS= read -r f; do [[ -s "$f" ]] || echo "$f"; done)
+    mancanti=$(tail -n +2 "$elenco" | grep -v '^# ' | while IFS= read -r f; do [[ -s "$f" ]] || echo "$f"; done)
     [[ -n "$mancanti" ]] && motivo="mancano $(printf '%s\n' "$mancanti" | grep -c .) file"
   fi
-  if [[ -z "$motivo" ]]; then log "$sc: asset a posto"; return 0; fi
+  if [[ -z "$motivo" ]]; then
+    log "$sc: asset a posto$([[ -n "$ver_ora" ]] && echo " ($(printf '%s\n' "$ver_ora" | paste -sd ';' | sed 's/;/, /g'))")"
+    return 0
+  fi
   if [[ $DRY_RUN == 1 ]]; then log "dry-run: lancerei $sc ($motivo) in una cartella temporanea"; return 0; fi
   log "$sc: lo lancio ($motivo)…"
   tmp=$(mktemp -d "$DIR/.agg-asset.XXXXXX") || { non_aggiornato "$sc: non riesco a creare la cartella temporanea" errore; return 0; }
   cp "$sc" "$tmp/"
   lg="logs/asset-$nome-$STAMP.log"
   ( cd "$tmp" && timeout "$ASSET_TIMEOUT" bash "./$(basename "$sc")" ) > "$lg" 2>&1; rc=$?
-  if [[ $rc != 0 ]] || grep -qE '(^|[[:space:]])(FALLITO|VUOTO)([[:space:]]|$)' "$lg" || [[ -z "$(cd "$tmp" && find public -type f -size +0 2>/dev/null | head -1)" ]]; then
+  if [[ $rc != 0 ]] || grep -qE '(^|[[:space:]])(FALLITO|VUOTO)([[:space:]:]|$)' "$lg" || [[ -z "$(cd "$tmp" && find public -type f -size +0 2>/dev/null | head -1)" ]]; then
     log "❌ $sc non è andato del tutto bene (codice $rc, $lg): non tocco i file di adesso"
     non_aggiornato "asset di $sc ($motivo): download non riuscito del tutto, restano i file di prima; riprova la notte dopo" errore \
       "$(tr -d '\r' < "$lg" | grep -iE 'fallito|vuoto|error|curl|timeout' | tail -n 8)"
     rm -rf "$tmp"; return 0
   fi
+  # le versioni scaricate davvero (se una è uscita proprio adesso vale quella)
+  ver_usate=$(grep '^VERSIONE ' "$lg" | cut -d' ' -f2- | LC_ALL=C sort)
+  [[ -n "$ver_usate" ]] || ver_usate="$ver_ora"
   # file nuovi o diversi (gli altri restano come sono: niente riscritture inutili)
   while IFS= read -r -d '' f; do
     f="${f#./}"
@@ -628,20 +674,25 @@ aggiorna_asset() {   # $1 script setup-*.sh
     mkdir -p "$(dirname "$f")"
     cp "$tmp/$f" "$f.agg-new" && mv -f "$f.agg-new" "$f"   # sostituzione atomica: mai un file a metà
   done
-  { echo "$impronta"; (cd "$tmp" && find public -type f -size +0 | LC_ALL=C sort); } > "$elenco"
+  { echo "$impronta"
+    printf '%s\n' "$ver_usate" | grep -v '^$' | sed 's/^/# /'
+    (cd "$tmp" && find public -type f -size +0 | LC_ALL=C sort); } > "$elenco"
   rm -rf "$tmp"
+  # le versioni cambiate davvero, nella sezione LIBRERIE AGGIORNATE dell'email
+  [[ -n "$ver_prima" ]] && cambi=$(cambi_versioni "$ver_prima" "$ver_usate")
   n=$(( ${#nuovi[@]} + ${#diversi[@]} ))
   if (( n )); then
     log "✅ $sc: ${#nuovi[@]} file nuovi, ${#diversi[@]} aggiornati ($motivo)"
     { for f in "${nuovi[@]}"; do echo "nuovo      $f"; done; for f in "${diversi[@]}"; do echo "aggiornato $f"; done; } > "logs/asset-$nome-$STAMP.txt"
     aggiornato "asset di terze parti, $sc: ${#nuovi[@]} file nuovi, ${#diversi[@]} aggiornati ($motivo; elenco in logs/asset-$nome-$STAMP.txt)"
+    [[ -n "$cambi" ]] && librerie "$(printf '%s\n' "$cambi" | sed 's/$/ (asset del browser)/')"
     [[ -n "${bk:-}" ]] && indietro "cd $DIR && tar xzf $bk"
   else
     log "$sc: scaricato tutto, già uguale a quello che c'era ($motivo)"
   fi
   return 0
 }
-for sc in setup-mediapipe.sh setup-effects.sh setup-backgrounds.sh; do
+for sc in setup-mediapipe.sh setup-rnnoise.sh setup-emoji.sh setup-fonts.sh setup-effects.sh setup-backgrounds.sh; do
   [[ -f "$sc" ]] && aggiorna_asset "$sc"
 done
 

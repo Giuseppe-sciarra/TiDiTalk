@@ -159,7 +159,8 @@
     if (emojiData && emojiLang === l) return Promise.resolve(emojiData);
     if (emojiLoading && emojiLang === l) return emojiLoading;
     emojiLang = l;
-    emojiLoading = fetch(`/assets/emoji/emoji-${l}.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    // 1.9.1: i file li prepara setup-emoji.sh (ultima versione di emojibase) in vendor/emoji
+    emojiLoading = fetch(`/assets/vendor/emoji/emoji-${l}.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(d => { emojiData = Array.isArray(d) ? d : []; return emojiData; })
       .catch(() => { emojiLoading = null; emojiData = null; throw new Error('load'); });
     return emojiLoading;

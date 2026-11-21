@@ -1,5 +1,103 @@
 # Changelog
 
+## 1.9.1
+
+Everything third-party brought up to date and kept there: the nightly update
+now follows the latest version of every browser library and asset, the
+abandoned MediaPipe solutions are gone, the server runs on Node 26 LTS with
+every npm dependency at its latest version.
+
+### Changed
+- **Nightly update takes new versions of every browser asset**, majors
+  included, like it already did for the npm libraries. Every night
+  `aggiorna-tutto.sh` asks each `setup-*.sh` for the latest versions
+  (`--versioni`: a few lookups to the npm registry, jsDelivr and Google, no
+  downloads) and runs it only when something new is out: MediaPipe Tasks
+  Vision, three.js, the Face Landmarker and selfie segmenter models, RNNoise,
+  emojibase, the Google fonts, Twemoji. Still all-or-nothing in a temporary
+  folder, never deletes anything, replaced files go to `backups/asset-*.tar.gz`
+  and version changes are listed under *Libraries updated* in the email. If a
+  CDN or the registry doesn't answer nothing is touched and it tries again the
+  next night (an error in the email after 3 nights in a row). After restoring a
+  backup with the command in the email it doesn't take the same version again:
+  it waits for the next one
+- **Classic 2D face effects** now use the same MediaPipe Face Landmarker as the
+  3D effects, in its Web Worker, instead of the old FaceMesh: same 468 points
+  (checked on the same frames: depth scale 1.00–1.02, ~5 px apart on 1280×720,
+  angles within 1–2°), detection at 30 fps instead of 20 without loading the
+  page
+- **Virtual backgrounds**: the old SelfieSegmentation fallback is gone; the
+  selfie segmenter runs in the worker or, without workers, on the page. On the
+  page it now also switches from a slow GPU to the CPU (like the worker
+  already did), deciding right after the warm-up frames so a weak graphics
+  card doesn't freeze the call
+- **Node 26 LTS** in the Docker image (was Node 22). npm 11 runs install
+  scripts only for packages listed in `allowScripts` of `server/package.json`:
+  `better-sqlite3`, `mediasoup` and `esbuild` are listed by name, so new
+  versions keep building. The browser bundle of mediasoup-client is built with
+  the locked esbuild, then dev dependencies are removed
+- **Server dependencies at their latest version**: mediasoup 3.32.2,
+  mediasoup-client 3.26.0, Express 5.3.0, better-sqlite3 13.2.0, Nodemailer
+  10.6.1, Socket.IO 4.8.4, dotenv 18.0.10 (the nightly update keeps doing it);
+  `engines.node` is now `>=22`
+- **Emoji picker** (reactions «+»): data from emojibase 18 (was 16), emoji up
+  to version 15.1 (was 14): 1895 emoji, with 🫠 🫨 and friends
+- **`setup-mediapipe.sh`** downloads only Tasks Vision (wasm files from the
+  package list: 1.2 dropped the "nosimd" ones), the two models from Google's
+  `latest` folder and three.js with the files its addons import, each with its
+  version in the URL. `TASKS_VER=… THREE_VER=…` hold a version by hand
+- **`setup-effects.sh`** downloads the latest Twemoji with its version in the
+  URL (`TW_VER=…` holds it)
+
+### Added
+- **`setup-rnnoise.sh`**: RNNoise (`@jitsi/rnnoise-wasm`) is downloaded instead
+  of living in the repository. The function names inside each wasm build are
+  read from the package's own glue into `rnnoise.names.json`, so a new build
+  works without code changes (output checked bit-for-bit against the old
+  worklet); without the file the 0.2.1 names are used. The browser no longer
+  keeps a stale wasm in its cache (`force-cache` removed)
+- **`setup-emoji.sh`**: builds the emoji picker data from the latest
+  emojibase-data with Node.js, or in a throwaway `node` container without
+  network when Node.js isn't on the host. Replaces `tools/build-emoji.py`
+  (same output, checked file by file)
+- **`setup-fonts.sh`**: Bricolage Grotesque (with its optical sizes, as before)
+  and Instrument Sans from Google Fonts, with their `fonts.css`
+
+### Removed
+- MediaPipe **FaceMesh** and **SelfieSegmentation** (`@mediapipe/face_mesh`,
+  `@mediapipe/selfie_segmentation`, abandoned by Google in 2021/2023): two
+  scripts fewer when the room page loads, ~29 MB less in the vendor folder. The folders
+  `public/assets/vendor/mediapipe` and `public/assets/vendor/mediapipe_selfie`
+  can be deleted
+- The **CDN fallback** for mediasoup-client (version 3.7.19 of 2021, a file the
+  new packages no longer have): without the bundle the server now says how to
+  build it
+- From the repository: `public/assets/fonts`, `public/assets/emoji`,
+  `public/assets/vendor/rnnoise` and `tools/build-emoji.py` — they are now
+  downloaded or built by the setup scripts into `public/assets/vendor/`
+- A duplicate `COPY` in the Dockerfile
+
+### Tested
+- The whole app on Node 26 with the new dependencies, MediaPipe Tasks 1.2.3
+  and three.js r187: virtual backgrounds (worker, page, without native blur),
+  2D effects compared with the old FaceMesh, 3D effects, your own accessories,
+  RNNoise, emoji picker and search, fonts, chat, screen camera, security and
+  the regression pass
+- The Dockerfile rehearsed without Docker on Alpine with Node 26: allowed
+  install scripts, mediasoup worker built from source on musl, better-sqlite3,
+  bundle, prune and the runtime image starting
+- The nightly update on a copy of a 1.9.0 production: first night after the
+  patch, nothing new, a new version, CDN down for several nights, a version
+  that can't be downloaded, a restored backup, a missing file, dry-run
+
+### Updating
+- Copy the patch and run `docker compose up -d --build` (Node 26 image: the
+  first build takes a few minutes, mediasoup compiles). The patch also brings
+  the new emoji data, fonts and RNNoise files in `public/assets/vendor/`. The
+  first night after it, the nightly update takes the new MediaPipe and
+  three.js by itself. Optional cleanup:
+  `rm -rf public/assets/vendor/mediapipe public/assets/vendor/mediapipe_selfie public/assets/fonts public/assets/emoji tools/build-emoji.py`
+
 ## 1.9.0
 
 Virtual backgrounds rebuilt, the presenter's camera inside the shared screen,

@@ -34,7 +34,13 @@
         ctx = new AudioContext({ sampleRate: 48000 });       // RNNoise lavora a 48 kHz
         ready = (async () => {
           await ctx.audioWorklet.addModule('/assets/js/rnnoise-worklet.js');
-          const wasm = await (await fetch('/assets/vendor/rnnoise/rnnoise.wasm', { cache: 'force-cache' })).arrayBuffer();
+          // 1.9.1: niente force-cache (dopo un aggiornamento notturno il browser terrebbe il
+          // .wasm vecchio); rnnoise.names.json dice i nomi delle funzioni di questa build
+          let names = null;
+          try { const r = await fetch('/assets/vendor/rnnoise/rnnoise.names.json', { cache: 'no-cache' }); if (r.ok) names = await r.json(); } catch { }
+          const wr = await fetch('/assets/vendor/rnnoise/rnnoise.wasm');
+          if (!wr.ok) throw new Error('rnnoise.wasm mancante (lancia setup-rnnoise.sh)');
+          const wasm = await wr.arrayBuffer();
           node = new AudioWorkletNode(ctx, 'tdt-rnnoise', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
           dest = ctx.createMediaStreamDestination();
           node.connect(dest);
@@ -44,7 +50,7 @@
               if (e.data?.ready) { clearTimeout(t); res(); }
               if (e.data?.error) { clearTimeout(t); rej(new Error(e.data.error)); }
             };
-            node.port.postMessage({ wasm }, [wasm]);
+            node.port.postMessage({ wasm, names }, [wasm]);
           });
         })();
         ready.catch(() => { try { ctx?.close(); } catch { } ctx = null; node = null; dest = null; ready = null; });

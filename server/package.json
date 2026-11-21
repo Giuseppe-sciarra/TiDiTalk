@@ -1,10 +1,10 @@
 {
   "name": "tiditalk",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Tiditalk — self-hosted video meetings (mediasoup SFU)",
   "main": "index.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node index.js",
@@ -12,14 +12,14 @@
     "bundle-client": "esbuild --bundle --platform=browser --format=iife --global-name=mediasoupClient --define:global=globalThis --minify --outfile=../public/assets/js/mediasoup-client.min.js bundle-entry.js"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "mediasoup": "^3.26.0",
-    "mediasoup-client": "^3.23.1",
-    "socket.io": "^4.8.3",
-    "dotenv": "^18.0.0",
+    "express": "^5.3.0",
+    "mediasoup": "^3.32.2",
+    "mediasoup-client": "^3.26.0",
+    "socket.io": "^4.8.4",
+    "dotenv": "^18.0.10",
     "cors": "^2.8.6",
-    "better-sqlite3": "^13.0.3",
-    "nodemailer": "^10.0.0",
+    "better-sqlite3": "^13.2.0",
+    "nodemailer": "^10.6.1",
     "bcryptjs": "^3.0.3"
   },
   "devDependencies": {
@@ -27,5 +27,10 @@
     "nodemon": "^3.1.14"
   },
   "license": "AGPL-3.0-or-later",
-  "author": "Giuseppe Sciarra — Tastiere Digitali"
+  "author": "Giuseppe Sciarra — Tastiere Digitali",
+  "allowScripts": {
+    "better-sqlite3": true,
+    "mediasoup": true,
+    "esbuild": true
+  }
 }

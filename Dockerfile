@@ -1,5 +1,6 @@
 # Tiditalk — self-hosted video meetings (AGPL-3.0-or-later)
-FROM node:22-alpine AS builder
+# 1.9.1: Node 26 (LTS «Lithium», era Node 22)
+FROM node:26-alpine AS builder
 
 RUN apk add --no-cache \
     python3 py3-pip make g++ gcc linux-headers udev
@@ -11,25 +12,31 @@ WORKDIR /app/server
 # c'è niente da compilare (es. better-sqlite3 13.0.0/13.0.1: "gyp ERR! configure
 # error … FetchError … headers.tar.gz").
 ENV npm_config_nodedir=/usr/local
-COPY server/package*.json ./
-RUN npm install --omit=dev --no-audit --no-fund --loglevel=error
+COPY server/package*.json server/bundle-entry.js ./
+# 1.9.1: npm 11 (con Node 26) lancia gli script d'installazione solo dei pacchetti in
+# "allowScripts" di package.json (better-sqlite3, mediasoup, esbuild: senza, mancherebbero
+# il modulo SQLite e il worker di mediasoup). Si installano anche le dipendenze di sviluppo
+# per fare il bundle con l'esbuild del lock, poi si tolgono.
+RUN npm install --no-audit --no-fund --loglevel=error
 
-# Bundle mediasoup-client per il browser tramite esbuild
+# Bundle mediasoup-client per il browser (come «npm run bundle-client»)
 # --format=iife + --global-name=mediasoupClient → crea window.mediasoupClient
 RUN npx esbuild \
     --bundle \
     --platform=browser \
     --format=iife \
     --global-name=mediasoupClient \
+    --define:global=globalThis \
     --minify \
     --outfile=/tmp/mediasoup-client.min.js \
-    node_modules/mediasoup-client/lib/index.js
+    bundle-entry.js \
+ && npm prune --omit=dev --no-audit --no-fund --loglevel=error
 
 # Runtime stage
-FROM node:22-alpine
+FROM node:26-alpine
 
 # 1.8.9: Node con la correzione della falla Brotli (CVE-2026-111497, ottobre 2026:
-# 22.23.4 / 24.22.1 / 26.12.1). Docker tiene in cache l'immagine node:22-alpine
+# 22.23.4 / 24.22.1 / 26.12.1). Docker tiene in cache l'immagine node:26-alpine
 # scaricata la prima volta: se è quella vecchia la build si ferma qui e dice cosa fare.
 RUN node -e "const [a,b,c]=process.versions.node.split('.').map(Number); const min={22:[23,4],24:[22,1],26:[12,1]}[a]; if (min && (b<min[0] || (b===min[0] && c<min[1]))) { console.error('\n  Node '+process.versions.node+' ha la falla Brotli (CVE-2026-111497).\n  Ricostruisci scaricando la nuova immagine di Node:  docker compose build --pull\n'); process.exit(1); }"
 
@@ -43,12 +50,11 @@ ENV NPM_CONFIG_OMIT=dev
 ENV NODE_ENV=production
 
 COPY --from=builder /app/server/node_modules ./server/node_modules
-COPY --from=builder /tmp/mediasoup-client.min.js ./public/assets/js/mediasoup-client.min.js
 
 COPY server/ ./server/
 COPY public/  ./public/
 
-# Ripristina il bundle (COPY public/ non deve sovrascriverlo se non c'era)
+# il bundle appena fatto (quello di public/ nel repository serve solo senza Docker)
 COPY --from=builder /tmp/mediasoup-client.min.js ./public/assets/js/mediasoup-client.min.js
 
 WORKDIR /app/server

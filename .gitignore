@@ -12,8 +12,7 @@ public/assets/uploads/*
 # Asset di terze parti scaricati dagli script di setup
 public/assets/vendor/*
 !public/assets/vendor/.gitkeep
-# RNNoise (WebAssembly, ~110 KB) sta nel repo: non viene scaricato da nessuno script
-!public/assets/vendor/rnnoise/
+# (dalla 1.9.1 anche RNNoise, emoji e font: setup-rnnoise.sh, setup-emoji.sh, setup-fonts.sh)
 public/assets/effects/*.png
 # foto degli sfondi (setup-backgrounds.sh)
 public/assets/backgrounds/*.jpg

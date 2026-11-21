@@ -161,7 +161,8 @@ tuo marchio.
   effetto per nome in tutte le lingue dell'app, per sezione o semplicemente
   «animali». **Accessori personali**: un logo o uno sticker (PNG) o un modello
   `.glb`, sopra la testa, sulla fronte, sugli occhi, sul naso, sulla bocca o
-  sulla guancia. Gli effetti 2D classici restano nella loro scheda
+  sulla guancia. Gli effetti 2D classici restano nella loro scheda e usano lo
+  stesso Face Landmarker
 - **Finestra Impostazioni della chiamata** a sezioni: dispositivi audio e
   video con **anteprima dal vivo della camera**, regole della stanza
   (organizzatori), qualità registrazione, aspetto, scorciatoie, info — e una
@@ -218,11 +219,14 @@ cd TiDiTalk
 cp .env.template .env
 nano .env        # almeno: SERVER_SECRET, BASE_URL, ANNOUNCED_IP, TURN_*, USERS, SMTP_*
 
-# 2. Asset di terze parti (MediaPipe per sfondi/effetti e per gli effetti
-#    viso 3D, three.js, immagini emoji, foto degli sfondi da Unsplash).
-#    Aggiornando dalla 1.6.x: rilancia setup-mediapipe.sh per gli effetti 3D
-#    (e dalla 1.8.x per il nuovo modello degli sfondi della 1.9.0)
+# 2. Asset di terze parti del browser, sempre all'ultima versione (MediaPipe
+#    Tasks e modelli per effetti viso e sfondi, three.js, RNNoise, dati delle
+#    emoji, font dell'interfaccia, immagini emoji, foto degli sfondi da
+#    Unsplash). L'aggiornamento notturno li tiene aggiornati da solo
 bash setup-mediapipe.sh
+bash setup-rnnoise.sh
+bash setup-emoji.sh      # serve Node.js, oppure Docker (un container node usa e getta)
+bash setup-fonts.sh
 bash setup-effects.sh
 bash setup-backgrounds.sh
 
@@ -306,9 +310,9 @@ nuovi.
 Ogni notte `aggiorna-tutto.sh`:
 
 1. se c'è una riunione in corso rimanda (3 volte da 15 minuti, poi procede);
-2. scarica l'ultima immagine di base `node:22-alpine`: così arrivano le
-   correzioni di sicurezza di Node e di Alpine (come quella di Brotli di
-   ottobre 2026), che prima non arrivavano mai;
+2. scarica l'ultima immagine di base `node:26-alpine` (Node 26 LTS dalla
+   1.9.1): così arrivano le correzioni di sicurezza di Node e di Alpine (come
+   quella di Brotli di ottobre 2026), che prima non arrivavano mai;
 3. porta **tutte** le dipendenze di `server/package.json` all'ultima versione,
    major comprese, con il `package-lock.json`. Il calcolo gira in un container
    usa e getta dove entrano solo quei due file. Una dipendenza con un limite
@@ -322,13 +326,17 @@ Ogni notte `aggiorna-tutto.sh`:
    immagine precedenti — **rollback automatico**;
 6. aggiorna **coturn** se è uscita un'immagine nuova, con lo stesso controllo e
    ritorno all'immagine di prima se non resta su;
-   poi gli **asset di terze parti** (`setup-mediapipe.sh`, `setup-effects.sh`,
-   `setup-backgrounds.sh`) solo quando serve — lo script è cambiato con una
-   patch, o manca un file che aveva scaricato. Scarica in una cartella
-   temporanea e sostituisce i file solo se è andato tutto bene: se una CDN non
-   risponde non cancella e non cambia niente, e riprova la notte dopo. I file
-   sostituiti vanno in `backups/asset-*.tar.gz`. Niente codice da GitHub, le
-   versioni restano quelle fissate negli script;
+   poi gli **asset di terze parti del browser** (`setup-mediapipe.sh`,
+   `setup-rnnoise.sh`, `setup-emoji.sh`, `setup-fonts.sh`, `setup-effects.sh`,
+   `setup-backgrounds.sh`): ogni notte chiede le ultime versioni (`--versioni`,
+   poche domande, niente download) e lancia uno script quando è uscita una
+   **versione nuova** di MediaPipe, three.js, RNNoise, emojibase, dei font di
+   Google, di Twemoji o di un modello (major comprese), quando lo script è
+   cambiato con una patch o quando manca un file che aveva scaricato. Scarica in una cartella temporanea e sostituisce i file
+   solo se è andato tutto bene: se una CDN o il registro npm non rispondono non
+   cancella e non cambia niente, e riprova la notte dopo (dopo 3 notti di fila
+   lo segnala come errore). I file sostituiti vanno in `backups/asset-*.tar.gz`,
+   i cambi di versione sono nell'email. Niente codice da GitHub;
 7. manda il riepilogo: tabella di cosa è cambiato con etichetta
    **major / minor / patch**, cosa è successo (app, Node, coturn) e il comando
    esatto per tornare indietro;

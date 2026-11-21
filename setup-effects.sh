@@ -3,14 +3,31 @@
 # Scarica i PNG Twemoji per gli effetti viso dalla CDN jsDelivr.
 # Licenza Twemoji: CC-BY 4.0 (Twitter Inc. + contributors) + MIT per il codice.
 #
+# 1.9.1: prende SEMPRE l'ultima versione di Twemoji e la scarica con la versione scritta per
+# esteso nell'indirizzo. L'aggiornamento notturno (aggiorna-tutto.sh) chiede ogni notte
+# l'ultima versione con --versioni e rilancia lo script solo se ne è uscita una nuova.
+# Per fermarla a mano: TW_VER=17.0.3 bash setup-effects.sh
+#
 # Uso:
 #   chmod +x setup-effects.sh
-#   ./setup-effects.sh
+#   ./setup-effects.sh              # scarica tutto
+#   ./setup-effects.sh --versioni   # dice solo l'ultima versione («VERSIONE twemoji x.y.z»)
 
 set -e
 
 DEST_DIR="public/assets/effects"
-BASE_URL="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72"
+TW_VER="${TW_VER:-latest}"
+if [ "$TW_VER" = latest ]; then
+  TW_VER=$(curl -fsSL --retry 2 --retry-delay 3 -m 20 "https://data.jsdelivr.com/v1/packages/gh/jdecked/twemoji/resolved?specifier=latest" 2>/dev/null \
+    | grep -o '"version":[[:space:]]*"[^"]*"' | head -1 | sed -E 's/.*"([^"]*)"$/\1/')
+fi
+if [[ ! "$TW_VER" =~ ^[0-9A-Za-z._+-]+$ ]]; then
+  echo "FALLITO: non riesco a sapere l'ultima versione di Twemoji (jsDelivr non raggiungibile?)"
+  exit 1
+fi
+echo "VERSIONE twemoji $TW_VER"
+[ "${1:-}" = "--versioni" ] && exit 0
+BASE_URL="https://cdn.jsdelivr.net/gh/jdecked/twemoji@${TW_VER}/assets/72x72"
 
 echo "→ Creo directory: $DEST_DIR"
 mkdir -p "$DEST_DIR"
@@ -80,7 +97,7 @@ DOWNLOAD() {
   local url="$1"
   local out="$2"
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$url" -o "$out"
+    curl -fsSL --retry 2 --retry-delay 3 "$url" -o "$out"
   elif command -v wget >/dev/null 2>&1; then
     wget -q "$url" -O "$out"
   else
