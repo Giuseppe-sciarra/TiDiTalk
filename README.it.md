@@ -212,7 +212,7 @@ tuo marchio.
 ## Installazione
 
 ```bash
-git clone https://github.com/Giuseppe-sciarra/TiDiTalk.git
+git clone https://github.com/tastieredigitali/TiDiTalk.git
 cd TiDiTalk
 
 # 1. Configurazione

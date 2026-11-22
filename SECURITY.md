@@ -17,7 +17,7 @@ version, update first and check whether the problem is still there.
 **Please do not open a public issue, discussion or pull request for a
 security problem.** Report it privately instead:
 
-👉 **[Report a vulnerability](https://github.com/Giuseppe-sciarra/TiDiTalk/security/advisories/new)**
+👉 **[Report a vulnerability](https://github.com/tastieredigitali/TiDiTalk/security/advisories/new)**
 (GitHub private vulnerability reporting — only the maintainer can see it)
 
 A useful report contains:
@@ -90,7 +90,7 @@ c'è ancora.
 **Non aprire una issue, una discussione o una pull request pubblica.**
 Segnala in privato da qui:
 
-👉 **[Segnala una vulnerabilità](https://github.com/Giuseppe-sciarra/TiDiTalk/security/advisories/new)**
+👉 **[Segnala una vulnerabilità](https://github.com/tastieredigitali/TiDiTalk/security/advisories/new)**
 (segnalazione privata di GitHub: la vede solo il manutentore)
 
 Indica la versione (in basso su ogni pagina), cosa può fare un attaccante e

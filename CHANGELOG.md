@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.3
+
+The repository moved to the tastieredigitali organization.
+
+### Changed
+- **Source link**: `server/brand.js` and `.env.template` point to
+  `github.com/tastieredigitali/TiDiTalk`, as do README and SECURITY.
+
 ## 1.9.2
 
 The Docker build no longer depends on a setting npm is retiring.

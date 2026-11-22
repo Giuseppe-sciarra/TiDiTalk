@@ -13,7 +13,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '
 
 // Repository ufficiale del progetto: se pubblichi una versione MODIFICATA
 // devi far puntare SOURCE_URL (in .env) al TUO sorgente (AGPL-3.0 §13).
-const UPSTREAM_REPO = 'https://github.com/Giuseppe-sciarra/TiDiTalk';
+const UPSTREAM_REPO = 'https://github.com/tastieredigitali/TiDiTalk';
 
 const DEFAULT_LOGO = '/assets/images/brand-mark.svg';
 const HEX6 = /^#[0-9a-f]{6}$/i;
